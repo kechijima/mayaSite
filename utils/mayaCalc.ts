@@ -1,10 +1,18 @@
-// Simplified Tzolkin (260-day sacred calendar) calculator for demo purposes.
-// Uses 1987-08-16 = KIN 1 (Red Dragon, tone 1) as the correlation anchor,
-// the date widely published as the start of the modern Dreamspell count.
-// This is not a certified/authoritative correlation — good enough for a
-// demo diagnosis, worth revisiting if exact traditional accuracy matters.
-const EPOCH_KIN_1 = Date.UTC(1987, 7, 16)
-const DAY_MS = 86_400_000
+// Tzolkin (260-day sacred calendar) KIN calculator, matching the "KIN早見表"
+// (quick-reference table) method used by mainstream Japanese マヤ暦占い sites
+// — e.g. https://unkoi.com/special/mayareki/ — rather than a Dreamspell/GMT
+// astronomical correlation. This table method advances the KIN base by
+// exactly 365 days per calendar year (never 366, even across real leap
+// years), then applies an isolated +1 correction only for people born in
+// March–December of a leap year (to account for that year's own Feb 29).
+// It is NOT a continuous real-day count — verified byte-for-byte against
+// unkoi.com's published 早見表 grid (216 cells, year/month → base value)
+// and all 3 of their worked examples (2014-02-05→KIN98, 1966-02-20→KIN13,
+// 1964-03-05→KIN77) before being encoded here.
+const REFERENCE_YEAR = 1910
+const REFERENCE_JAN_VALUE = 62 // table's base value for January of 1910 (and every +52-year multiple)
+const YEAR_STEP = 105 // 365 mod 260 — constant per calendar year, leap years included
+const CUMULATIVE_DAYS_BEFORE_MONTH = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334] // non-leap, Jan–Dec
 
 export interface KinInfo {
   kin: number // 1-260
@@ -14,10 +22,26 @@ export interface KinInfo {
   occultSealIndex: number // 0-19, simplified "hidden power" counterpart seal
 }
 
+function mod(n: number, m: number): number {
+  return ((n % m) + m) % m
+}
+
+function isLeapYear(year: number): boolean {
+  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
+}
+
 export function dateToKin(date: Date): number {
-  const utcMidnight = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
-  const daysDiff = Math.floor((utcMidnight - EPOCH_KIN_1) / DAY_MS)
-  return (((daysDiff % 260) + 260) % 260) + 1
+  const year = date.getFullYear()
+  const month = date.getMonth() // 0-11
+  const day = date.getDate()
+
+  const janValue = mod(REFERENCE_JAN_VALUE - 1 + YEAR_STEP * (year - REFERENCE_YEAR), 260) + 1
+  const monthValue = mod(janValue - 1 + CUMULATIVE_DAYS_BEFORE_MONTH[month], 260) + 1
+
+  let kin = monthValue + day
+  if (isLeapYear(year) && month >= 2) kin += 1 // month index 2 = March
+  if (kin > 260) kin -= 260
+  return kin
 }
 
 export function kinInfo(kin: number): KinInfo {
