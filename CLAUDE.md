@@ -1,0 +1,60 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project overview
+
+"マヤ暦占い" (Maya Calendar Fortune-Telling) — a Nuxt 3 site that calculates a visitor's KIN from their birthdate and reveals an increasingly deep reading behind a paywall. Requirements are documented in Japanese at [docs/要件定義.md](docs/要件定義.md); `docs/参考画像.png` and [mockup/maya-mockup.html](mockup/maya-mockup.html) are visual references for the target design (a static HTML mockup covering the free/paid views and the admin console — not wired to the app, but the source of truth for styling intent).
+
+**Current state: the KIN diagnosis + its CMS content are real and Firestore-backed; membership/payment is still a prototype.** `useMembership` (plan state) is still `localStorage`-only, and "checkout"/"cancel" just flip that local state after a `setTimeout` — no Stripe, no auth. But 太陽の紋章/ウェイブスペル/銀河の音 body text is genuinely stored in and served from Firestore (see "Diagnosis content (Firestore)" below), and [pages/admin/content.vue](pages/admin/content.vue) writes for real through a Nuxt server route. デイサイン/トレセーナ/古代マヤ暦全書 and [pages/admin/index.vue](pages/admin/index.vue)/[pages/admin/users.vue](pages/admin/users.vue) are still static mocks. **`/admin/**` has zero auth/authorization anywhere** (including the content-save API route) — a known, explicitly-accepted gap until the custom-claims middleware from requirements doc §4.1 is built; don't "fix" this unilaterally without discussing scope, but do flag it if you touch anything nearby.
+
+## Commands
+
+```bash
+npm run dev       # start dev server (nuxt dev)
+npm run build     # production build (Nitro `firebase` preset — outputs .output/server for Cloud Functions gen2 + .output/public for Hosting)
+npm run preview   # preview a build
+
+npm run seed:content   # seed the diagnosisContent collection into the REAL Firestore project — requires FIREBASE_SERVICE_ACCOUNT_KEY in .env
+```
+
+No test runner, linter, or formatter is configured in this repo yet.
+
+## Architecture
+
+### Diagnosis pipeline
+`birthdate` → [utils/mayaCalc.ts](utils/mayaCalc.ts) → [utils/mayaData.ts](utils/mayaData.ts) → [composables/useDiagnosis.ts](composables/useDiagnosis.ts) (+ [composables/useDiagnosisContent.ts](composables/useDiagnosisContent.ts) for DB text) → [pages/result.vue](pages/result.vue).
+
+- `mayaCalc.ts`'s `dateToKin()` replicates the "KIN早見表" (quick-reference table) method used by mainstream Japanese マヤ暦占い sites — e.g. https://unkoi.com/special/mayareki/ — **not** a Dreamspell/GMT astronomical correlation. It advances the KIN base by exactly 365 days per calendar year (never 366, even across real leap years), with an isolated +1 correction only for people born March–December of a leap year. This was reverse-engineered and verified byte-for-byte against that site's published 早見表 grid (216 cells) and all 3 of its worked examples before being encoded — see the file's header comment before touching the constants (`REFERENCE_YEAR`/`REFERENCE_JAN_VALUE`/`YEAR_STEP`/`CUMULATIVE_DAYS_BEFORE_MONTH`). `kinInfo()` then derives `sealIndex` (0–19, one of 20 day-signs/紋章), `toneIndex` (0–12, one of 13 galactic tones/音), `wavespellSealIndex` (the seal opening the current 13-day wavespell), and `occultSealIndex` (`sealIndex + 10`, the "hidden power" counterpart seal) — these are universal mod-20/mod-13 relationships independent of the date→KIN correlation, so they didn't need to change when the correlation was fixed.
+- `mayaData.ts` holds the static *structural* tables: `SEALS` (20 day-signs with name/english/keyword/essence) and `TONES` (13 tones), plus `sealColor()` mapping a seal index to its 4-color cycle (red/white/blue/yellow) used for glyph styling. `SEALS[i].essence`/`TONES[i].keyword` are also the seed source for Firestore content (see below) — treat them as the canonical names/keywords, but not as the editable body copy anymore.
+- `useDiagnosis(input)` combines a birth KIN and today's KIN into the reading sections shown on the result page: `sun` (太陽の紋章, birth seal), `wavespell` (ウェイブスペル, potential), `tone` (銀河の音, birth tone), `daysign` (デイサイン, hidden pattern — `occultSealIndex`), and `tresena` (トレセーナ, current 13-day cycle based on *today's* date, not birthdate). Each of `sun`/`wavespell`/`tone` carries a hardcoded `.text` template string that now serves only as the **fallback** shown before/without Firestore content — see below.
+
+### Diagnosis content (Firestore)
+太陽の紋章/ウェイブスペル/銀河の音 body text lives in Firestore, collection `diagnosisContent`, one doc per fixed slot with a deterministic ID: `sun-{0..19}`, `wavespell-{0..19}`, `tone-{0..12}` (matching `sealIndex`/`wavespellSealIndex`/`toneIndex`). Fields: `type`, `index`, `name`, `freeText` (the displayed body — `premiumText` is unused, kept only for schema parity), `status` (`'公開' | '下書き'`), `updatedAt`. デイサイン/トレセーナ/古代マヤ暦全書 are **not** in this collection — they don't fit the flat freeText/premiumText shape (daysign/tresena are derived indices into the same SEALS/TONES rather than independent content; 古代マヤ暦全書 is a bespoke multi-card structure) and would need their own schema if ever CMS-ified.
+
+- [composables/useDiagnosisContent.ts](composables/useDiagnosisContent.ts) fetches the 3 relevant docs client-side only (`useAsyncData(..., { server: false, lazy: true })`, via the client Firestore SDK) given the already-computed indices. A missing doc, or one with `status !== '公開'`, resolves to `null` — callers must fall back to `useDiagnosis`'s hardcoded `.text` (see `pages/result.vue`'s `sunText`/`wavespellText`/`toneText` computeds) so the page is never blank.
+- Admin editing happens in [pages/admin/content.vue](pages/admin/content.vue): reads the whole collection client-side (only 53 docs, no query needed), but **saves go through [server/api/admin/content/[id\].put.ts](server/api/admin/content/[id].put.ts)** using `firebase-admin` (via [server/utils/firebaseAdmin.ts](server/utils/firebaseAdmin.ts)), never direct client writes — [firestore.rules](firestore.rules) enforces `allow read: if true; allow write: if false` on this collection for exactly that reason. There is no "create new content" concept — all 53 slots are fixed and pre-enumerated from `SEALS`/`TONES`; only `freeText`/`premiumText`/`status` are editable, never `type`/`index`/`name`.
+- [scripts/seedContent.ts](scripts/seedContent.ts) (`npm run seed:content`) populates the initial 53 docs — `sun-*` from `SEALS[i].essence` verbatim (`status: '公開'`, already-shipped copy), `wavespell-*`/`tone-*` from placeholder text authored in that script (`status: '下書き'`, meant to be reviewed/rewritten via the admin UI before publishing). It skips docs that already exist unless run with `--force`, so re-running it won't clobber admin edits.
+
+### Membership / paywall gating
+[composables/useMembership.ts](composables/useMembership.ts) defines the plan model: `MembershipPlan = 'free' | 'light' | 'standard' | 'premium'` with `PLAN_RANK` giving each an ordinal (0–3). State lives in a shared `useState('membership-plan')`, persisted to `localStorage` (`hydrate()` is called once from [app.vue](app.vue) on mount — client-only, guarded by `import.meta.client`).
+
+Content sections unlock progressively by comparing `rank` against a threshold (see [pages/result.vue](pages/result.vue)): デイサイン needs rank ≥ 1 (light), トレセーナ needs rank ≥ 2 (standard), 古代マヤ暦全書 (compendium) needs rank ≥ 3 (premium). 太陽の紋章 and ウェイブスペル are always free. Locked sections render their real content wrapped in [components/LockedVeil.vue](components/LockedVeil.vue) (CSS blur + upsell overlay) — again, a client-only placeholder for what must become server-side gating.
+
+[pages/result.vue](pages/result.vue) has a fixed-position "検証用" (verification-only) plan switcher at the bottom of the screen that calls `setPlan()` directly — this is a demo affordance for QA, not a real feature; don't treat it as a spec for the eventual paid flow.
+
+### Two visual worlds
+The app deliberately uses two unrelated design systems, matching the mockup:
+- **Public/user pages** (`/`, `/result`, `/account`; `layouts/default.vue`) use the "mystical" black-and-gold theme: `bg-ink-950`, `text-parchment-100`, `gold-*` accents, serif `font-display`/`font-body` (Cormorant Garamond / Shippori Mincho B1), defined in [tailwind.config.ts](tailwind.config.ts) and [assets/css/main.css](assets/css/main.css). `/checkout` currently uses a plain slate/brass light-mode style instead — inconsistent with the rest; check the mockup before changing it.
+- **Admin pages** (`/admin/**`, `layouts/admin.vue`) use a neutral, theme-aware (light/dark via `media`) console style with `brass-700` accents, sans-serif body text, and a fixed sidebar. Admin pages set `definePageMeta({ layout: 'admin' })` individually.
+
+Tailwind `darkMode` is `'media'` (follows OS preference), not a manual toggle.
+
+### Admin pages: content.vue is real, index.vue/users.vue are still mockups
+[pages/admin/content.vue](pages/admin/content.vue) is Firestore-backed (see above). [pages/admin/index.vue](pages/admin/index.vue) (dashboard stats) and [pages/admin/users.vue](pages/admin/users.vue) (user list/status overrides) still use hardcoded local `ref()` arrays — no data fetching, edits are lost on reload. **None of `/admin/**` has `admin: true` custom-claim gating or any auth** (required by §4.1 of the requirements doc once real auth exists) — this includes the content-save API route, which is reachable by anyone who finds the URL.
+
+### Firebase config
+Firebase web config is read from `NUXT_PUBLIC_FIREBASE_*` env vars in [nuxt.config.ts](nuxt.config.ts) `runtimeConfig.public.firebase`, with the actual project's values hardcoded as fallback defaults (not secret — this is the public web SDK config, safe to expose client-side). The Firebase project is `mayachannel-34fd5` (see [.firebaserc](.firebaserc)). `runtimeConfig.firebaseServiceAccountKey` (server-only, outside `public`) holds the Admin SDK credential for real (non-emulator) use — generated manually from Firebase Console → Project Settings → Service Accounts, pasted into the gitignored `.env` as one-line JSON.
+
+### Deployment
+[nuxt.config.ts](nuxt.config.ts) sets `nitro.preset: 'firebase'` (Cloud Functions gen2) — `npm run build` produces `.output/public` (static assets, served by Hosting) and `.output/server` (the SSR app + all `server/api/**` routes, packaged as a single Cloud Function named `server`). [firebase.json](firebase.json) wires Hosting's `rewrites` (`**` → the `server` function) and declares the `functions`/`firestore` blocks; deploying needs `firebase deploy` (include `--only firestore:rules` after any `firestore.rules` change — it's not redeployed automatically just because the app is). This replaced an earlier pure-`nuxt generate`-to-static-Hosting setup, which can't serve `server/api/**` routes at all.

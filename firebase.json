@@ -1,6 +1,7 @@
 {
   "hosting": {
     "public": ".output/public",
+    "cleanUrls": true,
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "headers": [
       {
@@ -11,6 +12,14 @@
         "source": "/_nuxt/**",
         "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
       }
-    ]
+    ],
+    "rewrites": [{ "source": "**", "function": "server" }]
+  },
+  "functions": {
+    "source": ".output/server",
+    "runtime": "nodejs20"
+  },
+  "firestore": {
+    "rules": "firestore.rules"
   }
 }
