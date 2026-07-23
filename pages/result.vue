@@ -52,7 +52,7 @@ const ctaLabel = computed(() => {
 
 const compendium = [
   { title: '年間運勢カレンダー', body: '月ごとの運気の波と、注意すべき時期を一年分カレンダー形式で解説します。' },
-  { title: '相性診断（恋愛・仕事）', body: 'KIN番号の組み合わせから、パートナーや同僚との相性を紋章ごとに読み解きます。' },
+  { title: '相性診断 プレミアム解説（恋愛・仕事）', body: '無料の相性診断よりもさらに踏み込み、恋愛・仕事それぞれのシーンに合わせた詳細な関係性の解説をお届けします。' },
   { title: '開運アクションガイド', body: 'あなたの紋章・音に合わせた、日常に取り入れやすい具体的な開運行動を提案します。' },
   { title: '前世・来世の資質', body: '紋章の並びから読み解く、あなたが引き継いできた資質と課題について。' }
 ]
@@ -265,6 +265,20 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
             </NuxtLink>
           </div>
         </template>
+      </section>
+
+      <!-- 相性診断への導線: 無料機能、ゲート無し -->
+      <section class="pb-2 pt-14">
+        <div class="rounded border border-gold-500/30 bg-white/[.02] p-5 text-center">
+          <div class="mb-2 font-display text-[17px] text-gold-300">身近な人との相性を無料で診断</div>
+          <p class="mb-4 text-[13px] text-parchment-300">パートナーや友人の生年月日を入れるだけで、紋章の組み合わせから相性を読み解きます。</p>
+          <NuxtLink
+            :to="{ path: '/compatibility', query: { name: result.name, birth: input.birthdate } }"
+            class="inline-block rounded-full border border-gold-500/50 px-6.5 py-2.5 text-[13.5px] font-semibold text-gold-300"
+          >
+            相性診断をはじめる
+          </NuxtLink>
+        </div>
       </section>
 
       <p class="pt-11 text-center text-xs text-parchment-300/70">
