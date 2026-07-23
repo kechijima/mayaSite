@@ -4,11 +4,8 @@ const ID_PATTERN = /^(sun|wavespell|tone)-(\d+)$/
 const MAX_INDEX: Record<string, number> = { sun: 19, wavespell: 19, tone: 12 }
 const STATUSES = ['公開', '下書き']
 
-// NOTE: this route has no request-level authentication or authorization yet —
-// it matches the current zero-access-control state of the rest of /admin/**.
-// Anyone who discovers this URL can overwrite any of the 53 content docs.
-// Real protection requires the Firebase custom-claims admin middleware
-// described in docs/要件定義.md §4.1 — a follow-up, not implemented here.
+// Protected by server/middleware/admin-auth.ts — event.context.admin is
+// guaranteed set by the time this handler runs.
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id') || ''
   const match = id.match(ID_PATTERN)
@@ -36,7 +33,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     await getAdminDb().collection('diagnosisContent').doc(id).set(
-      { freeText, premiumText, status, updatedAt: FieldValue.serverTimestamp() },
+      { freeText, premiumText, status, updatedAt: FieldValue.serverTimestamp(), updatedBy: event.context.admin?.uid ?? null },
       { merge: true }
     )
     return { ok: true, id }
