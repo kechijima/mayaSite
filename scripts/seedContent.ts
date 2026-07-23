@@ -1,17 +1,25 @@
 // One-time manual seed for the `diagnosisContent` Firestore collection.
-// Run via: npm run seed:content (add --force to overwrite existing docs)
-// Requires FIREBASE_SERVICE_ACCOUNT_KEY in .env — see CLAUDE.md / server/utils/firebaseAdmin.ts.
+// Run via: npm run seed:content            (real project; requires FIREBASE_SERVICE_ACCOUNT_KEY in .env)
+//      or: npm run seed:content:emulator   (local Firestore emulator; no credentials needed)
+// Add --force to overwrite existing docs. See CLAUDE.md / server/utils/firebaseAdmin.ts.
 import { cert, getApps, initializeApp } from 'firebase-admin/app'
 import { getFirestore, FieldValue } from 'firebase-admin/firestore'
 import { SEALS, TONES } from '../utils/mayaData'
 
-const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
-if (!serviceAccountKey) {
-  console.error('FIREBASE_SERVICE_ACCOUNT_KEY is not set. Add it to .env before running this script.')
-  process.exit(1)
+const projectId = process.env.NUXT_PUBLIC_FIREBASE_PROJECT_ID || 'mayachannel-34fd5'
+
+let app
+if (process.env.FIRESTORE_EMULATOR_HOST) {
+  app = getApps().length ? getApps()[0] : initializeApp({ projectId })
+} else {
+  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
+  if (!serviceAccountKey) {
+    console.error('FIREBASE_SERVICE_ACCOUNT_KEY is not set. Add it to .env, or run against the emulator via `npm run seed:content:emulator`.')
+    process.exit(1)
+  }
+  app = getApps().length ? getApps()[0] : initializeApp({ credential: cert(JSON.parse(serviceAccountKey)) })
 }
 
-const app = getApps().length ? getApps()[0] : initializeApp({ credential: cert(JSON.parse(serviceAccountKey)) })
 const db = getFirestore(app)
 const force = process.argv.includes('--force')
 
@@ -85,7 +93,8 @@ async function main() {
   }
 
   await batch.commit()
-  console.log(`Seed complete: ${written} written, ${skipped} skipped (already existed — pass --force to overwrite).`)
+  const target = process.env.FIRESTORE_EMULATOR_HOST ? `emulator (${process.env.FIRESTORE_EMULATOR_HOST})` : `real project (${projectId})`
+  console.log(`Seed complete against ${target}: ${written} written, ${skipped} skipped (already existed — pass --force to overwrite).`)
 }
 
 main().catch((error) => {
