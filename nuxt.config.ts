@@ -3,6 +3,13 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ['@nuxtjs/tailwindcss'],
   css: ['~/assets/css/main.css'],
+  // Server routes (server/api/**) need a live Nitro process — plain `nuxt generate`
+  // static hosting can't serve them. Build for Cloud Functions gen 2 instead:
+  // `npm run build` (see package.json), then `firebase deploy`.
+  nitro: {
+    preset: 'firebase',
+    firebase: { gen: 2 }
+  },
   app: {
     head: {
       title: 'マヤ暦占い',
@@ -11,6 +18,10 @@ export default defineNuxtConfig({
     }
   },
   runtimeConfig: {
+    // Server-only — never exposed to the client bundle. Must be generated manually
+    // from Firebase Console → Project Settings → Service Accounts → Generate new
+    // private key, then added to the (gitignored) .env as a single-line JSON string.
+    firebaseServiceAccountKey: process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '',
     public: {
       firebase: {
         apiKey: process.env.NUXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyBcTsMsEo0eIkB_1khF31aZrp_Bv6GbwXY',

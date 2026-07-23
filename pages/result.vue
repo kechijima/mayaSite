@@ -10,6 +10,15 @@ const input = computed(() => ({
 }))
 const { result } = useDiagnosis(input)
 
+const content = useDiagnosisContent(
+  computed(() => result.value.sealIndex),
+  computed(() => result.value.wavespellSealIndex),
+  computed(() => result.value.toneIndex)
+)
+const sunText = computed(() => content.sunText.value ?? result.value.sun.text)
+const wavespellText = computed(() => content.wavespellText.value ?? result.value.wavespell.text)
+const toneText = computed(() => content.toneText.value ?? result.value.tone.text)
+
 const displayBirthdate = computed(() => {
   const d = new Date(input.value.birthdate)
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
@@ -101,7 +110,7 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
           <div>
             <h3 class="font-display text-[19px]">{{ result.sun.seal.name }}</h3>
             <span class="mb-2.5 block text-[13px] tracking-[.04em] text-gold-300">{{ result.sun.seal.english }} ｜ {{ result.sun.seal.keyword }}</span>
-            <p class="text-[14.5px] leading-[1.9] opacity-90">{{ result.sun.text }}</p>
+            <p class="text-[14.5px] leading-[1.9] opacity-90">{{ sunText }}</p>
           </div>
         </div>
       </section>
@@ -117,8 +126,21 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
           <div>
             <h3 class="font-display text-[19px]">{{ result.wavespell.seal.name }}</h3>
             <span class="mb-2.5 block text-[13px] tracking-[.04em] text-gold-300">{{ result.wavespell.seal.english }} ｜ {{ result.wavespell.seal.keyword }}</span>
-            <p class="text-[14.5px] leading-[1.9] opacity-90">{{ result.wavespell.text }}</p>
+            <p class="text-[14.5px] leading-[1.9] opacity-90">{{ wavespellText }}</p>
           </div>
+        </div>
+      </section>
+
+      <!-- 銀河の音 -->
+      <section class="pb-2 pt-14">
+        <SectionDivider label="銀河の音" eyebrow="Galactic Tone" />
+        <p class="mx-auto mb-7.5 max-w-[560px] text-center text-[14.5px] leading-[1.9] text-parchment-300">
+          銀河の音は、260日のツォルキン暦を13日ごとに巡る周期のリズムを表し、あなたが力を発揮しやすいテンポを示します。
+        </p>
+        <div class="text-center">
+          <h3 class="font-display text-[19px]">{{ result.tone.info.name }}</h3>
+          <span class="mb-2.5 block text-[13px] tracking-[.04em] text-gold-300">{{ result.tone.info.english }} ｜ {{ result.tone.info.keyword }}</span>
+          <p class="mx-auto max-w-[560px] text-[14.5px] leading-[1.9] opacity-90">{{ toneText }}</p>
         </div>
       </section>
 

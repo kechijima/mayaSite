@@ -7,15 +7,19 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "seed:content": "tsx --env-file=.env scripts/seedContent.ts"
   },
   "dependencies": {
     "firebase": "^11.3.1",
+    "firebase-admin": "^14.2.0",
+    "firebase-functions": "^7.3.0",
     "nuxt": "^3.15.4",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
-    "@nuxtjs/tailwindcss": "^6.13.1"
+    "@nuxtjs/tailwindcss": "^6.13.1",
+    "tsx": "^4.23.1"
   }
 }

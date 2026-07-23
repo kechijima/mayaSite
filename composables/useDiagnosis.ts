@@ -21,6 +21,7 @@ export function useDiagnosis(input: Ref<DiagnosisInput>) {
       name: input.value.name || 'ゲスト',
       kin: birth.kin,
       sealIndex: birth.sealIndex,
+      toneIndex: birth.toneIndex,
       wavespellSealIndex: birth.wavespellSealIndex,
       occultSealIndex: birth.occultSealIndex,
       currentWavespellSealIndex: now.wavespellSealIndex,
@@ -32,6 +33,10 @@ export function useDiagnosis(input: Ref<DiagnosisInput>) {
         seal: wavespellSeal,
         tone: wavespellTone,
         text: `${wavespellSeal.essence} この紋章が導くウェイブスペルは、まだ見ぬ可能性——${wavespellTone.keyword}を潜在意識の中に秘めています。`
+      },
+      tone: {
+        info: wavespellTone,
+        text: `「${wavespellTone.name}」を持つあなたは、${wavespellTone.keyword}に長けています。これはKINに刻まれた13の音のひとつで、日々の行動やものごとへの向き合い方の根底に流れるリズムです。`
       },
       daysign: {
         seal: occultSeal,
