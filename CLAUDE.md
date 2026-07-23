@@ -11,14 +11,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev       # start dev server (nuxt dev)
-npm run build     # production build (Nitro `firebase` preset — outputs .output/server for Cloud Functions gen2 + .output/public for Hosting)
-npm run preview   # preview a build
+npm run dev                    # ONE command for local dev — see below, this does everything
+npm run build                  # production build (Nitro `firebase` preset — outputs .output/server for Cloud Functions gen2 + .output/public for Hosting)
+npm run preview                # preview a build
 
-npm run seed:content   # seed the diagnosisContent collection into the REAL Firestore project — requires FIREBASE_SERVICE_ACCOUNT_KEY in .env
+npm run dev:nuxt                # just the Nuxt dev server, no emulator orchestration (assumes Firestore emulator already reachable at 127.0.0.1:8080)
+npm run emulators               # just the Firebase Local Emulator Suite (Firestore + Functions + Hosting), data persisted to .firebase-emulator-data/ across restarts
+npm run seed:content:emulator   # seed the diagnosisContent collection into the emulator (no credentials needed)
+npm run seed:content            # seed the REAL Firestore project instead — requires FIREBASE_SERVICE_ACCOUNT_KEY in .env
 ```
 
 No test runner, linter, or formatter is configured in this repo yet.
+
+### `npm run dev` is a one-command orchestrator, not just `nuxt dev`
+
+It's [scripts/dev.mjs](scripts/dev.mjs), which: starts the Firebase emulators (Firestore/Functions/Hosting) unless one's already reachable at `127.0.0.1:8080` (in which case it reuses that one and won't touch its lifecycle) → waits for Firestore to respond → runs the seed script (idempotent, skips docs that already exist, so this is safe on every start) → starts `nuxt dev`. On Ctrl-C (SIGINT/SIGTERM) it stops whatever it itself started — including the Nuxt dev server, which is *always* its own to stop — and waits for the emulator's own `--export-on-exit` to actually finish (so `.firebase-emulator-data/` stays current) before exiting; a reused, externally-started emulator is left running. Each spawned child (`npm run emulators` / `npm run seed:content:emulator` / `npm run dev:nuxt` — same scripts as above, not duplicated commands) runs `detached: true` in its own process group specifically so this shutdown can reliably signal every descendant (npm → firebase-tools → java, or npm → nuxt) with one `process.kill(-pid, 'SIGINT')`, regardless of how many wrapper layers are in between — plain `child.kill()` only reaches the immediate child, which isn't enough here.
+
+Requires a JRE on PATH (Firestore/Functions emulators are Java-based) — `brew install openjdk` if missing; it's keg-only, so either symlink it or export `PATH="/opt/homebrew/opt/openjdk/bin:$PATH"` before running `npm run dev`/`npm run emulators`. `scripts/dev.mjs` checks for this upfront (only when it's the one starting the emulator) and fails fast with that exact instruction if Java is missing, rather than surfacing firebase-tools' own less obvious error.
+
+- [plugins/firebase.client.ts](plugins/firebase.client.ts) calls `connectFirestoreEmulator(firestore, '127.0.0.1', 8080)` whenever `import.meta.dev` is true — the client SDK never talks to the real project during `npm run dev`.
+- [server/utils/firebaseAdmin.ts](server/utils/firebaseAdmin.ts)'s `getAdminDb()` defaults `FIRESTORE_EMULATOR_HOST` to `127.0.0.1:8080` under `import.meta.dev` (unless already set), then branches on that env var rather than on `import.meta.dev` directly — confirmed (via `ps eww` on the running function process) that Firebase's own tooling also injects this exact env var into a deployed function's process when Functions+Firestore emulators run together, so the same branch transparently covers testing the packaged Cloud Function through the Functions emulator too. Either way, no real service account is needed locally; `FIREBASE_SERVICE_ACCOUNT_KEY` is only required outside emulator mode (real project / production).
+- Testing the actual packaged Cloud Function via the Functions emulator (as opposed to Nitro's own `nuxt dev` server) needs a prior `npm run build` — confirmed working with zero extra steps beyond that: `.output/server` has no `node_modules` of its own, but since it's nested inside this project, Node's module resolution walks up to the root `node_modules` (which already has `firebase-admin`/`firebase-functions` as real dependencies) and finds everything there. Don't assume this generalizes to a build directory built outside this repo (e.g. a deploy artifact copied elsewhere) — `firebase deploy` handles installing `.output/server`'s own dependencies for that case.
+- Port 5000 (Hosting emulator default) collides with macOS AirPlay Receiver, hence `firebase.json`'s `emulators.hosting.port` is set to `5050` instead.
 
 ## Architecture
 
