@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { signOut, type Auth } from 'firebase/auth'
-
 const route = useRoute()
 
 const navItems = [
@@ -11,19 +9,6 @@ const navItems = [
 
 function isActive(to: string) {
   return to === '/admin' ? route.path === '/admin' : route.path.startsWith(to)
-}
-
-// Populated from event.context.admin during SSR (set by
-// server/middleware/admin-auth.ts) and serialized into the payload — no
-// separate client-side fetch needed.
-const requestEvent = useRequestEvent()
-const admin = useState('admin-identity', () => requestEvent?.context.admin ?? null)
-
-async function logout() {
-  await $fetch('/api/auth/session', { method: 'DELETE' }).catch(() => {})
-  const { $auth } = useNuxtApp()
-  await signOut($auth as Auth).catch(() => {})
-  window.location.href = '/admin/login'
 }
 </script>
 
@@ -56,11 +41,8 @@ async function logout() {
 
       <div class="flex-1"></div>
       <div class="border-t border-[#dde1de] px-3 py-2.5 text-xs text-[#8b968e] dark:border-[#2a3a32] dark:text-[#748177]">
-        <b class="block truncate text-[13px] text-[#132019] dark:text-[#edf2ef]">{{ admin?.email ?? '（不明なユーザー）' }}</b>
-        <div class="flex items-center justify-between">
-          管理者アカウント
-          <button class="font-semibold text-[#8a6b35] hover:underline dark:text-[#f0c987]" @click="logout">ログアウト</button>
-        </div>
+        <b class="block text-[13px] text-[#132019] dark:text-[#edf2ef]">佐藤 恵美</b>
+        管理者アカウント
       </div>
     </aside>
 
