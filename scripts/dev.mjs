@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Single-command local dev: starts the Firebase emulators (Firestore/
+// Single-command local dev: starts the Firebase emulators (Firestore/Auth/
 // Hosting), waits for Firestore to be ready, seeds diagnosisContent (idempotent
 // — skips docs that already exist), then starts the Nuxt dev server. `npm run dev`
 // is this script; the underlying pieces stay available individually as
@@ -122,7 +122,7 @@ async function main() {
     console.log(`▸ Firestore emulator already running at ${FIRESTORE_URL} — reusing it.`)
   } else {
     ensureJavaOnPath()
-    console.log('▸ starting Firebase emulators (firestore, hosting)...')
+    console.log('▸ starting Firebase emulators (firestore, auth, hosting)...')
     ownsEmulator = true
     emulator = runScript('emulators')
     emulator.on('exit', (code) => {
