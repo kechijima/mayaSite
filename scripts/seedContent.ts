@@ -1,7 +1,8 @@
 // One-time manual seed for the `diagnosisContent` Firestore collection.
 // Run via: npm run seed:content            (real project; requires FIREBASE_SERVICE_ACCOUNT_KEY in .env)
 //      or: npm run seed:content:emulator   (local Firestore emulator; no credentials needed)
-// Add --force to overwrite existing docs. See CLAUDE.md / server/utils/firebaseAdmin.ts.
+// Always skips docs that already exist — there is no overwrite option, by design, so this can
+// never clobber admin edits made via /admin/content. See CLAUDE.md / server/utils/firebaseAdmin.ts.
 import { cert, getApps, initializeApp } from 'firebase-admin/app'
 import { getFirestore, FieldValue } from 'firebase-admin/firestore'
 import { SEALS, TONES } from '../utils/mayaData'
@@ -21,7 +22,6 @@ if (process.env.FIRESTORE_EMULATOR_HOST) {
 }
 
 const db = getFirestore(app)
-const force = process.argv.includes('--force')
 
 // ウェイブスペル20件分のプレースホルダー本文。既存 useDiagnosis.ts のテンプレート文言を踏襲した仮執筆。
 // 管理画面で確認・書き直した上で「公開」に切り替える想定のため status: 下書き で登録する。
@@ -80,12 +80,10 @@ async function main() {
 
   for (const seedDoc of docs) {
     const ref = collectionRef.doc(seedDoc.id)
-    if (!force) {
-      const existing = await ref.get()
-      if (existing.exists) {
-        skipped++
-        continue
-      }
+    const existing = await ref.get()
+    if (existing.exists) {
+      skipped++
+      continue
     }
     const { id, ...data } = seedDoc
     batch.set(ref, { ...data, updatedAt: FieldValue.serverTimestamp() }, { merge: true })
@@ -94,7 +92,7 @@ async function main() {
 
   await batch.commit()
   const target = process.env.FIRESTORE_EMULATOR_HOST ? `emulator (${process.env.FIRESTORE_EMULATOR_HOST})` : `real project (${projectId})`
-  console.log(`Seed complete against ${target}: ${written} written, ${skipped} skipped (already existed — pass --force to overwrite).`)
+  console.log(`Seed complete against ${target}: ${written} written, ${skipped} skipped (already existed — never overwritten).`)
 }
 
 main().catch((error) => {
