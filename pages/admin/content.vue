@@ -101,7 +101,7 @@ async function save() {
     editingRow.value = null
   } catch (error) {
     saveError.value = (error as { code?: string })?.code === 'permission-denied'
-      ? '権限がありません。再度ログインしてください。'
+      ? '現在この項目の保存は無効化されています。'
       : '保存に失敗しました。時間をおいて再度お試しください。'
   } finally {
     saving.value = false
