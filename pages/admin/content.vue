@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { collection, getDocs, type Firestore } from 'firebase/firestore'
+import { collection, doc, getDocs, serverTimestamp, updateDoc, type Firestore } from 'firebase/firestore'
 import { SEALS, TONES } from '~/utils/mayaData'
 
 definePageMeta({ layout: 'admin' })
@@ -89,19 +89,20 @@ async function save() {
   saving.value = true
   saveError.value = ''
   try {
-    await $fetch(`/api/admin/content/${editingRow.value.id}`, {
-      method: 'PUT',
-      body: {
-        freeText: editingRow.value.freeText,
-        premiumText: editingRow.value.premiumText,
-        status: editingRow.value.status
-      }
+    const { $firestore } = useNuxtApp()
+    await updateDoc(doc($firestore as Firestore, 'diagnosisContent', editingRow.value.id), {
+      freeText: editingRow.value.freeText,
+      premiumText: editingRow.value.premiumText,
+      status: editingRow.value.status,
+      updatedAt: serverTimestamp()
     })
     const idx = rows.value.findIndex((r) => r.id === editingRow.value!.id)
     if (idx > -1) rows.value[idx] = { ...editingRow.value, updated: todayStr() }
     editingRow.value = null
-  } catch {
-    saveError.value = '保存に失敗しました。時間をおいて再度お試しください。'
+  } catch (error) {
+    saveError.value = (error as { code?: string })?.code === 'permission-denied'
+      ? '権限がありません。再度ログインしてください。'
+      : '保存に失敗しました。時間をおいて再度お試しください。'
   } finally {
     saving.value = false
   }

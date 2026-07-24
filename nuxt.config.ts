@@ -3,12 +3,27 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ['@nuxtjs/tailwindcss'],
   css: ['~/assets/css/main.css'],
-  // Server routes (server/api/**) need a live Nitro process — plain `nuxt generate`
-  // static hosting can't serve them. Build for Cloud Functions gen 2 instead:
-  // `npm run build` (see package.json), then `firebase deploy`.
+  // Fully static SPA on Firebase Hosting's free "Spark" plan — no Nitro server,
+  // no Cloud Functions (Functions require the paid "Blaze" plan; see CLAUDE.md
+  // "Deployment"). ssr:false means every route renders to an identical empty
+  // shell at build time, so there's no crawler-completeness risk (unlike full
+  // SSG, which would need every query-driven / redirect-only route — e.g.
+  // /result, /admin/login — explicitly listed or risk a silent 404 in prod).
+  // vue-router owns all client routing after hydration, backed by Firebase
+  // Hosting's catch-all rewrite to this same shell (see firebase.json).
+  ssr: false,
   nitro: {
-    preset: 'firebase',
-    firebase: { gen: 2 }
+    // preset: 'static' is deliberately NOT set here — it breaks `nuxt dev`
+    // ("No entry found in rollupOptions.input"), since that preset assumes a
+    // prerendering pipeline the dev server doesn't run. It's applied only for
+    // the actual deploy build via `NITRO_PRESET=static` in the `generate` npm
+    // script (see package.json), which still gets the same guarantee: the
+    // build fails loudly if a server/api/** route is ever reintroduced,
+    // instead of silently producing something the static output can't serve.
+    prerender: {
+      crawlLinks: false,
+      routes: ['/']
+    }
   },
   app: {
     head: {
@@ -18,10 +33,9 @@ export default defineNuxtConfig({
     }
   },
   runtimeConfig: {
-    // Server-only — never exposed to the client bundle. Must be generated manually
-    // from Firebase Console → Project Settings → Service Accounts → Generate new
-    // private key, then added to the (gitignored) .env as a single-line JSON string.
-    firebaseServiceAccountKey: process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '',
+    // No server-only secrets left here — scripts/seedContent.ts and
+    // scripts/createAdminUser.ts read FIREBASE_SERVICE_ACCOUNT_KEY directly
+    // via `tsx --env-file=.env`, not through Nuxt's runtimeConfig.
     public: {
       firebase: {
         apiKey: process.env.NUXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyBcTsMsEo0eIkB_1khF31aZrp_Bv6GbwXY',
