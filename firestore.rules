@@ -3,7 +3,10 @@ service cloud.firestore {
   match /databases/{database}/documents {
     match /diagnosisContent/{docId} {
       allow read: if true;
-      allow write: if false; // writes go through server/api/admin/content/[id].put.ts via firebase-admin, which bypasses rules
+      // Not load-bearing — writes go through server/api/admin/content/[id].put.ts via
+      // firebase-admin, which bypasses rules regardless. This is defense-in-depth in
+      // case a direct client write path is ever added by mistake.
+      allow write: if request.auth != null && request.auth.token.admin == true;
     }
     match /{document=**} {
       allow read, write: if false; // deny-by-default; no other collections exist yet
