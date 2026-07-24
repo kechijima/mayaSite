@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { signOut, type Auth } from 'firebase/auth'
+
 const route = useRoute()
+const { user } = useAdminAuth()
 
 const navItems = [
   { to: '/admin', label: 'ダッシュボード', icon: 'grid' },
@@ -9,6 +12,12 @@ const navItems = [
 
 function isActive(to: string) {
   return to === '/admin' ? route.path === '/admin' : route.path.startsWith(to)
+}
+
+async function logout() {
+  const { $auth } = useNuxtApp()
+  await signOut($auth as Auth)
+  await navigateTo('/admin/login')
 }
 </script>
 
@@ -41,8 +50,15 @@ function isActive(to: string) {
 
       <div class="flex-1"></div>
       <div class="border-t border-[#dde1de] px-3 py-2.5 text-xs text-[#8b968e] dark:border-[#2a3a32] dark:text-[#748177]">
-        <b class="block text-[13px] text-[#132019] dark:text-[#edf2ef]">佐藤 恵美</b>
+        <b class="block truncate text-[13px] text-[#132019] dark:text-[#edf2ef]">{{ user?.email }}</b>
         管理者アカウント
+        <button
+          type="button"
+          class="mt-2 block text-[11.5px] font-semibold text-brass-700 hover:underline dark:text-gold-300"
+          @click="logout"
+        >
+          ログアウト
+        </button>
       </div>
     </aside>
 
