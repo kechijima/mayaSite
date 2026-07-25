@@ -4,7 +4,17 @@
 // astronomical correlation. This table method advances the KIN base by
 // exactly 365 days per calendar year (never 366, even across real leap
 // years), then applies an isolated +1 correction only for people born in
-// March–December of a leap year (to account for that year's own Feb 29).
+// **March** (1st–31st) of a leap year — not March through December; the
+// source site is explicit that this +1 is scoped to that single month
+// ("誕生日がうるう年の3月1日～3月31日の人の場合"), and its printed table
+// marks only the March column with "*" in leap-year rows. A `month >= 2`
+// (March onward) condition was shipped here initially and silently
+// over-applied the +1 to every leap-year birthday from April through
+// December (e.g. 1992-10-04 computed as KIN110 instead of the correct
+// KIN109) — the one leap-year example used to verify this file at the time,
+// 1964-03-05, was itself a March date, so both the correct rule and the
+// wrong one agreed on it and the bug went unnoticed until a later leap-year,
+// non-March birthdate surfaced it.
 // It is NOT a continuous real-day count — verified byte-for-byte against
 // unkoi.com's published 早見表 grid (216 cells, year/month → base value)
 // and all 3 of their worked examples (2014-02-05→KIN98, 1966-02-20→KIN13,
@@ -39,7 +49,7 @@ export function dateToKin(date: Date): number {
   const monthValue = mod(janValue - 1 + CUMULATIVE_DAYS_BEFORE_MONTH[month], 260) + 1
 
   let kin = monthValue + day
-  if (isLeapYear(year) && month >= 2) kin += 1 // month index 2 = March
+  if (isLeapYear(year) && month === 2) kin += 1 // March only (month index 2), not March–December
   if (kin > 260) kin -= 260
   return kin
 }
