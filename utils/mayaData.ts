@@ -14,7 +14,7 @@ export interface Tone {
 // 20 day-signs (紋章). Order + 4-color cycle (赤/白/青/黄) follows the
 // traditional Tzolkin sequence used by Dreamspell-style calendars.
 export const SEALS: Seal[] = [
-  { name: '赤い龍', english: 'Red Dragon', keyword: '育む力・存在の土台', essence: '赤い龍を紋章に持つ人は、周囲を安心させる母性的な存在感を持ち、物事の土台を育むことに長けています。' },
+  { name: '赤い竜', english: 'Red Dragon', keyword: '育む力・存在の土台', essence: '赤い竜を紋章に持つ人は、周囲を安心させる母性的な存在感を持ち、物事の土台を育むことに長けています。' },
   { name: '白い風', english: 'White Wind', keyword: '伝達力・柔軟性', essence: '白い風を紋章に持つ人は、言葉や感性を通じて人と人をつなぐ力を秘め、場の空気を敏感に読み取ります。' },
   { name: '青い夜', english: 'Blue Night', keyword: '直感・豊かさへの感受性', essence: '青い夜を紋章に持つ人は、内なる直感と豊かさへの感受性が強く、静けさの中で本質を見極めます。' },
   { name: '黄色い種', english: 'Yellow Seed', keyword: '探求心・可能性を開く力', essence: '黄色い種を紋章に持つ人は、尽きない探求心を持ち、自分にも他人にも眠る可能性を開花させる力があります。' },

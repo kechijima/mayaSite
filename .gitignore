@@ -6,3 +6,9 @@ dist
 *.log
 .firebase-emulator-data
 .firebase
+
+# Raw, unoptimized source character illustrations (~42MB) — only the generated
+# assets/images/optimized/*.webp and assets/images/faces/*.webp derivatives are used by the
+# app and committed. Keep the PNG originals locally (or in a design asset store) instead.
+assets/images/*.png
+.DS_Store

@@ -1,7 +1,7 @@
 // Compatibility relation between two people, derived purely from their sealIndex (0-19).
 // This is a self-contained convention for this site, not a literal Dreamspell "guide seal"
 // calculation (which depends on tone and is easy to get wrong) — it deliberately reuses the
-// same +10 offset already trusted for `occultSealIndex` in mayaCalc.ts for the "antipode" case.
+// same +10 offset already trusted for `antipodeSealIndex` in mayaCalc.ts for the "antipode" case.
 export type CompatibilityRelation = 'twin' | 'analog' | 'antipode' | 'mystic'
 
 export function compatibilityRelation(sealIndexA: number, sealIndexB: number): CompatibilityRelation {

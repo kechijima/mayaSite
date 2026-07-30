@@ -1,4 +1,4 @@
-import { SEALS, TONES } from '~/utils/mayaData'
+import { SEALS } from '~/utils/mayaData'
 import { diagnoseBirthdate } from '~/utils/mayaCalc'
 import { buildKinProfileText } from '~/utils/kinProfile'
 
@@ -9,11 +9,9 @@ export interface DiagnosisInput {
 
 export function useDiagnosis(input: Ref<DiagnosisInput>) {
   const result = computed(() => {
-    const { birth, now } = diagnoseBirthdate(input.value.birthdate)
+    const { birth } = diagnoseBirthdate(input.value.birthdate)
 
-    const occultSeal = SEALS[birth.occultSealIndex]
-    const currentWavespellSeal = SEALS[now.wavespellSealIndex]
-    const currentTone = TONES[now.toneIndex]
+    const mysticSeal = SEALS[birth.mysticSealIndex]
     const { sun, wavespell, tone } = buildKinProfileText(birth)
 
     return {
@@ -22,20 +20,23 @@ export function useDiagnosis(input: Ref<DiagnosisInput>) {
       sealIndex: birth.sealIndex,
       toneIndex: birth.toneIndex,
       wavespellSealIndex: birth.wavespellSealIndex,
-      occultSealIndex: birth.occultSealIndex,
-      currentWavespellSealIndex: now.wavespellSealIndex,
       sun,
       wavespell,
       tone,
-      daysign: {
-        seal: occultSeal,
-        text: `${occultSeal.essence} これはあなたの中に眠る行動パターンで、日頃は意識しづらいものの、自覚すると力を発揮しやすくなる資質です。`
+      // KINの関係性(ガイド/神秘/反対/類似KIN)・運命数字(同じ番号/連番/鏡の向こうの自分/絶対反対KIN)。
+      // 算出式の根拠は utils/mayaCalc.ts のコメントを参照。
+      relations: {
+        guide: { index: birth.guideSealIndex, ...SEALS[birth.guideSealIndex] },
+        mystic: { index: birth.mysticSealIndex, ...mysticSeal },
+        antipode: { index: birth.antipodeSealIndex, ...SEALS[birth.antipodeSealIndex] },
+        analog: { index: birth.analogSealIndex, ...SEALS[birth.analogSealIndex] }
       },
-      tresena: {
-        seal: currentWavespellSeal,
-        dayInCycle: now.toneIndex + 1,
-        tone: currentTone,
-        text: `現在のあなたは「${currentWavespellSeal.name}」が導く13日間のうち${now.toneIndex + 1}日目。${currentTone.keyword}を意識すると、今の流れに乗りやすいタイミングです。`
+      destinyNumbers: {
+        sameNumberKin: birth.kin,
+        prevKin: birth.prevKin,
+        nextKin: birth.nextKin,
+        mirrorKin: birth.mirrorKin,
+        absoluteOppositeKin: birth.absoluteOppositeKin
       }
     }
   })
