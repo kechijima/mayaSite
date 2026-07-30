@@ -146,8 +146,7 @@ const { result } = useCompatibility(compatibilityInput)
                 {{ result.self.name }} × {{ pair.otherName }}
                 <span class="ml-1.5 text-[13px] font-normal text-gold-300">{{ pair.relationLabel }}</span>
               </h3>
-              <p class="mb-2.5 text-[14.5px] leading-[1.9] opacity-90">{{ pair.relationText }}</p>
-              <p class="text-[13px] leading-[1.8] text-parchment-300">{{ pair.toneMatchText }}</p>
+              <p class="text-[14.5px] leading-[1.9] opacity-90">{{ pair.relationText }}</p>
             </div>
           </div>
         </section>
