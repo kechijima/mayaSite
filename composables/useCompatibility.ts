@@ -1,6 +1,6 @@
 import { diagnoseBirthdate } from '~/utils/mayaCalc'
 import { buildKinProfileText, type KinProfileText } from '~/utils/kinProfile'
-import { compatibilityRelation, COMPATIBILITY_RELATION_CONTENT, toneMatchText, type CompatibilityRelation } from '~/utils/compatibility'
+import { compatibilityRelation, COMPATIBILITY_RELATION_CONTENT, type CompatibilityRelation } from '~/utils/compatibility'
 
 export interface PersonInput {
   id: string
@@ -27,8 +27,6 @@ export interface PairCompatibility {
   relation: CompatibilityRelation
   relationLabel: string
   relationText: string
-  toneMatch: boolean
-  toneMatchText: string
 }
 
 export interface CompatibilityResult {
@@ -66,15 +64,12 @@ export function useCompatibility(input: Ref<{ self: PersonInput; others: PersonI
     const pairs: PairCompatibility[] = others.map((other) => {
       const relation = compatibilityRelation(self.sealIndex, other.sealIndex)
       const content = COMPATIBILITY_RELATION_CONTENT[relation]
-      const toneMatch = self.toneIndex === other.toneIndex
       return {
         otherId: other.id,
         otherName: other.name,
         relation,
         relationLabel: content.label,
-        relationText: content.text,
-        toneMatch,
-        toneMatchText: toneMatchText(toneMatch)
+        relationText: content.text
       }
     })
 

@@ -37,9 +37,3 @@ export const COMPATIBILITY_RELATION_CONTENT: Record<CompatibilityRelation, { lab
     text: '一見すると特別な接点は見えにくい「神秘紋章」の関係です。だからこそ知れば知るほど新しい発見があり、時間をかけて向き合うことで思いがけない深い縁に育っていく相性です。'
   }
 }
-
-export function toneMatchText(toneMatch: boolean): string {
-  return toneMatch
-    ? '銀河の音（トーン）も同じで、物事に取り組むテンポやリズムが自然と合いやすい二人です。'
-    : '銀河の音（トーン）は異なり、物事に取り組むテンポにはそれぞれの個性があります。お互いのペースを尊重すると、より心地よい関係になるでしょう。'
-}
