@@ -61,9 +61,6 @@ const displayBirthdate = computed(() => {
   const d = new Date(input.value.birthdate)
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
 })
-const today = new Date()
-const displayToday = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`
-
 const chipClass = computed(() => ({
   free: 'border border-parchment-300/40 text-parchment-100',
   light: 'border border-gold-500 text-gold-300',
@@ -97,20 +94,35 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
     </div>
 
     <div class="mx-auto max-w-[720px] px-5">
-      <dl class="mb-2 grid grid-cols-2 gap-3.5 rounded border border-gold-500/30 bg-white/[.02] px-6 py-4.5 sm:grid-cols-4">
+      <dl class="mb-2 grid grid-cols-2 gap-3.5 rounded border border-gold-500/30 bg-white/[.02] px-6 py-4.5">
         <div><dt class="mb-1 text-[10px] tracking-[.1em] text-parchment-300">お名前</dt><dd class="text-sm font-semibold">{{ result.name }} 様</dd></div>
         <div><dt class="mb-1 text-[10px] tracking-[.1em] text-parchment-300">生年月日</dt><dd class="text-sm font-semibold">{{ displayBirthdate }}</dd></div>
-        <div><dt class="mb-1 text-[10px] tracking-[.1em] text-parchment-300">診断日</dt><dd class="text-sm font-semibold">{{ displayToday }}</dd></div>
-        <div><dt class="mb-1 text-[10px] tracking-[.1em] text-parchment-300">KIN番号</dt><dd class="text-sm font-semibold text-gold-300 tabular-nums">KIN {{ result.kin }}</dd></div>
       </dl>
 
       <!-- ドリームスペル暦 -->
-      <section class="pb-2 pt-14">
-        <SectionDivider label="ドリームスペル暦" eyebrow="Dreamspell Calendar" />
-        <p class="mx-auto mb-1 max-w-[560px] text-center text-[14.5px] leading-[1.9] text-parchment-300">
-          マヤ暦は260日を1サイクルとする神聖暦「ツォルキン」がもとになっています。あなたの生年月日は260通りの「KIN」のひとつに対応し、そこに刻まれた紋章と音から、生まれ持った資質と巡る運気がわかります。
-        </p>
+      <section class="pb-2 pt-10">
         <KinBadge :kin="result.kin" />
+
+        <!-- KIN概要: mayadan.jp/kin/xxx のような、太陽の紋章・ウェイブスペル・銀河の音の一覧表示 -->
+        <div class="mx-auto mt-7 flex max-w-[640px] flex-row flex-wrap items-start justify-center gap-7 sm:gap-12">
+          <div class="flex flex-col items-center gap-2.5 text-center">
+            <MayaGlyph :seal-index="result.sealIndex" size="xl" />
+            <div class="text-[12px] tracking-[.06em] text-gold-300">太陽の紋章 <span class="text-parchment-300">顕在意識</span></div>
+            <div class="font-display text-[21px]">{{ result.sun.seal.name }}</div>
+          </div>
+          <div class="flex flex-col items-center gap-2.5 text-center">
+            <MayaGlyph :seal-index="result.wavespellSealIndex" size="xl" />
+            <div class="text-[12px] tracking-[.06em] text-gold-300">ウェイブスペル <span class="text-parchment-300">潜在意識</span></div>
+            <div class="font-display text-[21px]">{{ result.wavespell.seal.name }}</div>
+          </div>
+          <div class="flex flex-col items-center gap-2.5 text-center">
+            <div class="flex h-32 w-32 flex-none items-center justify-center rounded-full border-2 border-gold-500 bg-ink-900">
+              <span class="font-display text-[64px] text-gold-300">{{ result.toneIndex + 1 }}</span>
+            </div>
+            <div class="text-[12px] tracking-[.06em] text-gold-300">銀河の音</div>
+            <div class="font-display text-[21px]">{{ result.tone.info.name }}</div>
+          </div>
+        </div>
       </section>
 
       <!-- 太陽の紋章 -->
@@ -212,14 +224,18 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
       <!-- 運命数字: 無料、番号のみ -->
       <section class="pb-2 pt-14">
         <SectionDivider label="運命数字" eyebrow="Destiny Numbers" />
-        <div class="mx-auto grid max-w-[560px] grid-cols-2 gap-3.5 text-center sm:grid-cols-4">
+        <div class="mx-auto grid max-w-[640px] grid-cols-2 gap-3.5 text-center sm:grid-cols-5">
           <div class="rounded border border-gold-500/30 bg-white/[.02] px-4 py-3.5">
-            <div class="mb-1 text-[11px] tracking-[.06em] text-parchment-300">同じ番号</div>
+            <div class="mb-1 text-[11px] tracking-[.06em] text-parchment-300">同じKIN</div>
             <div class="font-display text-[20px] text-gold-300 tabular-nums">KIN {{ result.destinyNumbers.sameNumberKin }}</div>
           </div>
           <div class="rounded border border-gold-500/30 bg-white/[.02] px-4 py-3.5">
-            <div class="mb-1 text-[11px] tracking-[.06em] text-parchment-300">連番</div>
-            <div class="font-display text-[16px] text-gold-300 tabular-nums">KIN {{ result.destinyNumbers.prevKin }}・{{ result.destinyNumbers.nextKin }}</div>
+            <div class="mb-1 text-[11px] tracking-[.06em] text-parchment-300">前のKIN</div>
+            <div class="font-display text-[20px] text-gold-300 tabular-nums">KIN {{ result.destinyNumbers.prevKin }}</div>
+          </div>
+          <div class="rounded border border-gold-500/30 bg-white/[.02] px-4 py-3.5">
+            <div class="mb-1 text-[11px] tracking-[.06em] text-parchment-300">次のKIN</div>
+            <div class="font-display text-[20px] text-gold-300 tabular-nums">KIN {{ result.destinyNumbers.nextKin }}</div>
           </div>
           <div class="rounded border border-gold-500/30 bg-white/[.02] px-4 py-3.5">
             <div class="mb-1 text-[11px] tracking-[.06em] text-parchment-300">鏡の向こうの自分KIN</div>
