@@ -94,9 +94,9 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
     </div>
 
     <div class="mx-auto max-w-[720px] px-5">
-      <dl class="mb-2 grid grid-cols-2 gap-3.5 rounded border border-gold-500/30 bg-white/[.02] px-6 py-4.5">
-        <div><dt class="mb-1 text-[10px] tracking-[.1em] text-parchment-300">お名前</dt><dd class="text-sm font-semibold">{{ result.name }} 様</dd></div>
-        <div><dt class="mb-1 text-[10px] tracking-[.1em] text-parchment-300">生年月日</dt><dd class="text-sm font-semibold">{{ displayBirthdate }}</dd></div>
+      <dl class="mb-2 grid grid-cols-1 divide-y divide-gold-500/20 rounded border border-gold-500/30 bg-white/[.02] px-6 py-5 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+        <div class="py-3 text-center sm:py-0"><dt class="mb-1.5 text-[12px] tracking-[.15em] text-parchment-300">お名前</dt><dd class="text-xl font-semibold sm:text-2xl">{{ result.name }} 様</dd></div>
+        <div class="py-3 text-center sm:py-0"><dt class="mb-1.5 text-[12px] tracking-[.15em] text-parchment-300">生年月日</dt><dd class="text-xl font-semibold sm:text-2xl">{{ displayBirthdate }}</dd></div>
       </dl>
 
       <!-- ドリームスペル暦 -->
@@ -117,7 +117,7 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
           </div>
           <div class="flex flex-col items-center gap-2.5 text-center">
             <div class="flex h-32 w-32 flex-none items-center justify-center rounded-full border-2 border-gold-500 bg-ink-900">
-              <span class="font-display text-[64px] text-gold-300">{{ result.toneIndex + 1 }}</span>
+              <span class="font-display -mt-2.5 text-[80px] leading-none text-gold-300">{{ result.toneIndex + 1 }}</span>
             </div>
             <div class="text-[12px] tracking-[.06em] text-gold-300">銀河の音</div>
             <div class="font-display text-[21px]">{{ result.tone.info.name }}</div>
