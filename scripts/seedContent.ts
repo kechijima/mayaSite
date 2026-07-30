@@ -1,11 +1,17 @@
-// One-time manual seed for the `diagnosisContent` Firestore collection.
+// One-time manual seed for the `diagnosisContent` Firestore collection's `tone-{0..12}` docs
+// (銀河の音). The `character-{0..19}` docs (太陽の紋章/ウェイブスペル — everywhere a seal is
+// described) are seeded separately by scripts/seedCharacters.ts from the real xlsx master;
+// there's no equivalent master for tone copy yet, so this stays a placeholder-text seeder for
+// tone only. (This used to also seed `sun-*`/`wavespell-*` — both removed 2026-07-30: sun-*
+// was superseded by seedCharacters.ts's richer character-* docs, and wavespell-* was dropped
+// entirely as unused placeholder content — see composables/useDiagnosisContent.ts.)
 // Run via: npm run seed:content            (real project; requires FIREBASE_SERVICE_ACCOUNT_KEY in .env)
 //      or: npm run seed:content:emulator   (local Firestore emulator; no credentials needed)
 // Always skips docs that already exist — there is no overwrite option, by design, so this can
-// never clobber admin edits made via /admin/content. See CLAUDE.md / server/utils/firebaseAdmin.ts.
+// never clobber admin edits made via /admin/content.
 import { cert, getApps, initializeApp } from 'firebase-admin/app'
 import { getFirestore, FieldValue } from 'firebase-admin/firestore'
-import { SEALS, TONES } from '../utils/mayaData'
+import { TONES } from '../utils/mayaData'
 
 const projectId = process.env.NUXT_PUBLIC_FIREBASE_PROJECT_ID || 'mayachannel-34fd5'
 
@@ -22,12 +28,6 @@ if (process.env.FIRESTORE_EMULATOR_HOST) {
 }
 
 const db = getFirestore(app)
-
-// ウェイブスペル20件分のプレースホルダー本文。既存 useDiagnosis.ts のテンプレート文言を踏襲した仮執筆。
-// 管理画面で確認・書き直した上で「公開」に切り替える想定のため status: 下書き で登録する。
-const WAVESPELL_TEXT: string[] = SEALS.map(
-  (seal) => `${seal.essence} この紋章が導くウェイブスペルは、まだ見ぬ可能性として、あなたの潜在意識の奥に眠っています。`
-)
 
 // 銀河の音13件分のプレースホルダー本文。各音の keyword を元にした仮執筆。status: 下書き。
 const TONE_TEXT: string[] = [
@@ -48,7 +48,7 @@ const TONE_TEXT: string[] = [
 
 interface SeedDoc {
   id: string
-  type: 'sun' | 'wavespell' | 'tone'
+  type: 'tone'
   index: number
   name: string
   freeText: string
@@ -57,18 +57,15 @@ interface SeedDoc {
 }
 
 function buildDocs(): SeedDoc[] {
-  const docs: SeedDoc[] = []
-  SEALS.forEach((seal, i) => {
-    // 既存の本文（SEALS[i].essence）をそのまま流用。既に本番表示されている文言なので公開のまま登録。
-    docs.push({ id: `sun-${i}`, type: 'sun', index: i, name: seal.name, freeText: seal.essence, premiumText: '', status: '公開' })
-  })
-  SEALS.forEach((seal, i) => {
-    docs.push({ id: `wavespell-${i}`, type: 'wavespell', index: i, name: seal.name, freeText: WAVESPELL_TEXT[i], premiumText: '', status: '下書き' })
-  })
-  TONES.forEach((tone, i) => {
-    docs.push({ id: `tone-${i}`, type: 'tone', index: i, name: tone.name, freeText: TONE_TEXT[i], premiumText: '', status: '下書き' })
-  })
-  return docs
+  return TONES.map((tone, i) => ({
+    id: `tone-${i}`,
+    type: 'tone' as const,
+    index: i,
+    name: tone.name,
+    freeText: TONE_TEXT[i],
+    premiumText: '',
+    status: '下書き' as const
+  }))
 }
 
 async function main() {

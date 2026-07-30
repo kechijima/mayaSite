@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PLAN_RANK, PLAN_META, type MembershipPlan } from '~/composables/useMembership'
+import { PLAN_META, type MembershipPlan } from '~/composables/useMembership'
 
 const route = useRoute()
 const { plan, rank, setPlan } = useMembership()
@@ -10,14 +10,52 @@ const input = computed(() => ({
 }))
 const { result } = useDiagnosis(input)
 
-const content = useDiagnosisContent(
-  computed(() => result.value.sealIndex),
-  computed(() => result.value.wavespellSealIndex),
-  computed(() => result.value.toneIndex)
-)
+const content = useDiagnosisContent({
+  sealIndex: computed(() => result.value.sealIndex),
+  wavespellSealIndex: computed(() => result.value.wavespellSealIndex),
+  toneIndex: computed(() => result.value.toneIndex)
+})
 const sunText = computed(() => content.sunText.value ?? result.value.sun.text)
 const wavespellText = computed(() => content.wavespellText.value ?? result.value.wavespell.text)
 const toneText = computed(() => content.toneText.value ?? result.value.tone.text)
+const sunProfile = computed(() => content.sunProfile.value)
+const wavespellProfile = computed(() => content.wavespellProfile.value)
+
+// 紋章プロフィール(docs/診断結果マスタ.xlsx由来)の深掘り項目。総合解説(sunText)とあなたはこんな
+// 人(traits)は常時無料、それ以外はデイサインと同じくライトプラン以上で解放する。
+const sunDeepUnlocked = computed(() => rank.value >= 1)
+const profileSections = computed(() => {
+  const p = sunProfile.value
+  if (!p) return []
+  const strengths = [p.strengthsSummary, p.strengthsDetail].filter(Boolean).join('\n\n')
+  const caution = [p.cautionSummary, p.cautionDetail].filter(Boolean).join('\n\n')
+  return [
+    { label: 'キャリアパス', text: p.careerPath },
+    { label: 'あなたが喜ぶこと', text: p.likes },
+    { label: 'あなたが嫌がること', text: p.dislikes },
+    { label: 'コミュニケーションの強み', text: p.communicationStrengths },
+    { label: 'コミュニケーションの課題', text: p.communicationChallenges },
+    { label: 'あなたの性格の強み', text: strengths },
+    { label: '注意すべき傾向', text: caution },
+    { label: '実践的なヒント', text: p.practicalTips },
+    { label: '人生で一番伸びる環境', text: p.bestEnvironment },
+    { label: '人生で一番向いている役割', text: p.bestRole },
+    { label: '恋愛・パートナーシップ', text: p.loveAndPartnership },
+    { label: '仕事で成功する方法', text: p.careerSuccess },
+    { label: '運気が上がる行動', text: p.luckUpActions },
+    { label: '運気が下がるクセ', text: p.luckDownHabits }
+  ].filter((s) => s.text)
+})
+
+// KINの関係性(ガイド/神秘/反対/類似KIN)・運命数字(同じ番号/連番/鏡の向こうの自分/絶対反対KIN)。
+// 「同じ番号」「連番」は参照元(マヤDAN)の個別KINページ上に定義が見当たらなかったため、
+// ユーザー確認のうえ定義(utils/mayaCalc.ts参照)。
+const relations = computed(() => [
+  { label: 'ガイドKIN', seal: result.value.relations.guide },
+  { label: '神秘KIN', seal: result.value.relations.mystic },
+  { label: '反対KIN', seal: result.value.relations.antipode },
+  { label: '類似KIN', seal: result.value.relations.analog }
+])
 
 const displayBirthdate = computed(() => {
   const d = new Date(input.value.birthdate)
@@ -26,36 +64,12 @@ const displayBirthdate = computed(() => {
 const today = new Date()
 const displayToday = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`
 
-// Progressive unlock: light → day sign, standard → +tresena, premium → +codex
-const daySignUnlocked = computed(() => rank.value >= 1)
-const tresenaUnlocked = computed(() => rank.value >= 2)
-const codexUnlocked = computed(() => rank.value >= 3)
-
 const chipClass = computed(() => ({
   free: 'border border-parchment-300/40 text-parchment-100',
   light: 'border border-gold-500 text-gold-300',
   standard: 'bg-gold-600 text-[#241a06]',
   premium: 'bg-gradient-to-r from-gold-500 to-gold-300 text-[#241a06]'
 }[plan.value]))
-
-// Only show plans that unlock something the visitor doesn't already have.
-const remainingPlans = computed(() => PLAN_META.filter((p) => PLAN_RANK[p.id] > rank.value))
-// Prefer recommending Standard while it's still an option; otherwise the next tier up.
-const recommendedId = computed(() => {
-  const standardAvailable = remainingPlans.value.some((p) => p.id === 'standard')
-  return standardAvailable ? 'standard' : remainingPlans.value[0]?.id
-})
-const ctaLabel = computed(() => {
-  const name = PLAN_META.find((p) => p.id === recommendedId.value)?.name
-  return name ? `${name}プランで続きを見る` : '続きを見る'
-})
-
-const compendium = [
-  { title: '年間運勢カレンダー', body: '月ごとの運気の波と、注意すべき時期を一年分カレンダー形式で解説します。' },
-  { title: '相性診断 プレミアム解説（恋愛・仕事）', body: '無料の相性診断よりもさらに踏み込み、恋愛・仕事それぞれのシーンに合わせた詳細な関係性の解説をお届けします。' },
-  { title: '開運アクションガイド', body: 'あなたの紋章・音に合わせた、日常に取り入れやすい具体的な開運行動を提案します。' },
-  { title: '前世・来世の資質', body: '紋章の並びから読み解く、あなたが引き継いできた資質と課題について。' }
-]
 
 const demoPlans: { id: MembershipPlan; label: string }[] = [
   { id: 'free', label: '無料' },
@@ -106,10 +120,13 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
           太陽の紋章は、あなたの顕在意識——つまり周囲から見えている「本質」と「表の性格」を映し出します。
         </p>
         <div class="flex flex-col items-center gap-3.5 text-center sm:flex-row sm:items-start sm:gap-5.5 sm:text-left">
-          <MayaGlyph :seal-index="result.sealIndex" />
+          <MayaPortrait :seal-index="result.sealIndex" />
           <div>
-            <h3 class="font-display text-[19px]">{{ result.sun.seal.name }}</h3>
+            <h3 class="font-display text-[19px]">
+              {{ result.sun.seal.name }}<span v-if="sunProfile?.archetype" class="ml-1.5 text-[14px] font-normal text-parchment-300">{{ sunProfile.archetype }}</span>
+            </h3>
             <span class="mb-2.5 block text-[13px] tracking-[.04em] text-gold-300">{{ result.sun.seal.english }} ｜ {{ result.sun.seal.keyword }}</span>
+            <p v-if="sunProfile?.catchphrase" class="mb-2 text-[13.5px] font-semibold text-gold-300">{{ sunProfile.catchphrase }}</p>
             <p class="text-[14.5px] leading-[1.9] opacity-90">{{ sunText }}</p>
           </div>
         </div>
@@ -122,10 +139,13 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
           ウェイブスペルは、あなたの潜在意識——まだ本人も気づいていない可能性や、生まれ持った才能の方向性を表します。
         </p>
         <div class="flex flex-col items-center gap-3.5 text-center sm:flex-row sm:items-start sm:gap-5.5 sm:text-left">
-          <MayaGlyph :seal-index="result.wavespellSealIndex" />
+          <MayaPortrait :seal-index="result.wavespellSealIndex" />
           <div>
-            <h3 class="font-display text-[19px]">{{ result.wavespell.seal.name }}</h3>
+            <h3 class="font-display text-[19px]">
+              {{ result.wavespell.seal.name }}<span v-if="wavespellProfile?.archetype" class="ml-1.5 text-[14px] font-normal text-parchment-300">{{ wavespellProfile.archetype }}</span>
+            </h3>
             <span class="mb-2.5 block text-[13px] tracking-[.04em] text-gold-300">{{ result.wavespell.seal.english }} ｜ {{ result.wavespell.seal.keyword }}</span>
+            <p v-if="wavespellProfile?.catchphrase" class="mb-2 text-[13.5px] font-semibold text-gold-300">{{ wavespellProfile.catchphrase }}</p>
             <p class="text-[14.5px] leading-[1.9] opacity-90">{{ wavespellText }}</p>
           </div>
         </div>
@@ -144,127 +164,72 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
         </div>
       </section>
 
-      <!-- デイサイン: unlocked from ライト -->
-      <section class="pb-2 pt-14">
-        <SectionDivider label="デイサイン" eyebrow="Day Sign" />
-        <template v-if="daySignUnlocked">
-          <p class="mx-auto mb-7.5 max-w-[560px] text-center text-[14.5px] leading-[1.9] text-parchment-300">
-            デイサインは、あなたが力を発揮しやすい行動パターンと、磨いていくと良い才能を示します。
-          </p>
-          <div class="flex flex-col items-center gap-3.5 text-center sm:flex-row sm:items-start sm:gap-5.5 sm:text-left">
-            <MayaGlyph :seal-index="result.occultSealIndex" />
-            <div>
-              <h3 class="font-display text-[19px]">{{ result.daysign.seal.name }}</h3>
-              <span class="mb-2.5 block text-[13px] tracking-[.04em] text-gold-300">{{ result.daysign.seal.english }} ｜ {{ result.daysign.seal.keyword }}</span>
-              <p class="text-[14.5px] leading-[1.9] opacity-90">{{ result.daysign.text }}</p>
-            </div>
-          </div>
-        </template>
-        <LockedVeil v-else label="デイサインはライトプラン以上でご覧いただけます">
-          <div class="flex flex-col items-center gap-3.5 text-center sm:flex-row sm:items-start sm:gap-5.5 sm:text-left">
-            <MayaGlyph :seal-index="result.occultSealIndex" />
-            <div>
-              <h3 class="font-display text-[19px]">{{ result.daysign.seal.name }}</h3>
-              <span class="mb-2.5 block text-[13px] tracking-[.04em] text-gold-300">才能・行動パターン・磨くべき力</span>
-              <p class="text-[14.5px] leading-[1.9] opacity-90">{{ result.daysign.text }}</p>
-            </div>
-          </div>
-        </LockedVeil>
-      </section>
-
-      <!-- トレセーナ: unlocked from スタンダード -->
-      <section class="pb-2 pt-14">
-        <SectionDivider label="トレセーナ" eyebrow="Tresena" />
-        <template v-if="tresenaUnlocked">
-          <p class="mx-auto mb-7.5 max-w-[560px] text-center text-[14.5px] leading-[1.9] text-parchment-300">
-            トレセーナは13日を1区切りとする運気の波です。現在の周期を把握することで、日々の判断のタイミングが見えてきます。
-          </p>
-          <div class="flex flex-col items-center gap-3.5 text-center sm:flex-row sm:items-start sm:gap-5.5 sm:text-left">
-            <MayaGlyph :seal-index="result.currentWavespellSealIndex" />
-            <div>
-              <h3 class="font-display text-[19px]">{{ result.tresena.seal.name }} ｜ 現在の周期（{{ result.tresena.dayInCycle }}日目）</h3>
-              <span class="mb-2.5 block text-[13px] tracking-[.04em] text-gold-300">{{ result.tresena.tone.name }} ｜ {{ result.tresena.tone.keyword }}</span>
-              <p class="text-[14.5px] leading-[1.9] opacity-90">{{ result.tresena.text }}</p>
-            </div>
-          </div>
-        </template>
-        <LockedVeil v-else label="トレセーナはスタンダードプラン以上でご覧いただけます">
-          <div class="flex flex-col items-center gap-3.5 text-center sm:flex-row sm:items-start sm:gap-5.5 sm:text-left">
-            <MayaGlyph :seal-index="result.currentWavespellSealIndex" />
-            <div>
-              <h3 class="font-display text-[19px]">{{ result.tresena.seal.name }}</h3>
-              <span class="mb-2.5 block text-[13px] tracking-[.04em] text-gold-300">13日間の運気周期・現在の巡り</span>
-              <p class="text-[14.5px] leading-[1.9] opacity-90">{{ result.tresena.text }}</p>
-            </div>
-          </div>
-        </LockedVeil>
-      </section>
-
-      <!-- 古代マヤ暦全書: unlocked at プレミアム -->
-      <section class="pb-2 pt-14">
-        <SectionDivider label="古代マヤ暦全書" eyebrow="Ancient Maya Codex" />
+      <!-- あなたについて: KIN○○はこんな人です(無料)+紋章プロフィール(ライトプラン以上) -->
+      <section v-if="sunProfile?.traits" class="pb-2 pt-14">
+        <SectionDivider label="あなたについて" eyebrow="About You" />
         <p class="mx-auto mb-7.5 max-w-[560px] text-center text-[14.5px] leading-[1.9] text-parchment-300">
-          {{ codexUnlocked
-            ? '年間の運気カレンダーから相性診断まで、あなたをより深く読み解きます。'
-            : 'プレミアムプラン限定。年間の運気カレンダーから相性診断まで、より深くあなたを読み解きます。' }}
+          太陽の紋章が示す資質を、KIN{{ result.kin }}というひとつの個性としてより深く読み解きます。
         </p>
+        <div class="mx-auto grid max-w-[560px] gap-5">
+          <div>
+            <h4 class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">KIN{{ result.kin }}はこんな人です</h4>
+            <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ sunProfile.traits }}</p>
+          </div>
+        </div>
 
-        <template v-if="codexUnlocked">
-          <div class="mb-6.5 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-            <div v-for="c in compendium" :key="c.title" class="rounded border border-gold-500/30 p-4">
-              <h4 class="mb-2 font-display text-[15.5px] text-gold-300">{{ c.title }}</h4>
-              <p class="text-[13px] leading-[1.8] text-parchment-300">{{ c.body }}</p>
+        <template v-if="profileSections.length">
+          <template v-if="sunDeepUnlocked">
+            <div class="mx-auto mt-7.5 grid max-w-[560px] gap-5">
+              <div v-for="s in profileSections" :key="s.label">
+                <h4 class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
+                <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ s.text }}</p>
+              </div>
             </div>
-          </div>
-          <div class="rounded border border-gold-500/30 bg-white/[.02] p-5">
-            <h2 class="mb-4 text-[14.5px] font-bold text-gold-300">2026年 運勢カレンダー（抜粋）</h2>
-            <div class="flex justify-between border-b border-dashed border-gold-500/30 py-1.5 text-[13px]"><span>7月</span><b class="font-semibold text-gold-300">手放し・整理の月</b></div>
-            <div class="flex justify-between border-b border-dashed border-gold-500/30 py-1.5 text-[13px]"><span>8月</span><b class="font-semibold text-gold-300">人との縁が広がる月</b></div>
-            <div class="flex justify-between border-b border-dashed border-gold-500/30 py-1.5 text-[13px]"><span>9月</span><b class="font-semibold text-gold-300">決断と行動の月</b></div>
-            <div class="flex justify-between py-1.5 text-[13px]"><span>10月</span><b class="font-semibold text-gold-300">成果が形になる月</b></div>
-          </div>
-
-          <div class="mt-6.5 flex flex-col gap-2.5 sm:flex-row sm:justify-center">
-            <button class="w-full rounded-full border border-parchment-300/30 px-6.5 py-2.5 text-center text-[13.5px] font-semibold text-parchment-100 sm:w-auto" @click="setPlan('free')">
-              無料版の見え方を確認する（デモ切替）
-            </button>
-            <NuxtLink to="/account" class="w-full rounded-full border border-parchment-300/30 px-6.5 py-2.5 text-center text-[13.5px] font-semibold text-parchment-100 sm:w-auto">
-              契約状況・解約はこちら
-            </NuxtLink>
-          </div>
-        </template>
-
-        <template v-else>
-          <LockedVeil label="古代マヤ暦全書はプレミアムプラン以上でご覧いただけます">
-            <div class="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-              <div v-for="c in compendium" :key="c.title" class="rounded border border-gold-500/30 p-4">
-                <h4 class="mb-2 font-display text-[15.5px] text-gold-300">{{ c.title }}</h4>
-                <p class="text-[13px] leading-[1.8] text-parchment-300">{{ c.body }}</p>
+          </template>
+          <LockedVeil v-else label="紋章プロフィールの続きはライトプラン以上でご覧いただけます" class="mt-7.5">
+            <div class="mx-auto max-w-[560px] grid gap-5">
+              <div v-for="s in profileSections" :key="s.label">
+                <h4 class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
+                <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ s.text }}</p>
               </div>
             </div>
           </LockedVeil>
-
-          <div class="mt-4.5 rounded border border-gold-500 bg-gradient-to-br from-gold-500/[.08] to-ink-950/40 p-7.5 text-center">
-            <div class="mb-2 text-balance font-display text-[21px]">
-              {{ plan === 'free' ? '古代マヤ暦全書で、あなたをもっと深く' : 'さらに深く、あなたを読み解く' }}
-            </div>
-            <p class="mb-5.5 text-[13.5px] text-parchment-300">
-              {{ plan === 'free'
-                ? 'デイサイン・トレセーナ・年間運勢・相性診断まで、すべての項目を今すぐ閲覧できます。'
-                : `残りは「${remainingPlans.map(p => p.name).join('」「')}」プランでご覧いただけます。` }}
-            </p>
-            <div class="mb-5.5 grid grid-cols-1 gap-3" :class="remainingPlans.length === 3 ? 'sm:grid-cols-3' : remainingPlans.length === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-1 sm:max-w-[220px] sm:mx-auto'">
-              <div v-for="p in remainingPlans" :key="p.id" class="rounded border p-4" :class="p.id === recommendedId ? 'border-gold-500 bg-gold-500/[.06]' : 'border-gold-500/30'">
-                <div class="mb-1.5 text-[11.5px] tracking-[.08em] text-gold-300">{{ p.name }}</div>
-                <div class="font-display text-[22px]">{{ p.price }}<small class="text-[11px] font-normal text-parchment-300">/月</small></div>
-                <div class="mt-1 text-[11.5px] text-parchment-300">{{ p.desc }}</div>
-              </div>
-            </div>
-            <NuxtLink to="/checkout" class="inline-block rounded-full bg-gradient-to-r from-gold-500 to-gold-300 px-9.5 py-3.5 text-[14.5px] font-bold tracking-[.03em] text-[#241a06]">
-              {{ ctaLabel }}
-            </NuxtLink>
-          </div>
         </template>
+      </section>
+
+      <!-- KINの関係性: 無料 -->
+      <section class="pb-2 pt-14">
+        <SectionDivider label="KINの関係性" eyebrow="Kin Relations" />
+        <div class="mx-auto grid max-w-[560px] grid-cols-2 gap-5 sm:grid-cols-4">
+          <div v-for="r in relations" :key="r.label" class="flex flex-col items-center gap-2 text-center">
+            <MayaGlyph :seal-index="r.seal.index" size="md" />
+            <span class="text-[11px] tracking-[.06em] text-parchment-300">{{ r.label }}</span>
+            <span class="text-[13px] font-semibold">{{ r.seal.name }}</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 運命数字: 無料、番号のみ -->
+      <section class="pb-2 pt-14">
+        <SectionDivider label="運命数字" eyebrow="Destiny Numbers" />
+        <div class="mx-auto grid max-w-[560px] grid-cols-2 gap-3.5 text-center sm:grid-cols-4">
+          <div class="rounded border border-gold-500/30 bg-white/[.02] px-4 py-3.5">
+            <div class="mb-1 text-[11px] tracking-[.06em] text-parchment-300">同じ番号</div>
+            <div class="font-display text-[20px] text-gold-300 tabular-nums">KIN {{ result.destinyNumbers.sameNumberKin }}</div>
+          </div>
+          <div class="rounded border border-gold-500/30 bg-white/[.02] px-4 py-3.5">
+            <div class="mb-1 text-[11px] tracking-[.06em] text-parchment-300">連番</div>
+            <div class="font-display text-[16px] text-gold-300 tabular-nums">KIN {{ result.destinyNumbers.prevKin }}・{{ result.destinyNumbers.nextKin }}</div>
+          </div>
+          <div class="rounded border border-gold-500/30 bg-white/[.02] px-4 py-3.5">
+            <div class="mb-1 text-[11px] tracking-[.06em] text-parchment-300">鏡の向こうの自分KIN</div>
+            <div class="font-display text-[20px] text-gold-300 tabular-nums">KIN {{ result.destinyNumbers.mirrorKin }}</div>
+          </div>
+          <div class="rounded border border-gold-500/30 bg-white/[.02] px-4 py-3.5">
+            <div class="mb-1 text-[11px] tracking-[.06em] text-parchment-300">絶対反対KIN</div>
+            <div class="font-display text-[20px] text-gold-300 tabular-nums">KIN {{ result.destinyNumbers.absoluteOppositeKin }}</div>
+          </div>
+        </div>
       </section>
 
       <!-- 相性診断への導線: 無料機能、ゲート無し -->
