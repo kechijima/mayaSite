@@ -1,10 +1,12 @@
 import { SEALS } from '~/utils/mayaData'
 import { diagnoseBirthdate } from '~/utils/mayaCalc'
 import { buildKinProfileText } from '~/utils/kinProfile'
+import { DEFAULT_GENDER, type Gender } from '~/utils/gender'
 
 export interface DiagnosisInput {
   name: string
   birthdate: string
+  gender?: Gender
 }
 
 export function useDiagnosis(input: Ref<DiagnosisInput>) {
@@ -16,6 +18,7 @@ export function useDiagnosis(input: Ref<DiagnosisInput>) {
 
     return {
       name: input.value.name || 'ゲスト',
+      gender: input.value.gender || DEFAULT_GENDER,
       kin: birth.kin,
       sealIndex: birth.sealIndex,
       toneIndex: birth.toneIndex,

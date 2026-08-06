@@ -19,6 +19,16 @@ export function compatibilityRelation(sealIndexA: number, sealIndexB: number): C
   return 'mystic'
 }
 
+// 相性タイプごとにチップの色を分け、4組み合わせを一目で見分けられるようにする。運命数字の
+// 「該当」を示す赤(text-red-400)とは意味が異なる(あちらは"レアな一致"、こちらは"タイプの分類")
+// ため、混同を避けて別の色相を使う。
+export const COMPATIBILITY_RELATION_CHIP_CLASS: Record<CompatibilityRelation, string> = {
+  twin: 'bg-emerald-500/15 text-emerald-400',
+  analog: 'bg-sky-500/15 text-sky-400',
+  antipode: 'bg-orange-500/15 text-orange-400',
+  mystic: 'bg-violet-500/15 text-violet-400'
+}
+
 export const COMPATIBILITY_RELATION_CONTENT: Record<CompatibilityRelation, { label: string; text: string }> = {
   twin: {
     label: '双子紋章',

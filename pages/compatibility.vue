@@ -1,19 +1,27 @@
 <script setup lang="ts">
-import { MAX_OTHER_PEOPLE, type PersonInput } from '~/composables/useCompatibility'
+import { MAX_OTHER_PEOPLE, type PersonInput, type SealAttribute } from '~/composables/useCompatibility'
+import { DEFAULT_GENDER, GENDER_OPTIONS, isGender } from '~/utils/gender'
+import { COMPATIBILITY_RELATION_CHIP_CLASS } from '~/utils/compatibility'
+
+function attributeLabel(attr: SealAttribute) {
+  return attr === 'sun' ? '太陽の紋章' : 'ウェイブスペル'
+}
 
 const route = useRoute()
 
+const initialGenderQuery = route.query.gender as string | undefined
 const self = ref<PersonInput>({
   id: 'self',
   name: (route.query.name as string) || '',
-  birthdate: (route.query.birth as string) || ''
+  birthdate: (route.query.birth as string) || '',
+  gender: initialGenderQuery && isGender(initialGenderQuery) ? initialGenderQuery : DEFAULT_GENDER
 })
 
 // Deterministic IDs only — the initial `others` array is built during setup() on both server
 // and client, so a random ID generator here would cause a v-for :key hydration mismatch.
 let nextOtherId = 0
 function makeOther(): PersonInput {
-  return { id: `other-${nextOtherId++}`, name: '', birthdate: '' }
+  return { id: `other-${nextOtherId++}`, name: '', birthdate: '', gender: DEFAULT_GENDER }
 }
 const others = ref<PersonInput[]>([makeOther()])
 
@@ -25,16 +33,18 @@ function removePerson(id: string) {
   others.value = others.value.filter((p) => p.id !== id)
 }
 
+const compatibilityInput = computed(() => ({ self: self.value, others: others.value }))
+const { result } = useCompatibility(compatibilityInput)
+
 const submitted = ref(false)
+const { recordCompatibilityDiagnosis } = useDiagnosisHistory()
 function submit() {
   submitted.value = true
+  recordCompatibilityDiagnosis(result.value.self, result.value.others)
 }
 function editAgain() {
   submitted.value = false
 }
-
-const compatibilityInput = computed(() => ({ self: self.value, others: others.value }))
-const { result } = useCompatibility(compatibilityInput)
 </script>
 
 <template>
@@ -68,12 +78,16 @@ const { result } = useCompatibility(compatibilityInput)
             </div>
             <div>
               <label class="mb-1.5 block text-[11px] tracking-[.1em] text-parchment-300">生年月日</label>
-              <input
-                v-model="self.birthdate"
-                type="date"
-                required
+              <BirthdateSelect v-model="self.birthdate" />
+            </div>
+            <div>
+              <label class="mb-1.5 block text-[11px] tracking-[.1em] text-parchment-300">性別</label>
+              <select
+                v-model="self.gender"
                 class="w-full rounded border border-gold-500/30 bg-transparent px-3.5 py-2.5 text-sm text-parchment-100 outline-none focus:border-gold-500 [color-scheme:dark]"
-              />
+              >
+                <option v-for="opt in GENDER_OPTIONS" :key="opt.value" :value="opt.value" class="bg-ink-950">{{ opt.label }}</option>
+              </select>
             </div>
           </div>
         </div>
@@ -102,12 +116,16 @@ const { result } = useCompatibility(compatibilityInput)
             </div>
             <div>
               <label class="mb-1.5 block text-[11px] tracking-[.1em] text-parchment-300">生年月日</label>
-              <input
-                v-model="other.birthdate"
-                type="date"
-                required
+              <BirthdateSelect v-model="other.birthdate" />
+            </div>
+            <div>
+              <label class="mb-1.5 block text-[11px] tracking-[.1em] text-parchment-300">性別</label>
+              <select
+                v-model="other.gender"
                 class="w-full rounded border border-gold-500/30 bg-transparent px-3.5 py-2.5 text-sm text-parchment-100 outline-none focus:border-gold-500 [color-scheme:dark]"
-              />
+              >
+                <option v-for="opt in GENDER_OPTIONS" :key="opt.value" :value="opt.value" class="bg-ink-950">{{ opt.label }}</option>
+              </select>
             </div>
           </div>
         </div>
@@ -142,11 +160,58 @@ const { result } = useCompatibility(compatibilityInput)
           <SectionDivider label="相性" eyebrow="Compatibility" />
           <div class="space-y-3.5">
             <div v-for="pair in result.pairs" :key="pair.otherId" class="rounded border border-gold-500/30 bg-white/[.02] p-5">
-              <h3 class="mb-1.5 font-display text-[17px]">
-                {{ result.self.name }} × {{ pair.otherName }}
-                <span class="ml-1.5 text-[13px] font-normal text-gold-300">{{ pair.relationLabel }}</span>
-              </h3>
-              <p class="text-[14.5px] leading-[1.9] opacity-90">{{ pair.relationText }}</p>
+              <h3 class="mb-3.5 font-display text-[17px]" :class="pair.destinyRelationLabel ? 'text-red-400' : ''">{{ result.self.name }} × {{ pair.otherName }}</h3>
+
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div v-for="c in pair.combinations" :key="`${c.selfAttribute}-${c.otherAttribute}`" class="flex flex-col items-center gap-2 rounded border border-gold-500/20 bg-white/[.02] px-3 py-3.5 text-center">
+                  <span class="text-[10.5px] tracking-[.04em] text-parchment-300">{{ attributeLabel(c.selfAttribute) }} × {{ attributeLabel(c.otherAttribute) }}</span>
+
+                  <div class="flex items-center gap-3">
+                    <div class="flex flex-col items-center gap-1">
+                      <MayaGlyph :seal-index="c.selfSealIndex" size="md" />
+                      <span class="text-[12px] font-semibold">{{ c.selfSealName }}</span>
+                    </div>
+
+                    <span class="text-[13px] text-gold-300">×</span>
+
+                    <div class="flex flex-col items-center gap-1">
+                      <MayaGlyph :seal-index="c.otherSealIndex" size="md" />
+                      <span class="text-[12px] font-semibold">{{ c.otherSealName }}</span>
+                    </div>
+                  </div>
+
+                  <span class="mt-1 rounded-full px-2.5 py-1 text-[11.5px] font-semibold" :class="COMPATIBILITY_RELATION_CHIP_CLASS[c.relation]">{{ c.relationLabel }}</span>
+                </div>
+
+                <div class="flex flex-col items-center gap-2 rounded border border-gold-500/20 bg-white/[.02] px-3 py-3.5 text-center">
+                  <span class="text-[10.5px] tracking-[.04em] text-parchment-300">運命数字</span>
+
+                  <div class="flex items-center gap-3">
+                    <div class="flex flex-col items-center gap-1">
+                      <div class="flex h-[76px] w-[76px] flex-none items-center justify-center rounded-full border-2 border-gold-500 bg-ink-900">
+                        <span class="font-display text-[14px] text-gold-300 tabular-nums">KIN {{ result.self.kin }}</span>
+                      </div>
+                      <span class="text-[12px] font-semibold">{{ result.self.name }}</span>
+                    </div>
+
+                    <span class="text-[13px] text-gold-300">×</span>
+
+                    <div class="flex flex-col items-center gap-1">
+                      <div class="flex h-[76px] w-[76px] flex-none items-center justify-center rounded-full border-2 border-gold-500 bg-ink-900">
+                        <span class="font-display text-[14px] text-gold-300 tabular-nums">KIN {{ pair.otherKin }}</span>
+                      </div>
+                      <span class="text-[12px] font-semibold">{{ pair.otherName }}</span>
+                    </div>
+                  </div>
+
+                  <span
+                    class="mt-1 rounded-full px-2.5 py-1 text-[11.5px] font-bold"
+                    :class="pair.destinyRelationLabel ? 'bg-red-500/15 text-red-400' : 'border border-parchment-300/30 text-parchment-300 font-semibold'"
+                  >
+                    {{ pair.destinyRelationLabel ?? '特になし' }}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </section>
