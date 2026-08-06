@@ -1,30 +1,58 @@
 <script setup lang="ts">
 import { PLAN_META, type MembershipPlan } from '~/composables/useMembership'
+import { DEFAULT_GENDER, genderLabel, isGender } from '~/utils/gender'
+import { parseCelebrities } from '~/utils/toneCelebrities'
 
 const route = useRoute()
 const { plan, rank, setPlan } = useMembership()
 
-const input = computed(() => ({
-  name: (route.query.name as string) || 'ゲスト',
-  birthdate: (route.query.birth as string) || '1992-10-16'
-}))
+const input = computed(() => {
+  const genderQuery = route.query.gender as string | undefined
+  return {
+    name: (route.query.name as string) || 'ゲスト',
+    birthdate: (route.query.birth as string) || '1992-10-16',
+    gender: genderQuery && isGender(genderQuery) ? genderQuery : DEFAULT_GENDER
+  }
+})
 const { result } = useDiagnosis(input)
 
 const content = useDiagnosisContent({
   sealIndex: computed(() => result.value.sealIndex),
   wavespellSealIndex: computed(() => result.value.wavespellSealIndex),
-  toneIndex: computed(() => result.value.toneIndex)
+  toneIndex: computed(() => result.value.toneIndex),
+  kin: computed(() => result.value.kin)
 })
 const sunText = computed(() => content.sunText.value ?? result.value.sun.text)
 const wavespellText = computed(() => content.wavespellText.value ?? result.value.wavespell.text)
 const toneText = computed(() => content.toneText.value ?? result.value.tone.text)
 const sunProfile = computed(() => content.sunProfile.value)
 const wavespellProfile = computed(() => content.wavespellProfile.value)
+const toneProfile = computed(() => content.toneProfile.value)
+// docs/KIN番号診断結果マスタ.xlsx由来、KIN番号1つに対して1本のみの読み物。紋章/音と違って
+// 元々ハードコードされたフォールバック文言が無いので、Firestoreにまだ無ければセクション自体を
+// 出さない(v-if="kinText" — 下のtemplate参照)。全260件無料公開。
+const kinText = computed(() => content.kinText.value)
 
-// 紋章プロフィール(docs/診断結果マスタ.xlsx由来)の深掘り項目。総合解説(sunText)とあなたはこんな
-// 人(traits)は常時無料、それ以外はデイサインと同じくライトプラン以上で解放する。
+// 銀河の音プロフィール(docs/銀河の音診断結果マスタ.xlsx由来)の深掘り項目。紋章プロフィールと違い
+// 無料/有料の区切りがマスタ側に無いため、全項目を常時無料で表示する。
+const toneProfileSections = computed(() => {
+  const p = toneProfile.value
+  if (!p) return []
+  return [
+    { label: '基本スペック', text: p.basicSpecs },
+    { label: '性格の強み', text: p.strengths },
+    { label: '注意するべき点', text: p.cautions }
+  ].filter((s) => s.text)
+})
+const toneCelebrities = computed(() => parseCelebrities(toneProfile.value?.celebrities))
+
+// 紋章プロフィール(docs/診断結果マスタ.xlsx由来)の深掘り項目。マスタの行構成(1〜14行目=無料、
+// 15行目以降=有料)に合わせて分割している。総合解説(sunText)とあなたはこんな人(traits)は別枠で
+// 常時無料。cautionDetail/cautionDetailPremiumは元々マスタの同一セル(row14+15)を1つのフィールド
+// として結合していたものを分割した経緯があり、「注意すべき傾向」の続きとして premium 側に表示する
+// — 詳細は scripts/characters.data.ts の2026-08-05コメント参照。
 const sunDeepUnlocked = computed(() => rank.value >= 1)
-const profileSections = computed(() => {
+const freeProfileSections = computed(() => {
   const p = sunProfile.value
   if (!p) return []
   const strengths = [p.strengthsSummary, p.strengthsDetail].filter(Boolean).join('\n\n')
@@ -36,7 +64,14 @@ const profileSections = computed(() => {
     { label: 'コミュニケーションの強み', text: p.communicationStrengths },
     { label: 'コミュニケーションの課題', text: p.communicationChallenges },
     { label: 'あなたの性格の強み', text: strengths },
-    { label: '注意すべき傾向', text: caution },
+    { label: '注意すべき傾向', text: caution }
+  ].filter((s) => s.text)
+})
+const premiumProfileSections = computed(() => {
+  const p = sunProfile.value
+  if (!p) return []
+  return [
+    { label: '注意すべき傾向（続き）', text: p.cautionDetailPremium },
     { label: '実践的なヒント', text: p.practicalTips },
     { label: '人生で一番伸びる環境', text: p.bestEnvironment },
     { label: '人生で一番向いている役割', text: p.bestRole },
@@ -61,6 +96,7 @@ const displayBirthdate = computed(() => {
   const d = new Date(input.value.birthdate)
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
 })
+const displayGender = computed(() => genderLabel(result.value.gender))
 const chipClass = computed(() => ({
   free: 'border border-parchment-300/40 text-parchment-100',
   light: 'border border-gold-500 text-gold-300',
@@ -94,9 +130,10 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
     </div>
 
     <div class="mx-auto max-w-[720px] px-5">
-      <dl class="mb-2 grid grid-cols-1 divide-y divide-gold-500/20 rounded border border-gold-500/30 bg-white/[.02] px-6 py-5 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+      <dl class="mb-2 grid grid-cols-1 divide-y divide-gold-500/20 rounded border border-gold-500/30 bg-white/[.02] px-6 py-5 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
         <div class="py-3 text-center sm:py-0"><dt class="mb-1.5 text-[12px] tracking-[.15em] text-parchment-300">お名前</dt><dd class="text-xl font-semibold sm:text-2xl">{{ result.name }} 様</dd></div>
         <div class="py-3 text-center sm:py-0"><dt class="mb-1.5 text-[12px] tracking-[.15em] text-parchment-300">生年月日</dt><dd class="text-xl font-semibold sm:text-2xl">{{ displayBirthdate }}</dd></div>
+        <div class="py-3 text-center sm:py-0"><dt class="mb-1.5 text-[12px] tracking-[.15em] text-parchment-300">性別</dt><dd class="text-xl font-semibold sm:text-2xl">{{ displayGender }}</dd></div>
       </dl>
 
       <!-- ドリームスペル暦 -->
@@ -123,6 +160,13 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
             <div class="font-display text-[21px]">{{ result.tone.info.name }}</div>
           </div>
         </div>
+      </section>
+
+      <!-- KIN番号のあなたへ: docs/KIN番号診断結果マスタ.xlsx由来、個別要素(紋章/音)ではなくKIN
+           全体への語りかけなので、内訳の前・概要のすぐ後に置く。全260件無料公開。 -->
+      <section v-if="kinText" class="pb-2 pt-14">
+        <SectionDivider :label="`KIN${result.kin}のあなたへ`" eyebrow="Your Kin" />
+        <p class="mx-auto max-w-[560px] whitespace-pre-line text-center text-[14.5px] leading-[1.9] opacity-90">{{ kinText }}</p>
       </section>
 
       <!-- 太陽の紋章 -->
@@ -171,8 +215,27 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
         </p>
         <div class="text-center">
           <h3 class="font-display text-[19px]">{{ result.tone.info.name }}</h3>
-          <span class="mb-2.5 block text-[13px] tracking-[.04em] text-gold-300">{{ result.tone.info.english }} ｜ {{ result.tone.info.keyword }}</span>
+          <span class="mb-2.5 block text-[13px] tracking-[.04em] text-gold-300">{{ result.tone.info.english }}</span>
+          <p v-if="toneProfile?.title" class="mb-2 text-[13.5px] font-semibold text-gold-300">{{ toneProfile.title }}</p>
           <p class="mx-auto max-w-[560px] text-[14.5px] leading-[1.9] opacity-90">{{ toneText }}</p>
+        </div>
+
+        <template v-if="toneProfileSections.length">
+          <div class="mx-auto mt-7.5 grid max-w-[560px] gap-5 text-left">
+            <div v-for="s in toneProfileSections" :key="s.label">
+              <h4 class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
+              <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ s.text }}</p>
+            </div>
+          </div>
+        </template>
+
+        <div v-if="toneCelebrities.length" class="mx-auto mt-7.5 max-w-[560px] text-left">
+          <h4 class="mb-2.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">同じ音を持つ有名人</h4>
+          <ul class="grid gap-1.5 text-[13px] leading-[1.6] opacity-90 sm:grid-cols-2">
+            <li v-for="c in toneCelebrities" :key="c.name + c.kin">
+              {{ c.name }}<span class="text-parchment-300">（{{ c.combo }}）</span>
+            </li>
+          </ul>
         </div>
       </section>
 
@@ -189,10 +252,19 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
           </div>
         </div>
 
-        <template v-if="profileSections.length">
+        <template v-if="freeProfileSections.length">
+          <div class="mx-auto mt-7.5 grid max-w-[560px] gap-5">
+            <div v-for="s in freeProfileSections" :key="s.label">
+              <h4 class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
+              <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ s.text }}</p>
+            </div>
+          </div>
+        </template>
+
+        <template v-if="premiumProfileSections.length">
           <template v-if="sunDeepUnlocked">
             <div class="mx-auto mt-7.5 grid max-w-[560px] gap-5">
-              <div v-for="s in profileSections" :key="s.label">
+              <div v-for="s in premiumProfileSections" :key="s.label">
                 <h4 class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
                 <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ s.text }}</p>
               </div>
@@ -200,7 +272,7 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
           </template>
           <LockedVeil v-else label="紋章プロフィールの続きはライトプラン以上でご覧いただけます" class="mt-7.5">
             <div class="mx-auto max-w-[560px] grid gap-5">
-              <div v-for="s in profileSections" :key="s.label">
+              <div v-for="s in premiumProfileSections" :key="s.label">
                 <h4 class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
                 <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ s.text }}</p>
               </div>
@@ -254,7 +326,7 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
           <div class="mb-2 font-display text-[17px] text-gold-300">身近な人との相性を無料で診断</div>
           <p class="mb-4 text-[13px] text-parchment-300">パートナーや友人の生年月日を入れるだけで、紋章の組み合わせから相性を読み解きます。</p>
           <NuxtLink
-            :to="{ path: '/compatibility', query: { name: result.name, birth: input.birthdate } }"
+            :to="{ path: '/compatibility', query: { name: result.name, birth: input.birthdate, gender: result.gender } }"
             class="inline-block rounded-full border border-gold-500/50 px-6.5 py-2.5 text-[13.5px] font-semibold text-gold-300"
           >
             相性診断をはじめる

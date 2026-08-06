@@ -10,10 +10,16 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "emulators": "firebase emulators:start --import=./.firebase-emulator-data --export-on-exit",
-    "seed:content": "tsx --env-file=.env scripts/seedContent.ts",
-    "seed:content:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/seedContent.ts",
     "seed:characters": "tsx --env-file=.env scripts/seedCharacters.ts",
-    "seed:characters:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/seedCharacters.ts"
+    "seed:characters:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/seedCharacters.ts",
+    "seed:tones": "tsx --env-file=.env scripts/seedTones.ts",
+    "seed:tones:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/seedTones.ts",
+    "seed:kins": "tsx --env-file=.env scripts/seedKins.ts",
+    "seed:kins:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/seedKins.ts",
+    "cleanup:legacy-content": "tsx --env-file=.env scripts/deleteLegacyContent.ts",
+    "cleanup:legacy-content:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/deleteLegacyContent.ts",
+    "backfill:caution-split": "tsx --env-file=.env scripts/backfillCautionSplit.ts",
+    "backfill:caution-split:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/backfillCautionSplit.ts"
   },
   "dependencies": {
     "firebase": "^11.3.1",

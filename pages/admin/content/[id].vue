@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { doc, getDoc, serverTimestamp, updateDoc, type Firestore } from 'firebase/firestore'
-import { CHARACTER_PROFILE_FIELDS, buildContentRow, typeLabel, type ContentRow } from '~/utils/diagnosisContentAdmin'
+import { CHARACTER_PROFILE_FIELDS, TONE_PROFILE_FIELDS, buildContentRow, typeLabel, type ContentRow } from '~/utils/diagnosisContentAdmin'
 
 definePageMeta({ layout: 'admin' })
 
@@ -10,6 +10,10 @@ const id = route.params.id as string
 const row = ref<ContentRow | null>(buildContentRow(id))
 const loadError = ref('')
 const notFound = ref(!row.value)
+
+const freeProfileFields = CHARACTER_PROFILE_FIELDS.filter((f) => f.tier === 'free')
+const premiumProfileFields = CHARACTER_PROFILE_FIELDS.filter((f) => f.tier === 'premium')
+const toneProfileFields = TONE_PROFILE_FIELDS
 
 onMounted(async () => {
   if (!row.value) return
@@ -24,6 +28,9 @@ onMounted(async () => {
       row.value.status = data.status ?? '下書き'
       if (row.value.type === 'character') {
         for (const f of CHARACTER_PROFILE_FIELDS) row.value[f.key] = data[f.key] ?? ''
+      }
+      if (row.value.type === 'tone') {
+        for (const f of TONE_PROFILE_FIELDS) row.value[f.key] = data[f.key] ?? ''
       }
     }
   } catch {
@@ -44,7 +51,9 @@ async function save() {
     const { $firestore } = useNuxtApp()
     const profileUpdates = row.value.type === 'character'
       ? Object.fromEntries(CHARACTER_PROFILE_FIELDS.map((f) => [f.key, row.value![f.key] ?? '']))
-      : {}
+      : row.value.type === 'tone'
+        ? Object.fromEntries(TONE_PROFILE_FIELDS.map((f) => [f.key, row.value![f.key] ?? '']))
+        : {}
     await updateDoc(doc($firestore as Firestore, 'diagnosisContent', id), {
       name: row.value.name,
       freeText: row.value.freeText,
@@ -96,12 +105,12 @@ async function save() {
         <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <div>
             <div class="mb-1.5 flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
-              {{ row.type === 'character' ? '総合解説（無料エリア本文）' : '無料エリア本文' }}
+              総合解説（無料エリア本文）
               <span class="rounded-full border border-slate-300 px-2 py-0.5 text-[10.5px] font-medium text-slate-500 dark:border-slate-700 dark:text-slate-400">非会員・無料会員に表示</span>
             </div>
             <textarea v-model="row.freeText" class="min-h-[120px] w-full rounded-lg border border-slate-200 bg-white p-3 text-[13px] dark:border-slate-800 dark:bg-slate-900"></textarea>
           </div>
-          <div v-if="row.type !== 'character'">
+          <div>
             <div class="mb-1.5 flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
               有料エリア本文
               <span class="rounded-full bg-amber-50 px-2 py-0.5 text-[10.5px] font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-400">今回未使用</span>
@@ -110,13 +119,57 @@ async function save() {
           </div>
         </div>
 
+        <template v-if="row.type === 'tone'">
+          <div class="mb-2 mt-6 flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
+            銀河の音プロフィール項目
+            <span class="rounded-full border border-slate-300 px-2 py-0.5 text-[10.5px] font-medium text-slate-500 dark:border-slate-700 dark:text-slate-400">非会員・無料会員に表示</span>
+          </div>
+          <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div v-for="f in toneProfileFields" :key="f.key">
+              <div class="mb-1.5 text-xs font-bold text-slate-600 dark:text-slate-300">{{ f.label }}</div>
+              <input
+                v-if="f.kind === 'text'"
+                v-model="row[f.key]"
+                type="text"
+                class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900"
+              />
+              <textarea
+                v-else
+                v-model="row[f.key]"
+                class="min-h-[100px] w-full rounded-lg border border-slate-200 bg-white p-3 text-[13px] dark:border-slate-800 dark:bg-slate-900"
+              ></textarea>
+            </div>
+          </div>
+        </template>
+
         <template v-if="row.type === 'character'">
+          <div class="mb-2 mt-6 flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
+            紋章プロフィール項目（無料表示）
+            <span class="rounded-full border border-slate-300 px-2 py-0.5 text-[10.5px] font-medium text-slate-500 dark:border-slate-700 dark:text-slate-400">非会員・無料会員に表示</span>
+          </div>
+          <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div v-for="f in freeProfileFields" :key="f.key">
+              <div class="mb-1.5 text-xs font-bold text-slate-600 dark:text-slate-300">{{ f.label }}</div>
+              <input
+                v-if="f.kind === 'text'"
+                v-model="row[f.key]"
+                type="text"
+                class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900"
+              />
+              <textarea
+                v-else
+                v-model="row[f.key]"
+                class="min-h-[100px] w-full rounded-lg border border-slate-200 bg-white p-3 text-[13px] dark:border-slate-800 dark:bg-slate-900"
+              ></textarea>
+            </div>
+          </div>
+
           <div class="mb-2 mt-6 flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
             紋章プロフィール項目（ライトプラン以上に表示）
             <span class="rounded-full bg-emerald-50 px-2 py-0.5 text-[10.5px] font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">有料エリア</span>
           </div>
           <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div v-for="f in CHARACTER_PROFILE_FIELDS" :key="f.key">
+            <div v-for="f in premiumProfileFields" :key="f.key">
               <div class="mb-1.5 text-xs font-bold text-slate-600 dark:text-slate-300">{{ f.label }}</div>
               <input
                 v-if="f.kind === 'text'"

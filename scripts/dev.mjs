@@ -3,9 +3,9 @@
 // Hosting), waits for Firestore to be ready, seeds diagnosisContent (idempotent
 // — skips docs that already exist/already seeded), then starts the Nuxt dev server.
 // `npm run dev` is this script; the underlying pieces stay available individually as
-// `npm run emulators` / `npm run seed:content:emulator` / `npm run seed:characters:emulator` /
-// `npm run dev:nuxt` (this script just re-runs those same package.json scripts, not duplicated
-// commands, so there's one source of truth).
+// `npm run emulators` / `npm run seed:characters:emulator` / `npm run seed:tones:emulator` /
+// `npm run seed:kins:emulator` / `npm run dev:nuxt` (this script just re-runs those same
+// package.json scripts, not duplicated commands, so there's one source of truth).
 //
 // If a Firestore emulator is already listening on 127.0.0.1:8080 (e.g. started
 // separately in another terminal), this reuses it instead of starting a second
@@ -135,7 +135,7 @@ async function main() {
   }
 
   console.log('▸ seeding diagnosisContent (skips docs that already exist/already seeded)...')
-  for (const scriptName of ['seed:content:emulator', 'seed:characters:emulator']) {
+  for (const scriptName of ['seed:characters:emulator', 'seed:tones:emulator', 'seed:kins:emulator']) {
     await new Promise((resolve, reject) => {
       seed = runScript(scriptName)
       seed.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`${scriptName} exited with code ${code}`))))

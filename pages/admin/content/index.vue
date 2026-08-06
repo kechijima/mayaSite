@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { collection, getDocs, type Firestore } from 'firebase/firestore'
-import { CONTENT_TYPES, CHARACTER_PROFILE_FIELDS, buildContentRows, typeLabel, type ContentRow } from '~/utils/diagnosisContentAdmin'
+import { CONTENT_TYPES, CHARACTER_PROFILE_FIELDS, TONE_PROFILE_FIELDS, buildContentRows, typeLabel, type ContentRow } from '~/utils/diagnosisContentAdmin'
 
 definePageMeta({ layout: 'admin' })
 
@@ -23,6 +23,9 @@ onMounted(async () => {
       row.updated = (data as any).updatedAt?.toDate ? (data as any).updatedAt.toDate().toISOString().slice(0, 10) : row.updated
       if (row.type === 'character') {
         for (const f of CHARACTER_PROFILE_FIELDS) row[f.key] = data[f.key] ?? ''
+      }
+      if (row.type === 'tone') {
+        for (const f of TONE_PROFILE_FIELDS) row[f.key] = data[f.key] ?? ''
       }
     })
   } catch {
