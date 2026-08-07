@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { PLAN_META, type MembershipPlan } from '~/composables/useMembership'
+import type { CharacterProfileFields } from '~/composables/useDiagnosisContent'
 import { DEFAULT_GENDER, genderLabel, isGender } from '~/utils/gender'
 import { parseCelebrities } from '~/utils/toneCelebrities'
 
@@ -47,13 +48,15 @@ const toneProfileSections = computed(() => {
 const toneCelebrities = computed(() => parseCelebrities(toneProfile.value?.celebrities))
 
 // 紋章プロフィール(docs/診断結果マスタ.xlsx由来)の深掘り項目。マスタの行構成(1〜14行目=無料、
-// 15行目以降=有料)に合わせて分割している。総合解説(sunText)とあなたはこんな人(traits)は別枠で
-// 常時無料。cautionDetail/cautionDetailPremiumは元々マスタの同一セル(row14+15)を1つのフィールド
-// として結合していたものを分割した経緯があり、「注意すべき傾向」の続きとして premium 側に表示する
-// — 詳細は scripts/characters.data.ts の2026-08-05コメント参照。
-const sunDeepUnlocked = computed(() => rank.value >= 1)
-const freeProfileSections = computed(() => {
-  const p = sunProfile.value
+// 15行目以降=有料)に合わせて分割している。総合解説(sunText/wavespellText)とあなたはこんな人
+// (traits)は別枠で常時無料。cautionDetail/cautionDetailPremiumは元々マスタの同一セル
+// (row14+15)を1つのフィールドとして結合していたものを分割した経緯があり、「注意すべき傾向」の
+// 続きとして premium 側に表示する — 詳細は scripts/characters.data.ts の2026-08-05コメント参照。
+// 太陽の紋章・ウェイブスペルは別人格(別キャラクター)なので、それぞれ自分のセクション内で自分の
+// プロフィールを深掘りする(2026-08-06以前は両方まとめて「あなたについて」という1セクションに
+// していたが、実際には太陽の紋章側のプロフィールしか出せておらず紛らわしかったため分離した)。
+const deepUnlocked = computed(() => rank.value >= 1)
+function freeProfileSections(p: CharacterProfileFields | null) {
   if (!p) return []
   const strengths = [p.strengthsSummary, p.strengthsDetail].filter(Boolean).join('\n\n')
   const caution = [p.cautionSummary, p.cautionDetail].filter(Boolean).join('\n\n')
@@ -66,12 +69,11 @@ const freeProfileSections = computed(() => {
     { label: 'あなたの性格の強み', text: strengths },
     { label: '注意すべき傾向', text: caution }
   ].filter((s) => s.text)
-})
-const premiumProfileSections = computed(() => {
-  const p = sunProfile.value
+}
+function premiumProfileSections(p: CharacterProfileFields | null) {
   if (!p) return []
   return [
-    { label: '注意すべき傾向（続き）', text: p.cautionDetailPremium },
+    { label: '', text: p.cautionDetailPremium },
     { label: '実践的なヒント', text: p.practicalTips },
     { label: '人生で一番伸びる環境', text: p.bestEnvironment },
     { label: '人生で一番向いている役割', text: p.bestRole },
@@ -80,7 +82,11 @@ const premiumProfileSections = computed(() => {
     { label: '運気が上がる行動', text: p.luckUpActions },
     { label: '運気が下がるクセ', text: p.luckDownHabits }
   ].filter((s) => s.text)
-})
+}
+const sunFreeProfileSections = computed(() => freeProfileSections(sunProfile.value))
+const sunPremiumProfileSections = computed(() => premiumProfileSections(sunProfile.value))
+const wavespellFreeProfileSections = computed(() => freeProfileSections(wavespellProfile.value))
+const wavespellPremiumProfileSections = computed(() => premiumProfileSections(wavespellProfile.value))
 
 // KINの関係性(ガイド/神秘/反対/類似KIN)・運命数字(同じ番号/連番/鏡の向こうの自分/絶対反対KIN)。
 // 「同じ番号」「連番」は参照元(マヤDAN)の個別KINページ上に定義が見当たらなかったため、
@@ -162,13 +168,6 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
         </div>
       </section>
 
-      <!-- KIN番号のあなたへ: docs/KIN番号診断結果マスタ.xlsx由来、個別要素(紋章/音)ではなくKIN
-           全体への語りかけなので、内訳の前・概要のすぐ後に置く。全260件無料公開。 -->
-      <section v-if="kinText" class="pb-2 pt-14">
-        <SectionDivider :label="`KIN${result.kin}のあなたへ`" eyebrow="Your Kin" />
-        <p class="mx-auto max-w-[560px] whitespace-pre-line text-center text-[14.5px] leading-[1.9] opacity-90">{{ kinText }}</p>
-      </section>
-
       <!-- 太陽の紋章 -->
       <section class="pb-2 pt-14">
         <SectionDivider label="太陽の紋章" eyebrow="Sun Sign" />
@@ -186,6 +185,41 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
             <p class="text-[14.5px] leading-[1.9] opacity-90">{{ sunText }}</p>
           </div>
         </div>
+
+        <div v-if="sunProfile?.traits" class="mx-auto mt-7.5 grid max-w-[560px] gap-5">
+          <div>
+            <h4 class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">あなたはこんな人です</h4>
+            <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ sunProfile.traits }}</p>
+          </div>
+        </div>
+
+        <template v-if="sunFreeProfileSections.length">
+          <div class="mx-auto mt-7.5 grid max-w-[560px] gap-5">
+            <div v-for="s in sunFreeProfileSections" :key="s.label">
+              <h4 class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
+              <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ s.text }}</p>
+            </div>
+          </div>
+        </template>
+
+        <template v-if="sunPremiumProfileSections.length">
+          <template v-if="deepUnlocked">
+            <div class="mx-auto mt-7.5 grid max-w-[560px] gap-5">
+              <div v-for="s in sunPremiumProfileSections" :key="s.label" :class="{ '-mt-6': !s.label }">
+                <h4 v-if="s.label" class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
+                <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ s.text }}</p>
+              </div>
+            </div>
+          </template>
+          <LockedVeil v-else label="太陽の紋章プロフィールの続きはライトプラン以上でご覧いただけます" class="mt-7.5">
+            <div class="mx-auto max-w-[560px] grid gap-5">
+              <div v-for="s in sunPremiumProfileSections" :key="s.label" :class="{ '-mt-6': !s.label }">
+                <h4 v-if="s.label" class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
+                <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ s.text }}</p>
+              </div>
+            </div>
+          </LockedVeil>
+        </template>
       </section>
 
       <!-- ウェイブスペル -->
@@ -205,6 +239,41 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
             <p class="text-[14.5px] leading-[1.9] opacity-90">{{ wavespellText }}</p>
           </div>
         </div>
+
+        <div v-if="wavespellProfile?.traits" class="mx-auto mt-7.5 grid max-w-[560px] gap-5">
+          <div>
+            <h4 class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">あなたはこんな人です</h4>
+            <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ wavespellProfile.traits }}</p>
+          </div>
+        </div>
+
+        <template v-if="wavespellFreeProfileSections.length">
+          <div class="mx-auto mt-7.5 grid max-w-[560px] gap-5">
+            <div v-for="s in wavespellFreeProfileSections" :key="s.label">
+              <h4 class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
+              <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ s.text }}</p>
+            </div>
+          </div>
+        </template>
+
+        <template v-if="wavespellPremiumProfileSections.length">
+          <template v-if="deepUnlocked">
+            <div class="mx-auto mt-7.5 grid max-w-[560px] gap-5">
+              <div v-for="s in wavespellPremiumProfileSections" :key="s.label" :class="{ '-mt-6': !s.label }">
+                <h4 v-if="s.label" class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
+                <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ s.text }}</p>
+              </div>
+            </div>
+          </template>
+          <LockedVeil v-else label="ウェイブスペルプロフィールの続きはライトプラン以上でご覧いただけます" class="mt-7.5">
+            <div class="mx-auto max-w-[560px] grid gap-5">
+              <div v-for="s in wavespellPremiumProfileSections" :key="s.label" :class="{ '-mt-6': !s.label }">
+                <h4 v-if="s.label" class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
+                <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ s.text }}</p>
+              </div>
+            </div>
+          </LockedVeil>
+        </template>
       </section>
 
       <!-- 銀河の音 -->
@@ -239,46 +308,11 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
         </div>
       </section>
 
-      <!-- あなたについて: KIN○○はこんな人です(無料)+紋章プロフィール(ライトプラン以上) -->
-      <section v-if="sunProfile?.traits" class="pb-2 pt-14">
-        <SectionDivider label="あなたについて" eyebrow="About You" />
-        <p class="mx-auto mb-7.5 max-w-[560px] text-center text-[14.5px] leading-[1.9] text-parchment-300">
-          太陽の紋章が示す資質を、KIN{{ result.kin }}というひとつの個性としてより深く読み解きます。
-        </p>
-        <div class="mx-auto grid max-w-[560px] gap-5">
-          <div>
-            <h4 class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">KIN{{ result.kin }}はこんな人です</h4>
-            <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ sunProfile.traits }}</p>
-          </div>
-        </div>
-
-        <template v-if="freeProfileSections.length">
-          <div class="mx-auto mt-7.5 grid max-w-[560px] gap-5">
-            <div v-for="s in freeProfileSections" :key="s.label">
-              <h4 class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
-              <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ s.text }}</p>
-            </div>
-          </div>
-        </template>
-
-        <template v-if="premiumProfileSections.length">
-          <template v-if="sunDeepUnlocked">
-            <div class="mx-auto mt-7.5 grid max-w-[560px] gap-5">
-              <div v-for="s in premiumProfileSections" :key="s.label">
-                <h4 class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
-                <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ s.text }}</p>
-              </div>
-            </div>
-          </template>
-          <LockedVeil v-else label="紋章プロフィールの続きはライトプラン以上でご覧いただけます" class="mt-7.5">
-            <div class="mx-auto max-w-[560px] grid gap-5">
-              <div v-for="s in premiumProfileSections" :key="s.label">
-                <h4 class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
-                <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ s.text }}</p>
-              </div>
-            </div>
-          </LockedVeil>
-        </template>
+      <!-- KIN番号のあなたへ: docs/KIN番号診断結果マスタ.xlsx由来、個別要素(紋章/音)ではなくKIN
+           全体への語りかけなので、内訳を読んだ後・関係性データの前に置く。全260件無料公開。 -->
+      <section v-if="kinText" class="pb-2 pt-14">
+        <SectionDivider :label="`KIN${result.kin}のあなたへ`" eyebrow="Your Kin" />
+        <p class="mx-auto max-w-[560px] whitespace-pre-line text-center text-[14.5px] leading-[1.9] opacity-90">{{ kinText }}</p>
       </section>
 
       <!-- KINの関係性: 無料 -->
