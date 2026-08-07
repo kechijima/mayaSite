@@ -68,7 +68,10 @@ function isLeapYear(year: number): boolean {
 export function dateToKin(date: Date): number {
   const year = date.getFullYear()
   const month = date.getMonth() // 0-11
-  const day = date.getDate()
+  // CUMULATIVE_DAYS_BEFORE_MONTH is a non-leap template with no slot for 2/29 — left as-is,
+  // 2/29 would land on 3/1's slot instead (one past 2/28, not on it). Treat 2/29 as 2/28 so a
+  // leap-day birthdate gets the same KIN as 2/28, per explicit request.
+  const day = month === 1 && date.getDate() === 29 ? 28 : date.getDate()
 
   const janValue = mod(REFERENCE_JAN_VALUE - 1 + YEAR_STEP * (year - REFERENCE_YEAR), 260) + 1
   const monthValue = mod(janValue - 1 + CUMULATIVE_DAYS_BEFORE_MONTH[month], 260) + 1

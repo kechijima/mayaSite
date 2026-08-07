@@ -1,31 +1,62 @@
 <script setup lang="ts">
 import { PLAN_META, type MembershipPlan } from '~/composables/useMembership'
+import type { CharacterProfileFields } from '~/composables/useDiagnosisContent'
+import { DEFAULT_GENDER, genderLabel, isGender } from '~/utils/gender'
+import { parseCelebrities } from '~/utils/toneCelebrities'
 
 const route = useRoute()
 const { plan, rank, setPlan } = useMembership()
 
-const input = computed(() => ({
-  name: (route.query.name as string) || 'ゲスト',
-  birthdate: (route.query.birth as string) || '1992-10-16'
-}))
+const input = computed(() => {
+  const genderQuery = route.query.gender as string | undefined
+  return {
+    name: (route.query.name as string) || 'ゲスト',
+    birthdate: (route.query.birth as string) || '1992-10-16',
+    gender: genderQuery && isGender(genderQuery) ? genderQuery : DEFAULT_GENDER
+  }
+})
 const { result } = useDiagnosis(input)
 
 const content = useDiagnosisContent({
   sealIndex: computed(() => result.value.sealIndex),
   wavespellSealIndex: computed(() => result.value.wavespellSealIndex),
-  toneIndex: computed(() => result.value.toneIndex)
+  toneIndex: computed(() => result.value.toneIndex),
+  kin: computed(() => result.value.kin)
 })
 const sunText = computed(() => content.sunText.value ?? result.value.sun.text)
 const wavespellText = computed(() => content.wavespellText.value ?? result.value.wavespell.text)
 const toneText = computed(() => content.toneText.value ?? result.value.tone.text)
 const sunProfile = computed(() => content.sunProfile.value)
 const wavespellProfile = computed(() => content.wavespellProfile.value)
+const toneProfile = computed(() => content.toneProfile.value)
+// docs/KIN番号診断結果マスタ.xlsx由来、KIN番号1つに対して1本のみの読み物。紋章/音と違って
+// 元々ハードコードされたフォールバック文言が無いので、Firestoreにまだ無ければセクション自体を
+// 出さない(v-if="kinText" — 下のtemplate参照)。全260件無料公開。
+const kinText = computed(() => content.kinText.value)
 
-// 紋章プロフィール(docs/診断結果マスタ.xlsx由来)の深掘り項目。総合解説(sunText)とあなたはこんな
-// 人(traits)は常時無料、それ以外はデイサインと同じくライトプラン以上で解放する。
-const sunDeepUnlocked = computed(() => rank.value >= 1)
-const profileSections = computed(() => {
-  const p = sunProfile.value
+// 銀河の音プロフィール(docs/銀河の音診断結果マスタ.xlsx由来)の深掘り項目。紋章プロフィールと違い
+// 無料/有料の区切りがマスタ側に無いため、全項目を常時無料で表示する。
+const toneProfileSections = computed(() => {
+  const p = toneProfile.value
+  if (!p) return []
+  return [
+    { label: '基本スペック', text: p.basicSpecs },
+    { label: '性格の強み', text: p.strengths },
+    { label: '注意するべき点', text: p.cautions }
+  ].filter((s) => s.text)
+})
+const toneCelebrities = computed(() => parseCelebrities(toneProfile.value?.celebrities))
+
+// 紋章プロフィール(docs/診断結果マスタ.xlsx由来)の深掘り項目。マスタの行構成(1〜14行目=無料、
+// 15行目以降=有料)に合わせて分割している。総合解説(sunText/wavespellText)とあなたはこんな人
+// (traits)は別枠で常時無料。cautionDetail/cautionDetailPremiumは元々マスタの同一セル
+// (row14+15)を1つのフィールドとして結合していたものを分割した経緯があり、「注意すべき傾向」の
+// 続きとして premium 側に表示する — 詳細は scripts/characters.data.ts の2026-08-05コメント参照。
+// 太陽の紋章・ウェイブスペルは別人格(別キャラクター)なので、それぞれ自分のセクション内で自分の
+// プロフィールを深掘りする(2026-08-06以前は両方まとめて「あなたについて」という1セクションに
+// していたが、実際には太陽の紋章側のプロフィールしか出せておらず紛らわしかったため分離した)。
+const deepUnlocked = computed(() => rank.value >= 1)
+function freeProfileSections(p: CharacterProfileFields | null) {
   if (!p) return []
   const strengths = [p.strengthsSummary, p.strengthsDetail].filter(Boolean).join('\n\n')
   const caution = [p.cautionSummary, p.cautionDetail].filter(Boolean).join('\n\n')
@@ -36,7 +67,13 @@ const profileSections = computed(() => {
     { label: 'コミュニケーションの強み', text: p.communicationStrengths },
     { label: 'コミュニケーションの課題', text: p.communicationChallenges },
     { label: 'あなたの性格の強み', text: strengths },
-    { label: '注意すべき傾向', text: caution },
+    { label: '注意すべき傾向', text: caution }
+  ].filter((s) => s.text)
+}
+function premiumProfileSections(p: CharacterProfileFields | null) {
+  if (!p) return []
+  return [
+    { label: '', text: p.cautionDetailPremium },
     { label: '実践的なヒント', text: p.practicalTips },
     { label: '人生で一番伸びる環境', text: p.bestEnvironment },
     { label: '人生で一番向いている役割', text: p.bestRole },
@@ -45,7 +82,11 @@ const profileSections = computed(() => {
     { label: '運気が上がる行動', text: p.luckUpActions },
     { label: '運気が下がるクセ', text: p.luckDownHabits }
   ].filter((s) => s.text)
-})
+}
+const sunFreeProfileSections = computed(() => freeProfileSections(sunProfile.value))
+const sunPremiumProfileSections = computed(() => premiumProfileSections(sunProfile.value))
+const wavespellFreeProfileSections = computed(() => freeProfileSections(wavespellProfile.value))
+const wavespellPremiumProfileSections = computed(() => premiumProfileSections(wavespellProfile.value))
 
 // KINの関係性(ガイド/神秘/反対/類似KIN)・運命数字(同じ番号/連番/鏡の向こうの自分/絶対反対KIN)。
 // 「同じ番号」「連番」は参照元(マヤDAN)の個別KINページ上に定義が見当たらなかったため、
@@ -61,6 +102,7 @@ const displayBirthdate = computed(() => {
   const d = new Date(input.value.birthdate)
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
 })
+const displayGender = computed(() => genderLabel(result.value.gender))
 const chipClass = computed(() => ({
   free: 'border border-parchment-300/40 text-parchment-100',
   light: 'border border-gold-500 text-gold-300',
@@ -94,9 +136,10 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
     </div>
 
     <div class="mx-auto max-w-[720px] px-5">
-      <dl class="mb-2 grid grid-cols-1 divide-y divide-gold-500/20 rounded border border-gold-500/30 bg-white/[.02] px-6 py-5 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+      <dl class="mb-2 grid grid-cols-1 divide-y divide-gold-500/20 rounded border border-gold-500/30 bg-white/[.02] px-6 py-5 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
         <div class="py-3 text-center sm:py-0"><dt class="mb-1.5 text-[12px] tracking-[.15em] text-parchment-300">お名前</dt><dd class="text-xl font-semibold sm:text-2xl">{{ result.name }} 様</dd></div>
         <div class="py-3 text-center sm:py-0"><dt class="mb-1.5 text-[12px] tracking-[.15em] text-parchment-300">生年月日</dt><dd class="text-xl font-semibold sm:text-2xl">{{ displayBirthdate }}</dd></div>
+        <div class="py-3 text-center sm:py-0"><dt class="mb-1.5 text-[12px] tracking-[.15em] text-parchment-300">性別</dt><dd class="text-xl font-semibold sm:text-2xl">{{ displayGender }}</dd></div>
       </dl>
 
       <!-- ドリームスペル暦 -->
@@ -142,6 +185,41 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
             <p class="text-[14.5px] leading-[1.9] opacity-90">{{ sunText }}</p>
           </div>
         </div>
+
+        <div v-if="sunProfile?.traits" class="mx-auto mt-7.5 grid max-w-[560px] gap-5">
+          <div>
+            <h4 class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">あなたはこんな人です</h4>
+            <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ sunProfile.traits }}</p>
+          </div>
+        </div>
+
+        <template v-if="sunFreeProfileSections.length">
+          <div class="mx-auto mt-7.5 grid max-w-[560px] gap-5">
+            <div v-for="s in sunFreeProfileSections" :key="s.label">
+              <h4 class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
+              <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ s.text }}</p>
+            </div>
+          </div>
+        </template>
+
+        <template v-if="sunPremiumProfileSections.length">
+          <template v-if="deepUnlocked">
+            <div class="mx-auto mt-7.5 grid max-w-[560px] gap-5">
+              <div v-for="s in sunPremiumProfileSections" :key="s.label" :class="{ '-mt-6': !s.label }">
+                <h4 v-if="s.label" class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
+                <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ s.text }}</p>
+              </div>
+            </div>
+          </template>
+          <LockedVeil v-else label="太陽の紋章プロフィールの続きはライトプラン以上でご覧いただけます" class="mt-7.5">
+            <div class="mx-auto max-w-[560px] grid gap-5">
+              <div v-for="s in sunPremiumProfileSections" :key="s.label" :class="{ '-mt-6': !s.label }">
+                <h4 v-if="s.label" class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
+                <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ s.text }}</p>
+              </div>
+            </div>
+          </LockedVeil>
+        </template>
       </section>
 
       <!-- ウェイブスペル -->
@@ -161,6 +239,41 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
             <p class="text-[14.5px] leading-[1.9] opacity-90">{{ wavespellText }}</p>
           </div>
         </div>
+
+        <div v-if="wavespellProfile?.traits" class="mx-auto mt-7.5 grid max-w-[560px] gap-5">
+          <div>
+            <h4 class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">あなたはこんな人です</h4>
+            <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ wavespellProfile.traits }}</p>
+          </div>
+        </div>
+
+        <template v-if="wavespellFreeProfileSections.length">
+          <div class="mx-auto mt-7.5 grid max-w-[560px] gap-5">
+            <div v-for="s in wavespellFreeProfileSections" :key="s.label">
+              <h4 class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
+              <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ s.text }}</p>
+            </div>
+          </div>
+        </template>
+
+        <template v-if="wavespellPremiumProfileSections.length">
+          <template v-if="deepUnlocked">
+            <div class="mx-auto mt-7.5 grid max-w-[560px] gap-5">
+              <div v-for="s in wavespellPremiumProfileSections" :key="s.label" :class="{ '-mt-6': !s.label }">
+                <h4 v-if="s.label" class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
+                <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ s.text }}</p>
+              </div>
+            </div>
+          </template>
+          <LockedVeil v-else label="ウェイブスペルプロフィールの続きはライトプラン以上でご覧いただけます" class="mt-7.5">
+            <div class="mx-auto max-w-[560px] grid gap-5">
+              <div v-for="s in wavespellPremiumProfileSections" :key="s.label" :class="{ '-mt-6': !s.label }">
+                <h4 v-if="s.label" class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
+                <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ s.text }}</p>
+              </div>
+            </div>
+          </LockedVeil>
+        </template>
       </section>
 
       <!-- 銀河の音 -->
@@ -171,42 +284,35 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
         </p>
         <div class="text-center">
           <h3 class="font-display text-[19px]">{{ result.tone.info.name }}</h3>
-          <span class="mb-2.5 block text-[13px] tracking-[.04em] text-gold-300">{{ result.tone.info.english }} ｜ {{ result.tone.info.keyword }}</span>
+          <span class="mb-2.5 block text-[13px] tracking-[.04em] text-gold-300">{{ result.tone.info.english }}</span>
+          <p v-if="toneProfile?.title" class="mb-2 text-[13.5px] font-semibold text-gold-300">{{ toneProfile.title }}</p>
           <p class="mx-auto max-w-[560px] text-[14.5px] leading-[1.9] opacity-90">{{ toneText }}</p>
+        </div>
+
+        <template v-if="toneProfileSections.length">
+          <div class="mx-auto mt-7.5 grid max-w-[560px] gap-5 text-left">
+            <div v-for="s in toneProfileSections" :key="s.label">
+              <h4 class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
+              <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ s.text }}</p>
+            </div>
+          </div>
+        </template>
+
+        <div v-if="toneCelebrities.length" class="mx-auto mt-7.5 max-w-[560px] text-left">
+          <h4 class="mb-2.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">同じ音を持つ有名人</h4>
+          <ul class="grid gap-1.5 text-[13px] leading-[1.6] opacity-90 sm:grid-cols-2">
+            <li v-for="c in toneCelebrities" :key="c.name + c.kin">
+              {{ c.name }}<span class="text-parchment-300">（{{ c.combo }}）</span>
+            </li>
+          </ul>
         </div>
       </section>
 
-      <!-- あなたについて: KIN○○はこんな人です(無料)+紋章プロフィール(ライトプラン以上) -->
-      <section v-if="sunProfile?.traits" class="pb-2 pt-14">
-        <SectionDivider label="あなたについて" eyebrow="About You" />
-        <p class="mx-auto mb-7.5 max-w-[560px] text-center text-[14.5px] leading-[1.9] text-parchment-300">
-          太陽の紋章が示す資質を、KIN{{ result.kin }}というひとつの個性としてより深く読み解きます。
-        </p>
-        <div class="mx-auto grid max-w-[560px] gap-5">
-          <div>
-            <h4 class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">KIN{{ result.kin }}はこんな人です</h4>
-            <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ sunProfile.traits }}</p>
-          </div>
-        </div>
-
-        <template v-if="profileSections.length">
-          <template v-if="sunDeepUnlocked">
-            <div class="mx-auto mt-7.5 grid max-w-[560px] gap-5">
-              <div v-for="s in profileSections" :key="s.label">
-                <h4 class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
-                <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ s.text }}</p>
-              </div>
-            </div>
-          </template>
-          <LockedVeil v-else label="紋章プロフィールの続きはライトプラン以上でご覧いただけます" class="mt-7.5">
-            <div class="mx-auto max-w-[560px] grid gap-5">
-              <div v-for="s in profileSections" :key="s.label">
-                <h4 class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
-                <p class="whitespace-pre-line text-[14px] leading-[1.85] opacity-90">{{ s.text }}</p>
-              </div>
-            </div>
-          </LockedVeil>
-        </template>
+      <!-- KIN番号のあなたへ: docs/KIN番号診断結果マスタ.xlsx由来、個別要素(紋章/音)ではなくKIN
+           全体への語りかけなので、内訳を読んだ後・関係性データの前に置く。全260件無料公開。 -->
+      <section v-if="kinText" class="pb-2 pt-14">
+        <SectionDivider :label="`KIN${result.kin}のあなたへ`" eyebrow="Your Kin" />
+        <p class="mx-auto max-w-[560px] whitespace-pre-line text-center text-[14.5px] leading-[1.9] opacity-90">{{ kinText }}</p>
       </section>
 
       <!-- KINの関係性: 無料 -->
@@ -254,7 +360,7 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
           <div class="mb-2 font-display text-[17px] text-gold-300">身近な人との相性を無料で診断</div>
           <p class="mb-4 text-[13px] text-parchment-300">パートナーや友人の生年月日を入れるだけで、紋章の組み合わせから相性を読み解きます。</p>
           <NuxtLink
-            :to="{ path: '/compatibility', query: { name: result.name, birth: input.birthdate } }"
+            :to="{ path: '/compatibility', query: { name: result.name, birth: input.birthdate, gender: result.gender } }"
             class="inline-block rounded-full border border-gold-500/50 px-6.5 py-2.5 text-[13.5px] font-semibold text-gold-300"
           >
             相性診断をはじめる

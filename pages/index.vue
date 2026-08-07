@@ -1,10 +1,15 @@
 <script setup lang="ts">
+import { DEFAULT_GENDER, GENDER_OPTIONS, type Gender } from '~/utils/gender'
+
 const name = ref('')
 const birthdate = ref('')
+const gender = ref<Gender>(DEFAULT_GENDER)
 const router = useRouter()
+const { recordSingleDiagnosis } = useDiagnosisHistory()
 
 function submit() {
-  router.push({ path: '/result', query: { name: name.value || undefined, birth: birthdate.value || undefined } })
+  recordSingleDiagnosis({ name: name.value, birthdate: birthdate.value, gender: gender.value })
+  router.push({ path: '/result', query: { name: name.value || undefined, birth: birthdate.value || undefined, gender: gender.value } })
 }
 </script>
 
@@ -31,12 +36,16 @@ function submit() {
         </div>
         <div>
           <label class="mb-1.5 block text-[11px] tracking-[.1em] text-parchment-300">生年月日</label>
-          <input
-            v-model="birthdate"
-            type="date"
-            required
+          <BirthdateSelect v-model="birthdate" />
+        </div>
+        <div>
+          <label class="mb-1.5 block text-[11px] tracking-[.1em] text-parchment-300">性別</label>
+          <select
+            v-model="gender"
             class="w-full rounded border border-gold-500/30 bg-transparent px-3.5 py-2.5 text-sm text-parchment-100 outline-none focus:border-gold-500 [color-scheme:dark]"
-          />
+          >
+            <option v-for="opt in GENDER_OPTIONS" :key="opt.value" :value="opt.value" class="bg-ink-950">{{ opt.label }}</option>
+          </select>
         </div>
         <button
           type="submit"

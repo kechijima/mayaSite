@@ -8,6 +8,17 @@ service cloud.firestore {
       // いない。サーバーも無い（server/を撤廃済み）ため、bypassする経路も無い。
       allow write: if false;
     }
+    match /diagnosisHistory/{docId} {
+      allow read: if true;
+      // このアプリには認証が一切ないため(上のdiagnosisContentブロック参照)、
+      // ここでのcreate制限は本当の不正防止にはならない — 型の最低限のガードのみ。
+      // createdAt == request.time は serverTimestamp() の送信を強制し、偽装された
+      // 固定値を弾く(Firestoreルールの標準パターン)。それ以上の項目別バリデーションは
+      // このファイル全体のミニマルな方針に合わせて意図的に省略。
+      allow create: if request.resource.data.type in ['single', 'compatibility']
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
     match /{document=**} {
       allow read, write: if false; // deny-by-default; no other collections exist yet
     }

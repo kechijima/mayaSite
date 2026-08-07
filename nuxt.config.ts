@@ -33,9 +33,9 @@ export default defineNuxtConfig({
     }
   },
   runtimeConfig: {
-    // No server-only secrets left here — scripts/seedContent.ts and
-    // scripts/createAdminUser.ts read FIREBASE_SERVICE_ACCOUNT_KEY directly
-    // via `tsx --env-file=.env`, not through Nuxt's runtimeConfig.
+    // No server-only secrets left here — scripts/seedCharacters.ts, scripts/seedTones.ts,
+    // scripts/seedKins.ts, and scripts/createAdminUser.ts read FIREBASE_SERVICE_ACCOUNT_KEY
+    // directly via `tsx --env-file=.env`, not through Nuxt's runtimeConfig.
     public: {
       firebase: {
         apiKey: process.env.NUXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyBcTsMsEo0eIkB_1khF31aZrp_Bv6GbwXY',
