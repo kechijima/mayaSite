@@ -1,6 +1,6 @@
-export type MembershipPlan = 'free' | 'light' | 'standard' | 'premium'
+export type MembershipPlan = 'free' | 'paid'
 
-export const PLAN_RANK: Record<MembershipPlan, number> = { free: 0, light: 1, standard: 2, premium: 3 }
+export const PLAN_RANK: Record<MembershipPlan, number> = { free: 0, paid: 1 }
 
 export interface PlanInfo {
   id: MembershipPlan
@@ -10,12 +10,10 @@ export interface PlanInfo {
 }
 
 export const PLAN_META: PlanInfo[] = [
-  { id: 'light', name: 'ライト', price: '¥480', desc: 'デイサインまで閲覧可能' },
-  { id: 'standard', name: 'スタンダード', price: '¥980', desc: 'デイサイン・トレセーナまで閲覧可能' },
-  { id: 'premium', name: 'プレミアム', price: '¥1,980', desc: '古代マヤ暦全書まで、すべて閲覧可能' }
+  { id: 'paid', name: '有料プラン', price: '¥980', desc: '紋章プロフィールの続きまで、すべて閲覧可能' }
 ]
 
-const ALL_PLANS: MembershipPlan[] = ['free', 'light', 'standard', 'premium']
+const ALL_PLANS: MembershipPlan[] = ['free', 'paid']
 const STORAGE_KEY = 'maya-demo-plan'
 
 export function useMembership() {

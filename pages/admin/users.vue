@@ -14,15 +14,15 @@ interface UserRow {
   paymentMethod: string
 }
 
-const plans = ['無料', 'ライト', 'スタンダード', 'プレミアム']
+const plans = ['無料', '有料']
 const statuses = ['有効', '解約済']
 
 const users = ref<UserRow[]>([
-  { name: '高橋 直子', email: 'naoko.t@example.com', plan: 'プレミアム', joined: '2026-07-13', lastLogin: '2026-07-14 08:12', status: '有効', birthdate: '1988-03-02', kin: 214, seal: '青い夜', paymentMethod: 'Visa •••• 4242' },
+  { name: '高橋 直子', email: 'naoko.t@example.com', plan: '有料', joined: '2026-07-13', lastLogin: '2026-07-14 08:12', status: '有効', birthdate: '1988-03-02', kin: 214, seal: '青い夜', paymentMethod: 'Visa •••• 4242' },
   { name: '渡辺 蓮', email: 'ren.w@example.com', plan: '無料', joined: '2026-07-13', lastLogin: '2026-07-13 21:40', status: '有効', birthdate: '1995-11-20', kin: 87, seal: '白い犬', paymentMethod: '—' },
-  { name: '中村 美咲', email: 'misaki.n@example.com', plan: 'スタンダード', joined: '2026-07-12', lastLogin: '2026-07-14 07:02', status: '有効', birthdate: '1990-06-08', kin: 156, seal: '黄色い星', paymentMethod: 'Mastercard •••• 9981' },
+  { name: '中村 美咲', email: 'misaki.n@example.com', plan: '有料', joined: '2026-07-12', lastLogin: '2026-07-14 07:02', status: '有効', birthdate: '1990-06-08', kin: 156, seal: '黄色い星', paymentMethod: 'Mastercard •••• 9981' },
   { name: '小林 健太', email: 'kenta.k@example.com', plan: '無料', joined: '2026-07-12', lastLogin: '2026-07-12 12:55', status: '有効', birthdate: '2000-01-30', kin: 42, seal: '赤い蛇', paymentMethod: '—' },
-  { name: '山本 さくら', email: 'sakura.y@example.com', plan: 'ライト', joined: '2026-07-11', lastLogin: '2026-07-11 19:23', status: '解約済', birthdate: '1993-09-14', kin: 199, seal: '青い鷲', paymentMethod: 'Visa •••• 0071' }
+  { name: '山本 さくら', email: 'sakura.y@example.com', plan: '有料', joined: '2026-07-11', lastLogin: '2026-07-11 19:23', status: '解約済', birthdate: '1993-09-14', kin: 199, seal: '青い鷲', paymentMethod: 'Visa •••• 0071' }
 ])
 
 const selectedUser = ref<UserRow | null>(null)

@@ -18,11 +18,11 @@ const monthly = [
 ]
 
 const recentUsers = [
-  { name: '高橋 直子', email: 'naoko.t@example.com', plan: 'プレミアム', date: '2026-07-13', status: '有効' },
+  { name: '高橋 直子', email: 'naoko.t@example.com', plan: '有料', date: '2026-07-13', status: '有効' },
   { name: '渡辺 蓮', email: 'ren.w@example.com', plan: '無料', date: '2026-07-13', status: '有効' },
-  { name: '中村 美咲', email: 'misaki.n@example.com', plan: 'スタンダード', date: '2026-07-12', status: '有効' },
+  { name: '中村 美咲', email: 'misaki.n@example.com', plan: '有料', date: '2026-07-12', status: '有効' },
   { name: '小林 健太', email: 'kenta.k@example.com', plan: '無料', date: '2026-07-12', status: '有効' },
-  { name: '山本 さくら', email: 'sakura.y@example.com', plan: 'ライト', date: '2026-07-11', status: '解約済' }
+  { name: '山本 さくら', email: 'sakura.y@example.com', plan: '有料', date: '2026-07-11', status: '解約済' }
 ]
 
 function planChip(plan: string) {
