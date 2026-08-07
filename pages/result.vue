@@ -105,16 +105,12 @@ const displayBirthdate = computed(() => {
 const displayGender = computed(() => genderLabel(result.value.gender))
 const chipClass = computed(() => ({
   free: 'border border-parchment-300/40 text-parchment-100',
-  light: 'border border-gold-500 text-gold-300',
-  standard: 'bg-gold-600 text-[#241a06]',
-  premium: 'bg-gradient-to-r from-gold-500 to-gold-300 text-[#241a06]'
+  paid: 'bg-gradient-to-r from-gold-500 to-gold-300 text-[#241a06]'
 }[plan.value]))
 
 const demoPlans: { id: MembershipPlan; label: string }[] = [
   { id: 'free', label: '無料' },
-  { id: 'light', label: 'ライト' },
-  { id: 'standard', label: 'スタンダード' },
-  { id: 'premium', label: 'プレミアム' }
+  { id: 'paid', label: '有料' }
 ]
 </script>
 
@@ -211,7 +207,7 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
               </div>
             </div>
           </template>
-          <LockedVeil v-else label="太陽の紋章プロフィールの続きはライトプラン以上でご覧いただけます" class="mt-7.5">
+          <LockedVeil v-else label="太陽の紋章プロフィールの続きは有料プランでご覧いただけます" class="mt-7.5">
             <div class="mx-auto max-w-[560px] grid gap-5">
               <div v-for="s in sunPremiumProfileSections" :key="s.label" :class="{ '-mt-6': !s.label }">
                 <h4 v-if="s.label" class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
@@ -265,7 +261,7 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
               </div>
             </div>
           </template>
-          <LockedVeil v-else label="ウェイブスペルプロフィールの続きはライトプラン以上でご覧いただけます" class="mt-7.5">
+          <LockedVeil v-else label="ウェイブスペルプロフィールの続きは有料プランでご覧いただけます" class="mt-7.5">
             <div class="mx-auto max-w-[560px] grid gap-5">
               <div v-for="s in wavespellPremiumProfileSections" :key="s.label" :class="{ '-mt-6': !s.label }">
                 <h4 v-if="s.label" class="mb-1.5 text-[12.5px] font-bold tracking-[.03em] text-gold-300">{{ s.label }}</h4>
@@ -369,7 +365,7 @@ const demoPlans: { id: MembershipPlan; label: string }[] = [
       </section>
 
       <p class="pt-11 text-center text-xs text-parchment-300/70">
-        古代4000年の智慧 マヤ暦占い ｜ {{ plan === 'premium' ? 'プレミアム会員としてご利用中です' : plan === 'free' ? '監修者紹介・占術紹介・利用規約はフッターメニューより' : `${PLAN_META.find(p => p.id === plan)?.name}会員としてご利用中です` }}
+        古代4000年の智慧 マヤ暦占い ｜ {{ plan === 'free' ? '監修者紹介・占術紹介・利用規約はフッターメニューより' : `${PLAN_META[0].name}会員としてご利用中です` }}
       </p>
     </div>
 

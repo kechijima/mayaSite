@@ -165,7 +165,7 @@ async function save() {
           </div>
 
           <div class="mb-2 mt-6 flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
-            紋章プロフィール項目（ライトプラン以上に表示）
+            紋章プロフィール項目（有料プランに表示）
             <span class="rounded-full bg-emerald-50 px-2 py-0.5 text-[10.5px] font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">有料エリア</span>
           </div>
           <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">

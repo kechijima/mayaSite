@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { PLAN_META, type MembershipPlan } from '~/composables/useMembership'
+import { PLAN_META } from '~/composables/useMembership'
 
 const { setPlan } = useMembership()
 const router = useRouter()
 
-const selected = ref<MembershipPlan>('standard')
 const submitting = ref(false)
-const plans = PLAN_META
+// 唯一の有料プラン — free/paidの2択になったため選択UIは不要(以前はライト/スタンダード/
+// プレミアムのラジオ選択だった)。
+const plan = PLAN_META[0]
 
 function pay() {
   submitting.value = true
@@ -14,7 +15,7 @@ function pay() {
   // would redirect to Stripe Checkout and plan status would be set by a
   // webhook once payment succeeds, not directly on the client like this.
   setTimeout(() => {
-    setPlan(selected.value)
+    setPlan(plan.id)
     router.push('/result')
   }, 700)
 }
@@ -28,24 +29,14 @@ function pay() {
       </div>
 
       <h1 class="mb-1 text-lg font-bold">マヤ暦占い 有料プラン</h1>
-      <p class="mb-6 text-sm text-slate-500 dark:text-slate-400">お好きなプランを選んでお申し込みください。</p>
+      <p class="mb-6 text-sm text-slate-500 dark:text-slate-400">お申し込みいただくと、有料エリアの内容まですべてご覧いただけます。</p>
 
-      <div class="mb-6 space-y-2.5">
-        <label
-          v-for="p in plans"
-          :key="p.id"
-          class="flex cursor-pointer items-center justify-between rounded-lg border px-4 py-3.5"
-          :class="selected === p.id ? 'border-brass-700 bg-brass-700/5 ring-1 ring-brass-700' : 'border-slate-200 dark:border-slate-800'"
-        >
-          <div class="flex items-center gap-3">
-            <input v-model="selected" type="radio" :value="p.id" name="plan" class="accent-brass-700" />
-            <div>
-              <div class="text-sm font-semibold">{{ p.name }}</div>
-              <div class="text-xs text-slate-500 dark:text-slate-400">{{ p.desc }}</div>
-            </div>
-          </div>
-          <div class="text-sm font-bold tabular-nums">{{ p.price }}<span class="font-normal text-slate-400">/月</span></div>
-        </label>
+      <div class="mb-6 flex items-center justify-between rounded-lg border border-brass-700 bg-brass-700/5 px-4 py-3.5 ring-1 ring-brass-700">
+        <div>
+          <div class="text-sm font-semibold">{{ plan.name }}</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">{{ plan.desc }}</div>
+        </div>
+        <div class="text-sm font-bold tabular-nums">{{ plan.price }}<span class="font-normal text-slate-400">/月</span></div>
       </div>
 
       <div class="mb-6 space-y-3 rounded-lg border border-slate-200 p-4 dark:border-slate-800">
