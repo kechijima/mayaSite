@@ -62,7 +62,7 @@ export interface CompatibilityResult {
 
 // Free acquisition feature — kept small enough that the form/results stay easy to scan and a
 // future persisted payload stays small. Not a hard product requirement, just a sane default.
-export const MAX_OTHER_PEOPLE = 5
+export const MAX_OTHER_PEOPLE = 6
 
 function buildProfile(person: PersonInput): PersonProfile {
   const { birth } = diagnoseBirthdate(person.birthdate)
