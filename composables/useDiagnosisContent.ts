@@ -11,23 +11,29 @@ import { doc, getDoc, type Firestore } from 'firebase/firestore'
 export interface CharacterProfileFields {
   archetype?: string
   catchphrase?: string
-  traits?: string
+  // 2026-08-10: 純粋な箇条書きのみのフィールドは string[] — モックアップのチェックリスト表示
+  // (項目ごとにi-checkアイコン)に対応するため。strengthsSummary/cautionSummaryはプレーンな
+  // 文章のstrengthsDetail/cautionDetailと連結して1セクションとして表示するため、
+  // pages/result.vue側で「チェックリスト(summary) + 段落(detail)」の複合レンダリングにして
+  // いる。文章と箇条書きが混在するフィールド(bestEnvironment/bestRole/luckDownHabits)は対象外
+  // で、引き続き "・" 区切りの単一文字列のまま — pages/result.vueでは従来通りpre-line表示する。
+  traits?: string[]
   careerPath?: string
-  likes?: string
-  dislikes?: string
-  communicationStrengths?: string
-  communicationChallenges?: string
-  strengthsSummary?: string
+  likes?: string[]
+  dislikes?: string[]
+  communicationStrengths?: string[]
+  communicationChallenges?: string[]
+  strengthsSummary?: string[]
   strengthsDetail?: string
-  cautionSummary?: string
+  cautionSummary?: string[]
   cautionDetail?: string
   cautionDetailPremium?: string
-  practicalTips?: string
+  practicalTips?: string[]
   bestEnvironment?: string
   bestRole?: string
   loveAndPartnership?: string
   careerSuccess?: string
-  luckUpActions?: string
+  luckUpActions?: string[]
   luckDownHabits?: string
 }
 
@@ -36,9 +42,11 @@ export interface CharacterProfileFields {
 // (utils/toneCelebrities.ts でパース/フォーマット) — 理由はそちらのコメント参照。
 export interface ToneProfileFields {
   title?: string
-  basicSpecs?: string
-  strengths?: string
-  cautions?: string
+  // 2026-08-10: 純粋な箇条書きのみのフィールドなので string[] — 詳細は上のCharacterProfileFields
+  // のコメント参照。
+  basicSpecs?: string[]
+  strengths?: string[]
+  cautions?: string[]
   celebrities?: string
 }
 

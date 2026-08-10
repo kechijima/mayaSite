@@ -41,6 +41,10 @@ export interface SealCombinationRelation {
   otherSealName: string
   relation: CompatibilityRelation
   relationLabel: string
+  // Display-order flag only — compatibilityRelation() is symmetric, so this never changes
+  // `relation`/`relationLabel`, only which side (self/other) renders on the left of the card.
+  // Every base pair is shown both ways so a card reading "相手→自分" exists alongside "自分→相手".
+  reversed: boolean
 }
 
 export interface PairCompatibility {
@@ -95,9 +99,9 @@ export function useCompatibility(input: Ref<{ self: PersonInput; others: PersonI
           ['wavespell', 'sun', self.wavespellSealIndex, other.sealIndex],
           ['wavespell', 'wavespell', self.wavespellSealIndex, other.wavespellSealIndex]
         ] as const
-      ).map(([selfAttribute, otherAttribute, selfSeal, otherSeal]) => {
+      ).flatMap(([selfAttribute, otherAttribute, selfSeal, otherSeal]) => {
         const combinationRelation = compatibilityRelation(selfSeal, otherSeal)
-        return {
+        const base = {
           selfAttribute,
           selfSealIndex: selfSeal,
           selfSealName: SEALS[selfSeal].name,
@@ -107,6 +111,10 @@ export function useCompatibility(input: Ref<{ self: PersonInput; others: PersonI
           relation: combinationRelation,
           relationLabel: COMPATIBILITY_RELATION_CONTENT[combinationRelation].label
         }
+        return [
+          { ...base, reversed: false },
+          { ...base, reversed: true }
+        ]
       })
 
       const destiny = destinyRelation(self.kin, other.kin)
