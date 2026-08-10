@@ -9,10 +9,34 @@
 # for sealIndex 0..19 — no "raw" counterpart, same precedent as assets/images/faces/.
 #
 # Usage: pip install rembg pillow ; python3 scripts/generateSealCutouts.py
+#
+# Uses the 'isnet-anime' rembg model (not the default 'u2net') — u2net's segmentation
+# regularly fails on ornate held objects (staffs/scepters/swords) in this anime-illustration
+# style, clipping off the top of the object entirely; isnet-anime, trained for anime art,
+# preserves them correctly and also produces cleaner soft alpha edges around hair (u2net left
+# faint whitish halo artifacts around flyaway hair strands on multiple characters).
 import os
 import re
-from rembg import remove
+from rembg import remove, new_session
 from PIL import Image
+import numpy as np
+
+REMBG_SESSION = new_session('isnet-anime')
+
+# isnet-anime scatters near-invisible alpha noise (values of a handful, not 0) all the way to
+# the canvas edges on most outputs — invisible to the eye but enough that getbbox() (which
+# treats any alpha>0 as content) returns the full, un-cropped canvas instead of the actual
+# character bounds. Zeroing out anything below this floor right after remove() fixes bbox/crop
+# for every character, not just ones where it's visually obvious (see seal-8/赤い月, whose
+# character is narrow relative to its frame, so the inflated bbox was large enough to visibly
+# shrink its rendered size sitewide).
+ALPHA_NOISE_FLOOR = 15
+
+
+def clean_alpha_noise(im: Image.Image, floor: int = ALPHA_NOISE_FLOOR) -> Image.Image:
+    arr = np.array(im)
+    arr[arr[:, :, 3] < floor, 3] = 0
+    return Image.fromarray(arr, 'RGBA')
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RAW_DIR = os.path.join(ROOT, 'assets', 'images')
@@ -62,7 +86,8 @@ def main():
         print(f'[{seal_index:2d}] {name} <- {os.path.basename(src_path)}')
 
         src_bytes = open(src_path, 'rb').read()
-        transparent = Image.open(__import__('io').BytesIO(remove(src_bytes))).convert('RGBA')
+        transparent = Image.open(__import__('io').BytesIO(remove(src_bytes, session=REMBG_SESSION))).convert('RGBA')
+        transparent = clean_alpha_noise(transparent)
 
         full = alpha_crop(transparent)
         full_path = os.path.join(OUT_DIR, f'seal-{seal_index}-cutout.webp')

@@ -129,7 +129,13 @@
 /* ---------------- section header + corner-bracket divider background ---------------- */
 .section { position: relative; margin-top: 6px; padding-top: 178px; }
 .section + .section { margin-top: 52px; }
-.archframe { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: min(100%, 1180px); aspect-ratio: 1536 / 1024; pointer-events: none; z-index: 0; }
+/* width bleeds into .sheet's padding gutter by 2x its horizontal padding at each breakpoint,
+   same technique as .masthead__arch — see that rule's comment for why this doesn't affect
+   centering. */
+.archframe { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: min(calc(100% + 40px), 1180px); aspect-ratio: 1536 / 1024; pointer-events: none; z-index: 0; }
+@media (min-width: 640px) { .archframe { width: min(calc(100% + 80px), 1180px); } }
+@media (min-width: 1000px) { .archframe { width: min(calc(100% + 152px), 1180px); } }
+@media (min-width: 1300px) { .archframe { width: min(calc(100% + 184px), 1180px); } }
 .archframe img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: top center; }
 .section__eyebrow { position: relative; z-index: 1; font-size: 11px; letter-spacing: .22em; color: var(--gold-deep); text-align: center; margin-bottom: 4px; }
 .section__title { position: relative; z-index: 1; font-size: 19px; text-align: center; letter-spacing: .05em; margin: 0 0 26px; }
@@ -149,7 +155,6 @@
 
 /* ---------------- archetype dossier: plain, matches the rest of the page (no card border) ---------------- */
 .dossier { display: grid; grid-template-columns: minmax(160px, 260px) 1fr; gap: 30px; align-items: start; max-width: 720px; margin-left: auto; margin-right: auto; }
-@media (max-width: 600px) { .dossier { grid-template-columns: 1fr; } }
 @media (min-width: 1000px) { .dossier { grid-template-columns: minmax(220px, 320px) 1fr; gap: 44px; } }
 .dossier__portrait { display: flex; justify-content: center; align-items: flex-end; overflow: hidden; }
 .dossier__portrait img { width: auto; height: 100%; max-width: 100%; object-fit: contain; object-position: bottom center; display: block; }
@@ -158,6 +163,25 @@
 .dossier__badge { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; padding: 3px 11px; border-radius: 999px; border: 1px solid var(--gold); color: var(--gold-deep); white-space: nowrap; }
 .dossier__catch { font-size: 13.5px; line-height: 1.85; color: var(--ink-soft); margin: 6px 0 22px; font-family: "Shippori Mincho", serif; }
 .dossier__blocks .block:first-child { margin-top: 0; }
+/* Mobile keeps the same side-by-side layout as desktop (never stacks) — the portrait column
+   just narrows and every text size/spacing in this section scales down with it, so the two
+   breakpoints read as the same design at different sizes rather than two different layouts. */
+@media (max-width: 600px) {
+  /* Extra breathing room below the section title, beyond .section's own padding-top — same
+     treatment as .relwrap's mobile margin-top for KINの関係性. */
+  .dossier { grid-template-columns: 148px 1fr; gap: 12px; margin-top: 14px; }
+  .dossier__name { font-size: 21px; }
+  .dossier__badge { font-size: 10px; padding: 2px 9px; }
+  .dossier__catch { font-size: 13px; line-height: 1.8; margin: 6px 0 18px; }
+  .dossier .block { margin-top: 20px; }
+  .dossier .block__head { gap: 7px; margin-bottom: 8px; }
+  .dossier .block__head svg { width: 13px; height: 13px; }
+  .dossier .block__head h3 { font-size: 12px; }
+  .dossier .block p { font-size: 13.5px; line-height: 1.85; margin-bottom: 10px; }
+  .dossier .checklist { gap: 10px; }
+  .dossier .checklist li { font-size: 13.5px; line-height: 1.7; gap: 7px; }
+  .dossier .checklist li svg { width: 12px; height: 12px; margin-top: 2px; }
+}
 
 /* ---------------- prose blocks (shared by every section, incl. the archetype area) ---------------- */
 .block { margin-top: 26px; max-width: 720px; margin-left: auto; margin-right: auto; }
@@ -236,7 +260,10 @@
 .relcard--blue { --rel-glow: rgba(28, 81, 127, .16); --rel-line: rgba(28, 81, 127, .38); }
 .relcard--blue .relcard__label { color: var(--seal-blue); }
 .relcard--blue .relcard__cta-icon { border-color: var(--seal-blue); }
-.relcard--yellow { --rel-glow: rgba(201, 154, 31, .18); --rel-line: rgba(201, 154, 31, .4); }
+/* --rel-line uses a darker gold than --seal-yellow here (not the same value as the label/icon
+   below) — the lighter seal-yellow tone is close enough in hue/luminance to the beige parchment
+   panel that the card border became nearly invisible against it, unlike red/white/blue. */
+.relcard--yellow { --rel-glow: rgba(201, 154, 31, .18); --rel-line: rgba(154, 111, 16, .55); }
 .relcard--yellow .relcard__label { color: var(--seal-yellow); }
 .relcard--yellow .relcard__cta-icon { border-color: var(--seal-yellow); }
 .relcard__figure { position: relative; z-index: 2; flex: none; align-self: flex-end; width: 340px; margin: -46px 0 0 -34px; }
