@@ -200,7 +200,7 @@ const demoPapers: { id: PaperVariant; label: string }[] = [
         </div>
         <div class="numcell">
           <span class="numcell__label">生年月日</span>
-          <span class="font-display text-[17px] tabular-nums">{{ displayBirthdate }}</span>
+          <span class="text-[17px] tabular-nums" style="font-family: 'Shippori Mincho', serif;">{{ displayBirthdate }}</span>
         </div>
         <div class="numcell">
           <span class="numcell__label">性別</span>
@@ -386,7 +386,7 @@ const demoPapers: { id: PaperVariant; label: string }[] = [
       <!-- KIN番号のあなたへ: docs/KIN番号診断結果マスタ.xlsx由来、個別要素(紋章/音)ではなくKIN
            全体への語りかけなので、内訳を読んだ後・関係性データの前に置く。全260件無料公開。 -->
       <section v-if="kinText" class="section">
-        <SectionDivider :label="`KIN${result.kin}のあなたへ`" eyebrow="紋章や音を超えた、あなたへの言葉" />
+        <SectionDivider :label="`KIN${result.kin}のあなたへ`" eyebrow="紋章や音を超えた、あなたへの言葉" numeric />
         <p class="kinletter">{{ kinText }}</p>
       </section>
 

@@ -18,7 +18,7 @@ const displayGender = computed(() => genderLabel(props.profile.gender))
   >
     <div class="mb-3 flex items-center justify-between gap-2">
       <h3 class="truncate font-display text-[17px]">{{ profile.name }}</h3>
-      <span class="whitespace-nowrap text-[11px] tracking-[.08em] tabular-nums" style="color: var(--gold-deep);">KIN {{ profile.kin }}</span>
+      <span class="whitespace-nowrap text-[11px] tracking-[.08em] tabular-nums" style="color: var(--gold-deep); font-family: 'Shippori Mincho', serif;">KIN {{ profile.kin }}</span>
     </div>
     <div class="mb-3 text-[12px]" style="color: var(--ink-faint);">{{ displayBirthdate }} ｜ {{ displayGender }}</div>
 
