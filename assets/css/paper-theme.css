@@ -154,10 +154,18 @@
 .section[data-seal="yellow"] .checklist svg { color: var(--seal-yellow); }
 
 /* ---------------- archetype dossier: plain, matches the rest of the page (no card border) ---------------- */
-.dossier { display: grid; grid-template-columns: minmax(160px, 260px) 1fr; gap: 30px; align-items: start; max-width: 720px; margin-left: auto; margin-right: auto; }
-@media (min-width: 1000px) { .dossier { grid-template-columns: minmax(220px, 320px) 1fr; gap: 44px; } }
-.dossier__portrait { display: flex; justify-content: center; align-items: flex-end; overflow: hidden; }
+/* column-gap/row-gap split deliberately (not the `gap` shorthand) — the row gap between
+   dossier__main and dossier__strength must stay near-zero since dossier__strength (being a
+   .block) already carries its own margin-top; using `gap` for both made the two stack. */
+.dossier { display: grid; grid-template-columns: minmax(160px, 260px) 1fr; column-gap: 30px; row-gap: 0; align-items: start; max-width: 720px; margin-left: auto; margin-right: auto; }
+@media (min-width: 1000px) { .dossier { grid-template-columns: minmax(220px, 320px) 1fr; column-gap: 44px; } }
+/* Portrait spans both rows of the 2-row grid (dossier__main in row 1, dossier__strength in row
+   2) so 性格の強み sits to the right of the image like dossier__main above it, not full-width —
+   grid-column:2 on dossier__strength is what keeps it out of the (portrait-occupied) first
+   column, since without it auto-placement would wrap back to column 1 in the next row. */
+.dossier__portrait { grid-row: 1 / span 2; display: flex; justify-content: center; align-items: flex-end; overflow: hidden; }
 .dossier__portrait img { width: auto; height: 100%; max-width: 100%; object-fit: contain; object-position: bottom center; display: block; }
+.dossier__strength { grid-column: 2; }
 .dossier__headrow { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .dossier__name { font-size: 27px; }
 .dossier__badge { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; padding: 3px 11px; border-radius: 999px; border: 1px solid var(--gold); color: var(--gold-deep); white-space: nowrap; }
@@ -170,6 +178,8 @@
   /* Extra breathing room below the section title, beyond .section's own padding-top — same
      treatment as .relwrap's mobile margin-top for KINの関係性. */
   .dossier { grid-template-columns: 148px 1fr; gap: 12px; margin-top: 14px; }
+  .dossier__portrait { grid-row: 1; }
+  .dossier__strength { grid-column: 1 / -1; }
   .dossier__name { font-size: 21px; }
   .dossier__badge { font-size: 10px; padding: 2px 9px; }
   .dossier__catch { font-size: 13px; line-height: 1.8; margin: 6px 0 18px; }
