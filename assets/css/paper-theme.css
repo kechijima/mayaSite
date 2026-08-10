@@ -1,0 +1,276 @@
+/* Parchment/gold "illuminated manuscript" design system for /result and /compatibility only.
+   Ported from the approved static HTML mockup (design exploration, not part of this repo).
+   Every class/custom-property name here is unique to this design and only ever referenced from
+   pages/result.vue, pages/compatibility.vue, and the components they own — so this file being
+   registered globally in nuxt.config.ts has no effect on /, /checkout, or /admin/**, which never
+   use these classes.
+
+   Variant switching: usePaperTheme() toggles `data-paper="white"` on <html> (beige is the
+   unqualified default, matching the block below). */
+
+:root {
+  --paper: #f2e8d3;
+  --paper-panel: #faf4e6;
+  --paper-panel-2: #eee2c8;
+  --ink: #2b2013;
+  --ink-soft: #6e5c42;
+  --ink-faint: #93815f;
+  --gold: #a97c2f;
+  --gold-deep: #7c5a1e;
+  --gold-line: rgba(169, 124, 47, .38);
+  --gold-line-soft: rgba(169, 124, 47, .2);
+  --mosaic-a: #e7dcbf;
+  --mosaic-b: #d9cba3;
+  --shadow: 0 18px 40px -20px rgba(60, 42, 10, .35);
+  --seal-red: #be402d;
+  --seal-white: #8a8368;
+  --seal-blue: #1c517f;
+  --seal-yellow: #c99a1f;
+}
+:root[data-paper="white"] {
+  --paper: #fbfaf6;
+  --paper-panel: #ffffff;
+  --paper-panel-2: #f3f0e8;
+  --ink: #221c14;
+  --ink-soft: #786b57;
+  --ink-faint: #a3947a;
+  --gold: #a1751f;
+  --gold-deep: #6e4f16;
+  --gold-line: rgba(161, 117, 31, .32);
+  --gold-line-soft: rgba(161, 117, 31, .16);
+  --mosaic-a: #efece2;
+  --mosaic-b: #e2ddca;
+  --shadow: 0 18px 40px -22px rgba(40, 30, 10, .22);
+}
+
+.paper-page {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic Medium", "Yu Gothic", "Noto Sans JP", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+.sheet { position: relative; padding: 34px 20px 56px; max-width: 1180px; margin: 0 auto; }
+@media (min-width: 640px) { .sheet { padding: 40px 40px 64px; } }
+@media (min-width: 1000px) { .sheet { padding: 56px 76px 76px; } }
+@media (min-width: 1300px) { .sheet { padding: 64px 92px 84px; } }
+/* /result: header bar removed, so the sheet itself no longer needs top/bottom breathing room —
+   left/right padding (set by .sheet above, per breakpoint) is untouched. */
+.sheet--flush { padding-top: 0; padding-bottom: 0; }
+
+/* ---------------- demo/QA toggle bars (plan switcher, paper-theme switcher) ---------------- */
+.switch { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--paper-panel-2); border: 1px solid var(--gold-line-soft); gap: 2px; }
+.switch button { appearance: none; border: 0; cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 13px; border-radius: 999px; color: var(--ink-soft); background: transparent; transition: background .15s ease, color .15s ease; }
+.switch button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.switch button[aria-pressed="true"] { background: var(--gold); color: #241a06; }
+
+/* ---------------- masthead ---------------- */
+.masthead { text-align: center; padding: clamp(64px, 15vw, 128px) 0 4px; position: relative; }
+/* width intentionally exceeds 100% of .masthead's (padded) content box by exactly 2x .sheet's
+   horizontal padding at each breakpoint below, so the image bleeds into the padding gutter
+   instead of being squeezed by it — centering still works unaffected since left:50%/translateX
+   anchors on the center point, not the box width. */
+.masthead__arch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: min(calc(100% + 40px), 900px); aspect-ratio: 1536 / 1024; pointer-events: none; z-index: 0; }
+@media (min-width: 640px) { .masthead__arch { width: min(calc(100% + 80px), 900px); } }
+@media (min-width: 1000px) { .masthead__arch { width: min(calc(100% + 152px), 900px); } }
+@media (min-width: 1300px) { .masthead__arch { width: min(calc(100% + 184px), 900px); } }
+.masthead__arch img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.masthead__eyebrow { position: relative; z-index: 1; font-size: 11.5px; letter-spacing: .28em; color: var(--gold-deep); margin-bottom: 6px; }
+.masthead__title { position: relative; z-index: 1; font-size: clamp(26px, 5vw, 32px); letter-spacing: .14em; margin: 0 0 6px; text-wrap: balance; }
+.masthead__sub { position: relative; z-index: 1; font-size: 13px; color: var(--ink-soft); letter-spacing: .02em; }
+
+/* ---------------- KIN hero: full-body cutouts flanking the KIN/tone medals ---------------- */
+.kinhero { margin-top: 24px; display: flex; align-items: stretch; justify-content: center; gap: 28px; }
+.kinhero__portrait { flex: none; width: 132px; display: flex; flex-direction: column; align-items: center; }
+.kinhero__frame { display: block; width: 100%; aspect-ratio: 132 / 250; overflow: hidden; }
+.kinhero__frame img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: top center; }
+.kinhero__name-plate { display: block; margin-top: 9px; width: fit-content; max-width: 100%; padding: 5px 13px; border-radius: 6px; background: radial-gradient(120% 170% at 50% 15%, var(--paper-panel) 0%, var(--paper-panel-2) 100%); border: 1px solid var(--gold); color: var(--gold-deep); font-size: 12.5px; letter-spacing: .03em; white-space: nowrap; box-shadow: var(--shadow); text-align: center; }
+.kinhero__center { flex: none; display: flex; flex-direction: column; align-items: center; }
+.kinhero__tone-spacer { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 16px; }
+@media (min-width: 1000px) { .kinhero__name-plate { font-size: 14px; padding: 6px 16px; } }
+
+/* ---------------- gold medallions (KIN number / tone number / relation numbers) ---------------- */
+.kin-medal { position: relative; width: 200px; height: 108px; margin: 4px auto 14px; display: flex; align-items: center; justify-content: center; }
+.kin-medal__bg { position: absolute; inset: 0; border-radius: 999px; background: radial-gradient(120% 150% at 50% 28%, var(--paper-panel) 0%, var(--paper-panel-2) 100%); box-shadow: var(--shadow); }
+.kin-medal__ring1 { position: absolute; inset: 0; border-radius: 999px; border: 1px solid var(--gold); }
+.kin-medal__ring2 { position: absolute; inset: 6px; border-radius: 999px; border: 1px solid var(--gold-line); }
+.kin-medal__diamond { position: absolute; left: 50%; width: 12px; height: 12px; transform: translateX(-50%) rotate(45deg); border: 1px solid var(--gold); background: var(--paper-panel); }
+.kin-medal__diamond--top { top: -6px; }
+.kin-medal__diamond--bottom { bottom: -6px; }
+.kin-medal__body { position: relative; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.kin-medal__label { font-size: 10.5px; letter-spacing: .35em; color: var(--gold-deep); }
+.kin-medal__num { font-family: "Shippori Mincho", serif; font-size: 40px; line-height: 1; color: var(--gold-deep); font-variant-numeric: tabular-nums; }
+@media (min-width: 1000px) { .kin-medal { width: 230px; height: 124px; } .kin-medal__num { font-size: 46px; } }
+
+.tone-medal { position: relative; width: 88px; height: 88px; border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center; }
+.tone-medal__bg { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(120% 150% at 50% 28%, var(--paper-panel) 0%, var(--paper-panel-2) 100%); box-shadow: var(--shadow); }
+.tone-medal__ring1 { position: absolute; inset: 0; border-radius: 50%; border: 1px solid var(--gold); }
+.tone-medal__ring2 { position: absolute; inset: 4px; border-radius: 50%; border: 1px solid var(--gold-line); }
+.tone-medal__diamond { position: absolute; left: 50%; width: 8px; height: 8px; transform: translateX(-50%) rotate(45deg); border: 1px solid var(--gold); background: var(--paper-panel); }
+.tone-medal__diamond--top { top: -4px; }
+.tone-medal__diamond--bottom { bottom: -4px; }
+.tone-medal__num { position: relative; font-family: "Shippori Mincho", serif; font-size: 26px; color: var(--gold-deep); font-variant-numeric: tabular-nums; }
+@media (min-width: 1000px) { .tone-medal { width: 104px; height: 104px; } .tone-medal__num { font-size: 38px; } }
+
+@media (max-width: 560px) {
+  .kinhero { gap: 10px; }
+  .kinhero__portrait { width: 26vw; max-width: 120px; }
+  .tone-medal { width: 56px; height: 56px; }
+  .tone-medal__num { font-size: 20px; }
+  .kin-medal { width: 150px; height: 82px; }
+  .kin-medal__num { font-size: 30px; }
+}
+@media (min-width: 1000px) {
+  .kinhero { gap: 40px; margin-top: 30px; }
+  .kinhero__portrait { width: 200px; }
+}
+
+/* ---------------- section header + corner-bracket divider background ---------------- */
+.section { position: relative; margin-top: 6px; padding-top: 178px; }
+.section + .section { margin-top: 52px; }
+.archframe { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: min(100%, 1180px); aspect-ratio: 1536 / 1024; pointer-events: none; z-index: 0; }
+.archframe img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: top center; }
+.section__eyebrow { position: relative; z-index: 1; font-size: 11px; letter-spacing: .22em; color: var(--gold-deep); text-align: center; margin-bottom: 4px; }
+.section__title { position: relative; z-index: 1; font-size: 19px; text-align: center; letter-spacing: .05em; margin: 0 0 26px; }
+.kinletter { max-width: 640px; margin: 0 auto; text-align: center; font-size: 14.5px; line-height: 1.95; color: var(--ink-soft); white-space: pre-line; }
+@media (max-width: 600px) { .section { padding-top: 100px; } }
+
+/* 紋章の色属性(赤/白/青/黄)をアイコンに反映 — utils/mayaData.tsのsealColor()と同じ4系統。
+   見出しテキストやバッジは中立トーンのまま、アイコンの線色だけ紋章カラーになる。 */
+.section[data-seal="red"] .block__head svg,
+.section[data-seal="red"] .checklist svg { color: var(--seal-red); }
+.section[data-seal="white"] .block__head svg,
+.section[data-seal="white"] .checklist svg { color: var(--seal-white); }
+.section[data-seal="blue"] .block__head svg,
+.section[data-seal="blue"] .checklist svg { color: var(--seal-blue); }
+.section[data-seal="yellow"] .block__head svg,
+.section[data-seal="yellow"] .checklist svg { color: var(--seal-yellow); }
+
+/* ---------------- archetype dossier: plain, matches the rest of the page (no card border) ---------------- */
+.dossier { display: grid; grid-template-columns: minmax(160px, 260px) 1fr; gap: 30px; align-items: start; max-width: 720px; margin-left: auto; margin-right: auto; }
+@media (max-width: 600px) { .dossier { grid-template-columns: 1fr; } }
+@media (min-width: 1000px) { .dossier { grid-template-columns: minmax(220px, 320px) 1fr; gap: 44px; } }
+.dossier__portrait { display: flex; justify-content: center; align-items: flex-end; overflow: hidden; }
+.dossier__portrait img { width: auto; height: 100%; max-width: 100%; object-fit: contain; object-position: bottom center; display: block; }
+.dossier__headrow { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.dossier__name { font-size: 27px; }
+.dossier__badge { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; padding: 3px 11px; border-radius: 999px; border: 1px solid var(--gold); color: var(--gold-deep); white-space: nowrap; }
+.dossier__catch { font-size: 13.5px; line-height: 1.85; color: var(--ink-soft); margin: 6px 0 22px; font-family: "Shippori Mincho", serif; }
+.dossier__blocks .block:first-child { margin-top: 0; }
+
+/* ---------------- prose blocks (shared by every section, incl. the archetype area) ---------------- */
+.block { margin-top: 26px; max-width: 720px; margin-left: auto; margin-right: auto; }
+.block__head { display: flex; align-items: center; gap: 8px; margin-bottom: 11px; }
+.block__head svg { width: 15px; height: 15px; color: var(--gold); flex: none; }
+.block__head h3 { margin: 0; font-size: 12.5px; font-weight: 700; letter-spacing: .1em; color: var(--gold-deep); }
+.block p { margin: 0 0 12px; font-size: 14px; line-height: 1.95; white-space: pre-line; }
+.block p:last-child { margin-bottom: 0; }
+
+.checklist { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 12px; }
+.checklist:last-child { margin-bottom: 0; }
+.checklist li { display: flex; gap: 9px; font-size: 13.5px; line-height: 1.7; }
+.checklist li svg { width: 14px; height: 14px; flex: none; margin-top: 3px; color: var(--gold); }
+
+.twocol { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 600px) { .twocol { grid-template-columns: 1fr; gap: 26px; } }
+
+/* ---------------- gated (LockedVeil) premium-content mosaic ---------------- */
+.gated { position: relative; }
+.gated__mosaic {
+  border-radius: 4px; overflow: hidden; border: 1px solid var(--gold-line-soft);
+  background-image: linear-gradient(45deg, var(--mosaic-a) 25%, transparent 25%), linear-gradient(-45deg, var(--mosaic-a) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, var(--mosaic-a) 75%), linear-gradient(-45deg, transparent 75%, var(--mosaic-a) 75%);
+  background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0; background-color: var(--mosaic-b);
+  min-height: 96px; display: flex; align-items: center; justify-content: center;
+}
+.gated__lock { display: flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 999px; background: var(--paper); border: 1px solid var(--gold-line); box-shadow: var(--shadow); font-size: 12px; font-weight: 700; color: var(--gold-deep); letter-spacing: .03em; }
+.gated__lock svg { width: 13px; height: 13px; flex: none; }
+.gated__reveal p { margin: 0 0 12px; font-size: 14px; line-height: 1.95; white-space: pre-line; }
+.gated__reveal p:last-child { margin-bottom: 0; }
+.gated__reveal .checklist { margin-bottom: 12px; }
+
+/* ---------------- 銀河の音 tonecard ---------------- */
+/* Mobile: single stacked column (medal → eyebrow/name → title/desc). From 560px up ("PC"),
+   splits into two columns — number+name on the left, title+description on the right. */
+.tonecard { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; max-width: 720px; margin-left: auto; margin-right: auto; }
+.tonecard__left { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.tonecard__medal { position: relative; flex: none; width: 92px; height: 92px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: radial-gradient(120% 150% at 50% 28%, var(--paper) 0%, var(--paper-panel-2) 100%); box-shadow: var(--shadow); }
+.tonecard__medal::before { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 1px solid var(--gold); }
+.tonecard__medal::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; border: 1px solid var(--gold-line); }
+.tonecard__medal-num { position: relative; font-family: "Shippori Mincho", serif; font-size: 38px; color: var(--gold-deep); font-variant-numeric: tabular-nums; }
+.tonecard__body { position: relative; }
+.tonecard__eyebrow { font-size: 10.5px; letter-spacing: .25em; color: var(--gold-deep); margin-bottom: 5px; }
+.tonecard__name { font-size: 19px; margin: 0; }
+.tonecard__desc { font-size: 13.5px; color: var(--ink-soft); line-height: 1.85; margin: 0; }
+@media (min-width: 560px) {
+  .tonecard { flex-direction: row; align-items: center; text-align: left; gap: 28px; }
+  .tonecard__left { flex: none; }
+  .tonecard__body { flex: 1; }
+}
+
+.celeblist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; grid-template-columns: 1fr; }
+@media (min-width: 560px) { .celeblist { grid-template-columns: 1fr 1fr; } }
+.celeblist li { font-size: 13px; line-height: 1.7; }
+.celeblist li span { color: var(--ink-faint); }
+
+/* ---------------- small ring-cropped portrait rows (relations, compatibility profile cards) ---------------- */
+.medalrow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; max-width: 640px; margin-left: auto; margin-right: auto; }
+@media (max-width: 520px) { .medalrow { grid-template-columns: repeat(2, 1fr); } }
+.medal { display: flex; flex-direction: column; align-items: center; gap: 7px; text-align: center; }
+.medal__ring { width: 58px; height: 58px; border-radius: 50%; overflow: hidden; border: 2px solid var(--gold); flex: none; }
+.medal__ring img { width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+.medal__label { font-size: 10px; letter-spacing: .06em; color: var(--ink-faint); }
+.medal__name { font-size: 12px; font-weight: 700; }
+
+/* ---------------- KINの関係性 relation cards ---------------- */
+.relwrap { display: flex; flex-direction: column; gap: 56px; max-width: 660px; margin: 0 auto; }
+.relcard { position: relative; display: flex; align-items: flex-end; gap: 22px; border-radius: 16px; padding: 0 26px 0 0; text-align: left; box-shadow: var(--shadow); background: radial-gradient(140% 170% at 18% 8%, var(--paper-panel) 0%, var(--paper-panel-2) 100%); overflow: visible; }
+.relcard::before { content: ""; position: absolute; inset: 0; border-radius: 16px; background: radial-gradient(120% 140% at 0% 0%, var(--rel-glow) 0%, transparent 68%); pointer-events: none; }
+.relcard::after { content: ""; position: absolute; inset: 0; border-radius: 16px; border: 1px solid var(--rel-line); pointer-events: none; }
+.relcard--red { --rel-glow: rgba(190, 64, 45, .16); --rel-line: rgba(190, 64, 45, .38); }
+.relcard--red .relcard__label { color: var(--seal-red); }
+.relcard--red .relcard__cta-icon { border-color: var(--seal-red); }
+.relcard--white { --rel-glow: rgba(138, 131, 104, .18); --rel-line: rgba(138, 131, 104, .4); }
+.relcard--white .relcard__label { color: var(--seal-white); }
+.relcard--white .relcard__cta-icon { border-color: var(--seal-white); }
+.relcard--blue { --rel-glow: rgba(28, 81, 127, .16); --rel-line: rgba(28, 81, 127, .38); }
+.relcard--blue .relcard__label { color: var(--seal-blue); }
+.relcard--blue .relcard__cta-icon { border-color: var(--seal-blue); }
+.relcard--yellow { --rel-glow: rgba(201, 154, 31, .18); --rel-line: rgba(201, 154, 31, .4); }
+.relcard--yellow .relcard__label { color: var(--seal-yellow); }
+.relcard--yellow .relcard__cta-icon { border-color: var(--seal-yellow); }
+.relcard__figure { position: relative; z-index: 2; flex: none; align-self: flex-end; width: 340px; margin: -46px 0 0 -34px; }
+.relcard__figure img { display: block; width: 100%; height: auto; filter: drop-shadow(-6px 8px 10px rgba(30, 20, 4, .18)); }
+.relcard__body { position: relative; z-index: 1; flex: 1; min-width: 0; padding: 30px 0 26px; }
+.relcard__label { display: block; font-size: 11px; font-weight: 700; letter-spacing: .18em; margin-bottom: 7px; }
+.relcard__name { font-size: 18px; margin: 0; }
+.relcard__type { font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic Medium", "Yu Gothic", "Noto Sans JP", sans-serif; font-size: 12px; font-weight: 400; color: var(--ink-soft); margin-left: 2px; }
+.relcard__desc { margin: 9px 0 0; font-size: 13px; line-height: 1.8; color: var(--ink-soft); }
+/* Decorative only — no per-seal detail page exists yet to link to (see CLAUDE.md's "still a
+   prototype" state for anything beyond the KIN diagnosis itself), so this is a plain <span>
+   styled as a button rather than a real <button>/<a> with no destination. */
+.relcard__cta { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; padding: 4px 16px 4px 4px; border-radius: 999px; background: var(--paper); border: 1px solid var(--gold-line-soft); box-shadow: var(--shadow); font-size: 12px; font-weight: 700; color: var(--gold-deep); letter-spacing: .02em; }
+.relcard__cta-icon { position: relative; overflow: hidden; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--gold); background: var(--paper-panel-2); flex: none; }
+.relcard__cta-icon img { position: absolute; top: -6%; left: 50%; width: 130%; height: auto; transform: translateX(-50%); }
+@media (max-width: 560px) {
+  /* Extra breathing room below the section title, beyond .section__title's own margin-bottom. */
+  .relwrap { margin-top: 14px; }
+  /* Narrower than the section divider above it (which fills the sheet's full content width) —
+     a small side inset so the card doesn't run edge-to-edge with it. */
+  .relcard { flex-direction: column; align-items: center; text-align: center; padding: 0 0 22px; gap: 0; margin-left: 10px; margin-right: 10px; }
+  .relcard__figure { width: 264px; margin: 0; align-self: center; }
+  .relcard__body { padding: 10px 22px 0; display: flex; flex-direction: column; align-items: center; }
+  .relcard::before { background: radial-gradient(120% 140% at 50% -10%, var(--rel-glow) 0%, transparent 68%); }
+}
+
+/* ---------------- 運命数字 / KIN number medallions ---------------- */
+.numrow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; max-width: 720px; margin-left: auto; margin-right: auto; }
+@media (max-width: 560px) {
+  /* Inset from the section divider above it, same treatment as .relcard. */
+  .numrow { grid-template-columns: repeat(2, 1fr); gap: 16px; margin-left: 10px; margin-right: 10px; width: auto; }
+}
+.numcell { position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 22px 8px 18px; border-radius: 12px; border: 1px solid var(--gold-line-soft); background: radial-gradient(140% 170% at 30% 0%, var(--paper-panel) 0%, var(--paper-panel-2) 100%); box-shadow: var(--shadow); }
+.numcell::after { content: ""; position: absolute; inset: 4px; border: 1px solid var(--gold-line-soft); border-radius: 8px; pointer-events: none; }
+.numcell__label { position: relative; font-size: 11px; color: var(--ink-faint); letter-spacing: .02em; text-align: center; line-height: 1.4; }
+
+.foot { text-align: center; margin-top: 52px; font-size: 11px; color: var(--ink-faint); letter-spacing: .04em; }

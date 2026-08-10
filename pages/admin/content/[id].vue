@@ -15,6 +15,28 @@ const freeProfileFields = CHARACTER_PROFILE_FIELDS.filter((f) => f.tier === 'fre
 const premiumProfileFields = CHARACTER_PROFILE_FIELDS.filter((f) => f.tier === 'premium')
 const toneProfileFields = TONE_PROFILE_FIELDS
 
+// kind:'list' フィールド(箇条書き)の編集用ヘルパー — 項目の追加・削除・並べ替え。
+function listOf(key: string): string[] {
+  const value = row.value?.[key]
+  return Array.isArray(value) ? value : []
+}
+function addListItem(key: string) {
+  if (!row.value) return
+  row.value[key] = [...listOf(key), '']
+}
+function removeListItem(key: string, index: number) {
+  if (!row.value) return
+  row.value[key] = listOf(key).filter((_, i) => i !== index)
+}
+function moveListItem(key: string, index: number, delta: number) {
+  if (!row.value) return
+  const items = [...listOf(key)]
+  const target = index + delta
+  if (target < 0 || target >= items.length) return
+  ;[items[index], items[target]] = [items[target], items[index]]
+  row.value[key] = items
+}
+
 onMounted(async () => {
   if (!row.value) return
   try {
@@ -27,10 +49,10 @@ onMounted(async () => {
       row.value.premiumText = data.premiumText ?? ''
       row.value.status = data.status ?? '下書き'
       if (row.value.type === 'character') {
-        for (const f of CHARACTER_PROFILE_FIELDS) row.value[f.key] = data[f.key] ?? ''
+        for (const f of CHARACTER_PROFILE_FIELDS) row.value[f.key] = data[f.key] ?? (f.kind === 'list' ? [] : '')
       }
       if (row.value.type === 'tone') {
-        for (const f of TONE_PROFILE_FIELDS) row.value[f.key] = data[f.key] ?? ''
+        for (const f of TONE_PROFILE_FIELDS) row.value[f.key] = data[f.key] ?? (f.kind === 'list' ? [] : '')
       }
     }
   } catch {
@@ -49,10 +71,15 @@ async function save() {
   saved.value = false
   try {
     const { $firestore } = useNuxtApp()
+    // 保存直前に空の箇条書き行(未入力のまま追加した項目など)を取り除く。
+    function fieldValue(f: { key: string; kind: string }) {
+      const value = row.value![f.key]
+      return f.kind === 'list' ? (Array.isArray(value) ? value.filter((v) => v.trim()) : []) : value ?? ''
+    }
     const profileUpdates = row.value.type === 'character'
-      ? Object.fromEntries(CHARACTER_PROFILE_FIELDS.map((f) => [f.key, row.value![f.key] ?? '']))
+      ? Object.fromEntries(CHARACTER_PROFILE_FIELDS.map((f) => [f.key, fieldValue(f)]))
       : row.value.type === 'tone'
-        ? Object.fromEntries(TONE_PROFILE_FIELDS.map((f) => [f.key, row.value![f.key] ?? '']))
+        ? Object.fromEntries(TONE_PROFILE_FIELDS.map((f) => [f.key, fieldValue(f)]))
         : {}
     await updateDoc(doc($firestore as Firestore, 'diagnosisContent', id), {
       name: row.value.name,
@@ -134,10 +161,23 @@ async function save() {
                 class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900"
               />
               <textarea
-                v-else
+                v-else-if="f.kind === 'textarea'"
                 v-model="row[f.key]"
                 class="min-h-[100px] w-full rounded-lg border border-slate-200 bg-white p-3 text-[13px] dark:border-slate-800 dark:bg-slate-900"
               ></textarea>
+              <div v-else class="space-y-2">
+                <div v-for="(item, i) in listOf(f.key)" :key="i" class="flex items-center gap-1.5">
+                  <input
+                    v-model="listOf(f.key)[i]"
+                    type="text"
+                    class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900"
+                  />
+                  <button type="button" class="rounded-lg border border-slate-200 px-2 py-2 text-xs text-slate-500 disabled:opacity-30 dark:border-slate-700 dark:text-slate-400" :disabled="i === 0" @click="moveListItem(f.key, i, -1)">↑</button>
+                  <button type="button" class="rounded-lg border border-slate-200 px-2 py-2 text-xs text-slate-500 disabled:opacity-30 dark:border-slate-700 dark:text-slate-400" :disabled="i === listOf(f.key).length - 1" @click="moveListItem(f.key, i, 1)">↓</button>
+                  <button type="button" class="rounded-lg border border-red-200 px-2.5 py-2 text-xs font-semibold text-red-600 dark:border-red-900 dark:text-red-400" @click="removeListItem(f.key, i)">削除</button>
+                </div>
+                <button type="button" class="rounded-lg border border-dashed border-slate-300 px-3 py-2 text-xs font-semibold text-brass-700 dark:border-slate-700 dark:text-gold-300" @click="addListItem(f.key)">+ 項目を追加</button>
+              </div>
             </div>
           </div>
         </template>
@@ -157,10 +197,23 @@ async function save() {
                 class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900"
               />
               <textarea
-                v-else
+                v-else-if="f.kind === 'textarea'"
                 v-model="row[f.key]"
                 class="min-h-[100px] w-full rounded-lg border border-slate-200 bg-white p-3 text-[13px] dark:border-slate-800 dark:bg-slate-900"
               ></textarea>
+              <div v-else class="space-y-2">
+                <div v-for="(item, i) in listOf(f.key)" :key="i" class="flex items-center gap-1.5">
+                  <input
+                    v-model="listOf(f.key)[i]"
+                    type="text"
+                    class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900"
+                  />
+                  <button type="button" class="rounded-lg border border-slate-200 px-2 py-2 text-xs text-slate-500 disabled:opacity-30 dark:border-slate-700 dark:text-slate-400" :disabled="i === 0" @click="moveListItem(f.key, i, -1)">↑</button>
+                  <button type="button" class="rounded-lg border border-slate-200 px-2 py-2 text-xs text-slate-500 disabled:opacity-30 dark:border-slate-700 dark:text-slate-400" :disabled="i === listOf(f.key).length - 1" @click="moveListItem(f.key, i, 1)">↓</button>
+                  <button type="button" class="rounded-lg border border-red-200 px-2.5 py-2 text-xs font-semibold text-red-600 dark:border-red-900 dark:text-red-400" @click="removeListItem(f.key, i)">削除</button>
+                </div>
+                <button type="button" class="rounded-lg border border-dashed border-slate-300 px-3 py-2 text-xs font-semibold text-brass-700 dark:border-slate-700 dark:text-gold-300" @click="addListItem(f.key)">+ 項目を追加</button>
+              </div>
             </div>
           </div>
 
@@ -178,10 +231,23 @@ async function save() {
                 class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900"
               />
               <textarea
-                v-else
+                v-else-if="f.kind === 'textarea'"
                 v-model="row[f.key]"
                 class="min-h-[100px] w-full rounded-lg border border-slate-200 bg-white p-3 text-[13px] dark:border-slate-800 dark:bg-slate-900"
               ></textarea>
+              <div v-else class="space-y-2">
+                <div v-for="(item, i) in listOf(f.key)" :key="i" class="flex items-center gap-1.5">
+                  <input
+                    v-model="listOf(f.key)[i]"
+                    type="text"
+                    class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900"
+                  />
+                  <button type="button" class="rounded-lg border border-slate-200 px-2 py-2 text-xs text-slate-500 disabled:opacity-30 dark:border-slate-700 dark:text-slate-400" :disabled="i === 0" @click="moveListItem(f.key, i, -1)">↑</button>
+                  <button type="button" class="rounded-lg border border-slate-200 px-2 py-2 text-xs text-slate-500 disabled:opacity-30 dark:border-slate-700 dark:text-slate-400" :disabled="i === listOf(f.key).length - 1" @click="moveListItem(f.key, i, 1)">↓</button>
+                  <button type="button" class="rounded-lg border border-red-200 px-2.5 py-2 text-xs font-semibold text-red-600 dark:border-red-900 dark:text-red-400" @click="removeListItem(f.key, i)">削除</button>
+                </div>
+                <button type="button" class="rounded-lg border border-dashed border-slate-300 px-3 py-2 text-xs font-semibold text-brass-700 dark:border-slate-700 dark:text-gold-300" @click="addListItem(f.key)">+ 項目を追加</button>
+              </div>
             </div>
           </div>
         </template>

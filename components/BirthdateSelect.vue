@@ -2,8 +2,23 @@
 // Renders 生年月日 as three native <select>s (年/月/日) instead of <input type="date"> —
 // native selects render as a drum-roll/wheel picker on iOS and a scrollable list on Android,
 // which is far easier to operate than a native date-input's calendar widget on mobile.
-const props = defineProps<{ modelValue: string }>()
+const props = withDefaults(defineProps<{ modelValue: string; theme?: 'ink' | 'paper' }>(), { theme: 'ink' })
 const emit = defineEmits<{ 'update:modelValue': [string] }>()
+
+// 'ink' (default) keeps today's exact dark gold-on-black styling for pages/index.vue, which
+// doesn't pass this prop at all — zero visual change there. 'paper' is the new parchment theme,
+// used only by pages/compatibility.vue.
+const selectClass = computed(() =>
+  props.theme === 'paper'
+    ? 'w-full rounded border px-2 py-2.5 text-sm outline-none transition-colors'
+    : 'w-full rounded border border-gold-500/30 bg-transparent px-2 py-2.5 text-sm text-parchment-100 outline-none focus:border-gold-500 [color-scheme:dark]'
+)
+const selectStyle = computed(() =>
+  props.theme === 'paper'
+    ? { borderColor: 'var(--gold-line)', background: 'var(--paper-panel)', color: 'var(--ink)' }
+    : {}
+)
+const optionClass = computed(() => (props.theme === 'paper' ? '' : 'bg-ink-950'))
 
 const MIN_YEAR = 1900
 const MAX_YEAR = 2050
@@ -54,29 +69,17 @@ watch(
 
 <template>
   <div class="flex gap-2">
-    <select
-      v-model="year"
-      required
-      class="w-full rounded border border-gold-500/30 bg-transparent px-2 py-2.5 text-sm text-parchment-100 outline-none focus:border-gold-500 [color-scheme:dark]"
-    >
-      <option value="" disabled class="bg-ink-950">年</option>
-      <option v-for="y in years" :key="y" :value="y" class="bg-ink-950">{{ y }}年</option>
+    <select v-model="year" required :class="selectClass" :style="selectStyle">
+      <option value="" disabled :class="optionClass">年</option>
+      <option v-for="y in years" :key="y" :value="y" :class="optionClass">{{ y }}年</option>
     </select>
-    <select
-      v-model="month"
-      required
-      class="w-full rounded border border-gold-500/30 bg-transparent px-2 py-2.5 text-sm text-parchment-100 outline-none focus:border-gold-500 [color-scheme:dark]"
-    >
-      <option value="" disabled class="bg-ink-950">月</option>
-      <option v-for="m in months" :key="m" :value="m" class="bg-ink-950">{{ m }}月</option>
+    <select v-model="month" required :class="selectClass" :style="selectStyle">
+      <option value="" disabled :class="optionClass">月</option>
+      <option v-for="m in months" :key="m" :value="m" :class="optionClass">{{ m }}月</option>
     </select>
-    <select
-      v-model="day"
-      required
-      class="w-full rounded border border-gold-500/30 bg-transparent px-2 py-2.5 text-sm text-parchment-100 outline-none focus:border-gold-500 [color-scheme:dark]"
-    >
-      <option value="" disabled class="bg-ink-950">日</option>
-      <option v-for="d in days" :key="d" :value="d" class="bg-ink-950">{{ d }}日</option>
+    <select v-model="day" required :class="selectClass" :style="selectStyle">
+      <option value="" disabled :class="optionClass">日</option>
+      <option v-for="d in days" :key="d" :value="d" :class="optionClass">{{ d }}日</option>
     </select>
   </div>
 </template>

@@ -11,25 +11,25 @@ export type ContentType = 'character' | 'tone' | 'kin'
 export const CHARACTER_PROFILE_FIELDS = [
   { key: 'archetype', label: 'タイプ名', kind: 'text', tier: 'free' },
   { key: 'catchphrase', label: 'キャッチコピー', kind: 'text', tier: 'free' },
-  { key: 'traits', label: 'あなたはこんな人', kind: 'textarea', tier: 'free' },
+  { key: 'traits', label: 'あなたはこんな人', kind: 'list', tier: 'free' },
   { key: 'careerPath', label: 'キャリアパス', kind: 'textarea', tier: 'free' },
-  { key: 'likes', label: 'あなたが喜ぶこと', kind: 'textarea', tier: 'free' },
-  { key: 'dislikes', label: 'あなたが嫌がること', kind: 'textarea', tier: 'free' },
-  { key: 'communicationStrengths', label: 'コミュニケーションの強み', kind: 'textarea', tier: 'free' },
-  { key: 'communicationChallenges', label: 'コミュニケーションの課題', kind: 'textarea', tier: 'free' },
-  { key: 'strengthsSummary', label: 'あなたの性格の強み(要約)', kind: 'textarea', tier: 'free' },
+  { key: 'likes', label: 'あなたが喜ぶこと', kind: 'list', tier: 'free' },
+  { key: 'dislikes', label: 'あなたが嫌がること', kind: 'list', tier: 'free' },
+  { key: 'communicationStrengths', label: 'コミュニケーションの強み', kind: 'list', tier: 'free' },
+  { key: 'communicationChallenges', label: 'コミュニケーションの課題', kind: 'list', tier: 'free' },
+  { key: 'strengthsSummary', label: 'あなたの性格の強み(要約)', kind: 'list', tier: 'free' },
   { key: 'strengthsDetail', label: 'あなたの性格の強み(詳細)', kind: 'textarea', tier: 'free' },
-  { key: 'cautionSummary', label: '注意すべき傾向(要約)', kind: 'textarea', tier: 'free' },
+  { key: 'cautionSummary', label: '注意すべき傾向(要約)', kind: 'list', tier: 'free' },
   { key: 'cautionDetail', label: '注意すべき傾向(詳細・前半)', kind: 'textarea', tier: 'free' },
   { key: 'cautionDetailPremium', label: '注意すべき傾向(詳細・続き)', kind: 'textarea', tier: 'premium' },
-  { key: 'practicalTips', label: '実践的なヒント', kind: 'textarea', tier: 'premium' },
+  { key: 'practicalTips', label: '実践的なヒント', kind: 'list', tier: 'premium' },
   { key: 'bestEnvironment', label: '人生で一番伸びる環境', kind: 'textarea', tier: 'premium' },
   { key: 'bestRole', label: '人生で一番向いている役割', kind: 'textarea', tier: 'premium' },
   { key: 'loveAndPartnership', label: '恋愛・パートナーシップ', kind: 'textarea', tier: 'premium' },
   { key: 'careerSuccess', label: '仕事で成功する方法', kind: 'textarea', tier: 'premium' },
-  { key: 'luckUpActions', label: '運気が上がる行動', kind: 'textarea', tier: 'premium' },
+  { key: 'luckUpActions', label: '運気が上がる行動', kind: 'list', tier: 'premium' },
   { key: 'luckDownHabits', label: '運気が下がるクセ', kind: 'textarea', tier: 'premium' }
-] as const satisfies { key: string; label: string; kind: 'text' | 'textarea'; tier: 'free' | 'premium' }[]
+] as const satisfies { key: string; label: string; kind: 'text' | 'textarea' | 'list'; tier: 'free' | 'premium' }[]
 
 export type CharacterProfileKey = (typeof CHARACTER_PROFILE_FIELDS)[number]['key']
 
@@ -40,15 +40,15 @@ export type CharacterProfileKey = (typeof CHARACTER_PROFILE_FIELDS)[number]['key
 // のみの編集フォームに収めるための選択)。
 export const TONE_PROFILE_FIELDS = [
   { key: 'title', label: '表題', kind: 'text' },
-  { key: 'basicSpecs', label: '基本スペック', kind: 'textarea' },
-  { key: 'strengths', label: '性格の強み', kind: 'textarea' },
-  { key: 'cautions', label: '注意するべき点', kind: 'textarea' },
+  { key: 'basicSpecs', label: '基本スペック', kind: 'list' },
+  { key: 'strengths', label: '性格の強み', kind: 'list' },
+  { key: 'cautions', label: '注意するべき点', kind: 'list' },
   { key: 'celebrities', label: '有名人（1行に1人、「名前｜生年月日｜Kinナンバー｜太陽の紋章 × ウェイブスペル」の形式）', kind: 'textarea' }
-] as const satisfies { key: string; label: string; kind: 'text' | 'textarea' }[]
+] as const satisfies { key: string; label: string; kind: 'text' | 'textarea' | 'list' }[]
 
 export type ToneProfileKey = (typeof TONE_PROFILE_FIELDS)[number]['key']
 
-export interface ContentRow extends Partial<Record<CharacterProfileKey | ToneProfileKey, string>> {
+export interface ContentRow extends Partial<Record<CharacterProfileKey | ToneProfileKey, string | string[]>> {
   id: string
   type: ContentType
   index: number
@@ -92,8 +92,8 @@ export function buildContentRows(): ContentRow[] {
         premiumText: '',
         status: '下書き' as const,
         updated: '—',
-        ...(ct.type === 'character' ? Object.fromEntries(CHARACTER_PROFILE_FIELDS.map((f) => [f.key, ''])) : {}),
-        ...(ct.type === 'tone' ? Object.fromEntries(TONE_PROFILE_FIELDS.map((f) => [f.key, ''])) : {})
+        ...(ct.type === 'character' ? Object.fromEntries(CHARACTER_PROFILE_FIELDS.map((f) => [f.key, f.kind === 'list' ? [] : ''])) : {}),
+        ...(ct.type === 'tone' ? Object.fromEntries(TONE_PROFILE_FIELDS.map((f) => [f.key, f.kind === 'list' ? [] : ''])) : {})
       }
     })
   )

@@ -2,7 +2,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-01-01',
   devtools: { enabled: true },
   modules: ['@nuxtjs/tailwindcss'],
-  css: ['~/assets/css/main.css'],
+  css: ['~/assets/css/main.css', '~/assets/css/paper-theme.css'],
   // Fully static SPA on Firebase Hosting's free "Spark" plan — no Nitro server,
   // no Cloud Functions (Functions require the paid "Blaze" plan; see CLAUDE.md
   // "Deployment"). ssr:false means every route renders to an identical empty

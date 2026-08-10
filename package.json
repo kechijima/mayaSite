@@ -19,7 +19,9 @@
     "cleanup:legacy-content": "tsx --env-file=.env scripts/deleteLegacyContent.ts",
     "cleanup:legacy-content:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/deleteLegacyContent.ts",
     "backfill:caution-split": "tsx --env-file=.env scripts/backfillCautionSplit.ts",
-    "backfill:caution-split:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/backfillCautionSplit.ts"
+    "backfill:caution-split:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/backfillCautionSplit.ts",
+    "migrate:bulletFields": "tsx --env-file=.env scripts/migrateBulletFields.ts",
+    "migrate:bulletFields:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/migrateBulletFields.ts"
   },
   "dependencies": {
     "firebase": "^11.3.1",

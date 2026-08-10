@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { MAX_OTHER_PEOPLE, type PersonInput, type SealAttribute } from '~/composables/useCompatibility'
 import { DEFAULT_GENDER, GENDER_OPTIONS, isGender } from '~/utils/gender'
-import { COMPATIBILITY_RELATION_CHIP_CLASS } from '~/utils/compatibility'
+import { COMPATIBILITY_RELATION_CONTENT } from '~/utils/compatibility'
+import { DESTINY_RELATION_CONTENT } from '~/utils/destinyCompatibility'
 
 function attributeLabel(attr: SealAttribute) {
   return attr === 'sun' ? '太陽の紋章' : 'ウェイブスペル'
@@ -48,57 +49,55 @@ function editAgain() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-ink-950 bg-pinstripe font-body text-parchment-100 pb-24">
-    <div class="mx-auto flex max-w-[720px] items-center justify-between border-b border-gold-500/30 px-5 py-3.5 text-xs tracking-[.04em] text-parchment-300">
-      <span>マヤ暦占い ドリームスペル診断</span>
-      <NuxtLink to="/" class="text-parchment-300/70">トップへ</NuxtLink>
-    </div>
+  <div class="paper-page min-h-screen pb-24">
+    <IconSprite />
 
-    <div class="px-5 pb-7 pt-11 text-center">
-      <span class="font-body font-eyebrow-italic mb-1 block text-[16px] text-gold-300">Compatibility Reading</span>
-      <h1 class="text-balance font-display text-[clamp(30px,6vw,42px)] tracking-[.06em] [text-shadow:0_0_24px_rgba(248,200,113,0.2)]">
-        相性診断
-      </h1>
-      <p class="mt-2.5 text-sm text-parchment-300">紋章の組み合わせから、あなたと大切な人との相性を読み解きます。</p>
-    </div>
+    <div class="sheet">
+      <div class="masthead" style="padding-top: 48px;">
+        <span class="masthead__eyebrow">Compatibility Reading</span>
+        <h1 class="font-display masthead__title">相性診断</h1>
+        <p class="masthead__sub">紋章の組み合わせから、あなたと大切な人との相性を読み解きます。</p>
+      </div>
 
-    <div class="mx-auto max-w-[720px] px-5">
-      <form v-if="!submitted" class="space-y-5" @submit.prevent="submit">
-        <div class="rounded border border-gold-500/30 bg-white/[.02] p-7">
-          <div class="mb-1.5 text-[11px] tracking-[.1em] text-gold-300">あなた</div>
+      <form v-if="!submitted" class="mx-auto max-w-[560px] space-y-5" @submit.prevent="submit">
+        <div class="rounded-xl p-6" style="border: 1px solid var(--gold-line-soft); background: var(--paper-panel); box-shadow: var(--shadow);">
+          <div class="mb-3 text-[11px] tracking-[.1em]" style="color: var(--gold-deep);">あなた</div>
           <div class="space-y-3.5">
             <div>
-              <label class="mb-1.5 block text-[11px] tracking-[.1em] text-parchment-300">お名前</label>
+              <label class="mb-1.5 block text-[11px] tracking-[.1em]" style="color: var(--ink-soft);">お名前</label>
               <input
                 v-model="self.name"
                 type="text"
                 placeholder="結衣"
-                class="w-full rounded border border-gold-500/30 bg-transparent px-3.5 py-2.5 text-sm text-parchment-100 outline-none placeholder:text-parchment-300/40 focus:border-gold-500"
+                class="w-full rounded px-3.5 py-2.5 text-sm outline-none"
+                style="border: 1px solid var(--gold-line); background: var(--paper); color: var(--ink);"
               />
             </div>
             <div>
-              <label class="mb-1.5 block text-[11px] tracking-[.1em] text-parchment-300">生年月日</label>
-              <BirthdateSelect v-model="self.birthdate" />
+              <label class="mb-1.5 block text-[11px] tracking-[.1em]" style="color: var(--ink-soft);">生年月日</label>
+              <BirthdateSelect v-model="self.birthdate" theme="paper" />
             </div>
             <div>
-              <label class="mb-1.5 block text-[11px] tracking-[.1em] text-parchment-300">性別</label>
+              <label class="mb-1.5 block text-[11px] tracking-[.1em]" style="color: var(--ink-soft);">性別</label>
               <select
                 v-model="self.gender"
-                class="w-full rounded border border-gold-500/30 bg-transparent px-3.5 py-2.5 text-sm text-parchment-100 outline-none focus:border-gold-500 [color-scheme:dark]"
+                class="w-full rounded px-3.5 py-2.5 text-sm outline-none"
+                style="border: 1px solid var(--gold-line); background: var(--paper); color: var(--ink);"
               >
-                <option v-for="opt in GENDER_OPTIONS" :key="opt.value" :value="opt.value" class="bg-ink-950">{{ opt.label }}</option>
+                <option v-for="opt in GENDER_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
             </div>
           </div>
         </div>
 
-        <div v-for="(other, i) in others" :key="other.id" class="rounded border border-gold-500/30 bg-white/[.02] p-7">
-          <div class="mb-1.5 flex items-center justify-between">
-            <span class="text-[11px] tracking-[.1em] text-gold-300">相手 {{ i + 1 }}</span>
+        <div v-for="(other, i) in others" :key="other.id" class="rounded-xl p-6" style="border: 1px solid var(--gold-line-soft); background: var(--paper-panel); box-shadow: var(--shadow);">
+          <div class="mb-3 flex items-center justify-between">
+            <span class="text-[11px] tracking-[.1em]" style="color: var(--gold-deep);">相手 {{ i + 1 }}</span>
             <button
               v-if="others.length > 1"
               type="button"
-              class="text-[12px] text-parchment-300/70"
+              class="text-[12px]"
+              style="color: var(--ink-faint);"
               @click="removePerson(other.id)"
             >
               削除
@@ -106,25 +105,27 @@ function editAgain() {
           </div>
           <div class="space-y-3.5">
             <div>
-              <label class="mb-1.5 block text-[11px] tracking-[.1em] text-parchment-300">お名前</label>
+              <label class="mb-1.5 block text-[11px] tracking-[.1em]" style="color: var(--ink-soft);">お名前</label>
               <input
                 v-model="other.name"
                 type="text"
                 placeholder="例：友人A"
-                class="w-full rounded border border-gold-500/30 bg-transparent px-3.5 py-2.5 text-sm text-parchment-100 outline-none placeholder:text-parchment-300/40 focus:border-gold-500"
+                class="w-full rounded px-3.5 py-2.5 text-sm outline-none"
+                style="border: 1px solid var(--gold-line); background: var(--paper); color: var(--ink);"
               />
             </div>
             <div>
-              <label class="mb-1.5 block text-[11px] tracking-[.1em] text-parchment-300">生年月日</label>
-              <BirthdateSelect v-model="other.birthdate" />
+              <label class="mb-1.5 block text-[11px] tracking-[.1em]" style="color: var(--ink-soft);">生年月日</label>
+              <BirthdateSelect v-model="other.birthdate" theme="paper" />
             </div>
             <div>
-              <label class="mb-1.5 block text-[11px] tracking-[.1em] text-parchment-300">性別</label>
+              <label class="mb-1.5 block text-[11px] tracking-[.1em]" style="color: var(--ink-soft);">性別</label>
               <select
                 v-model="other.gender"
-                class="w-full rounded border border-gold-500/30 bg-transparent px-3.5 py-2.5 text-sm text-parchment-100 outline-none focus:border-gold-500 [color-scheme:dark]"
+                class="w-full rounded px-3.5 py-2.5 text-sm outline-none"
+                style="border: 1px solid var(--gold-line); background: var(--paper); color: var(--ink);"
               >
-                <option v-for="opt in GENDER_OPTIONS" :key="opt.value" :value="opt.value" class="bg-ink-950">{{ opt.label }}</option>
+                <option v-for="opt in GENDER_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
             </div>
           </div>
@@ -133,7 +134,8 @@ function editAgain() {
         <button
           type="button"
           :disabled="!canAddMore"
-          class="w-full rounded-full border border-parchment-300/30 px-6.5 py-2.5 text-center text-[13.5px] font-semibold text-parchment-100 disabled:opacity-30"
+          class="w-full rounded-full px-6.5 py-2.5 text-center text-[13.5px] font-semibold disabled:opacity-30"
+          style="border: 1px solid var(--gold-line); color: var(--ink-soft);"
           @click="addPerson"
         >
           相手を追加する（最大{{ MAX_OTHER_PEOPLE }}人まで）
@@ -141,75 +143,129 @@ function editAgain() {
 
         <button
           type="submit"
-          class="w-full rounded-full bg-gradient-to-r from-gold-500 to-gold-300 py-3.5 text-[14.5px] font-bold tracking-[.03em] text-[#241a06]"
+          class="w-full rounded-full py-3.5 text-[14.5px] font-bold tracking-[.03em]"
+          style="background: var(--gold); color: #241a06;"
         >
           相性を診断する
         </button>
       </form>
 
       <template v-else>
-        <section class="pb-2 pt-4">
+        <section class="section">
           <SectionDivider label="参加者" eyebrow="Participants" />
-          <div class="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+          <div class="mx-auto grid max-w-[720px] grid-cols-1 gap-3.5 sm:grid-cols-2">
             <PersonProfileCard :profile="result.self" />
             <PersonProfileCard v-for="p in result.others" :key="p.id" :profile="p" />
           </div>
         </section>
 
-        <section class="pb-2 pt-14">
+        <section class="section">
           <SectionDivider label="相性" eyebrow="Compatibility" />
-          <div class="space-y-3.5">
-            <div v-for="pair in result.pairs" :key="pair.otherId" class="rounded border border-gold-500/30 bg-white/[.02] p-5">
-              <h3 class="mb-3.5 font-display text-[17px]" :class="pair.destinyRelationLabel ? 'text-red-400' : ''">{{ result.self.name }} × {{ pair.otherName }}</h3>
+          <div class="mx-auto max-w-[720px] space-y-6">
+            <div v-for="pair in result.pairs" :key="pair.otherId" class="rounded-xl p-5" style="border: 1px solid var(--gold-line-soft); background: var(--paper-panel); box-shadow: var(--shadow);">
+              <h3 class="mb-4 font-display text-[17px]" :style="{ color: pair.destinyRelation ? 'var(--seal-red)' : 'var(--ink)' }">{{ result.self.name }} × {{ pair.otherName }}</h3>
 
+              <div class="mb-2 text-[11px] font-bold tracking-[.08em]" style="color: var(--gold-deep);">{{ result.self.name }}さんから見た{{ pair.otherName }}さん</div>
               <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div v-for="c in pair.combinations" :key="`${c.selfAttribute}-${c.otherAttribute}`" class="flex flex-col items-center gap-2 rounded border border-gold-500/20 bg-white/[.02] px-3 py-3.5 text-center">
-                  <span class="text-[10.5px] tracking-[.04em] text-parchment-300">{{ attributeLabel(c.selfAttribute) }} × {{ attributeLabel(c.otherAttribute) }}</span>
+                <div v-for="c in pair.combinations.filter((c) => !c.reversed)" :key="`${c.selfAttribute}-${c.otherAttribute}-${c.reversed}`" class="rounded-lg px-3.5 py-4 text-center" style="border: 1px solid var(--gold-line-soft); background: var(--paper);">
+                  <span class="text-[10.5px] tracking-[.04em]" style="color: var(--ink-faint);">
+                    {{ attributeLabel(c.selfAttribute) }}（{{ result.self.name }}） × {{ attributeLabel(c.otherAttribute) }}（{{ pair.otherName }}）
+                  </span>
 
-                  <div class="flex items-center gap-3">
+                  <div class="mt-2 flex items-center justify-center gap-3">
                     <div class="flex flex-col items-center gap-1">
                       <MayaGlyph :seal-index="c.selfSealIndex" size="md" />
                       <span class="text-[12px] font-semibold">{{ c.selfSealName }}</span>
                     </div>
-
-                    <span class="text-[13px] text-gold-300">×</span>
-
+                    <span class="text-[13px]" style="color: var(--gold-deep);">×</span>
                     <div class="flex flex-col items-center gap-1">
                       <MayaGlyph :seal-index="c.otherSealIndex" size="md" />
                       <span class="text-[12px] font-semibold">{{ c.otherSealName }}</span>
                     </div>
                   </div>
 
-                  <span class="mt-1 rounded-full px-2.5 py-1 text-[11.5px] font-semibold" :class="COMPATIBILITY_RELATION_CHIP_CLASS[c.relation]">{{ c.relationLabel }}</span>
+                  <span class="dossier__badge mt-2.5 inline-block">{{ c.relationLabel }}</span>
+                  <p class="mt-2 text-left text-[12px] leading-[1.7]" style="color: var(--ink-soft);">{{ COMPATIBILITY_RELATION_CONTENT[c.relation].text }}</p>
                 </div>
 
-                <div class="flex flex-col items-center gap-2 rounded border border-gold-500/20 bg-white/[.02] px-3 py-3.5 text-center">
-                  <span class="text-[10.5px] tracking-[.04em] text-parchment-300">運命数字</span>
+                <div class="rounded-lg px-3.5 py-4 text-center" style="border: 1px solid var(--gold-line-soft); background: var(--paper);">
+                  <span class="text-[10.5px] tracking-[.04em]" style="color: var(--ink-faint);">運命数字</span>
 
-                  <div class="flex items-center gap-3">
+                  <div class="mt-2 flex items-center justify-center gap-3">
                     <div class="flex flex-col items-center gap-1">
-                      <div class="flex h-[76px] w-[76px] flex-none items-center justify-center rounded-full border-2 border-gold-500 bg-ink-900">
-                        <span class="font-display text-[14px] text-gold-300 tabular-nums">KIN {{ result.self.kin }}</span>
-                      </div>
+                      <GoldMedal :value="result.self.kin" :size="68" :num-font-size="16" />
                       <span class="text-[12px] font-semibold">{{ result.self.name }}</span>
                     </div>
-
-                    <span class="text-[13px] text-gold-300">×</span>
-
+                    <span class="text-[13px]" style="color: var(--gold-deep);">×</span>
                     <div class="flex flex-col items-center gap-1">
-                      <div class="flex h-[76px] w-[76px] flex-none items-center justify-center rounded-full border-2 border-gold-500 bg-ink-900">
-                        <span class="font-display text-[14px] text-gold-300 tabular-nums">KIN {{ pair.otherKin }}</span>
-                      </div>
+                      <GoldMedal :value="pair.otherKin" :size="68" :num-font-size="16" />
                       <span class="text-[12px] font-semibold">{{ pair.otherName }}</span>
                     </div>
                   </div>
 
                   <span
-                    class="mt-1 rounded-full px-2.5 py-1 text-[11.5px] font-bold"
-                    :class="pair.destinyRelationLabel ? 'bg-red-500/15 text-red-400' : 'border border-parchment-300/30 text-parchment-300 font-semibold'"
+                    class="mt-2.5 inline-block rounded-full px-2.5 py-1 text-[11.5px] font-bold"
+                    :style="pair.destinyRelation
+                      ? { background: 'var(--gold)', color: '#241a06' }
+                      : { border: '1px solid var(--gold-line-soft)', color: 'var(--ink-faint)' }"
                   >
                     {{ pair.destinyRelationLabel ?? '特になし' }}
                   </span>
+                  <p v-if="pair.destinyRelation" class="mt-2 text-left text-[12px] leading-[1.7]" style="color: var(--ink-soft);">
+                    {{ DESTINY_RELATION_CONTENT[pair.destinyRelation].text }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="mb-2 mt-5 text-[11px] font-bold tracking-[.08em]" style="color: var(--gold-deep);">{{ pair.otherName }}さんから見た{{ result.self.name }}さん</div>
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div v-for="c in pair.combinations.filter((c) => c.reversed)" :key="`${c.selfAttribute}-${c.otherAttribute}-${c.reversed}`" class="rounded-lg px-3.5 py-4 text-center" style="border: 1px solid var(--gold-line-soft); background: var(--paper);">
+                  <span class="text-[10.5px] tracking-[.04em]" style="color: var(--ink-faint);">
+                    {{ attributeLabel(c.otherAttribute) }}（{{ pair.otherName }}） × {{ attributeLabel(c.selfAttribute) }}（{{ result.self.name }}）
+                  </span>
+
+                  <div class="mt-2 flex items-center justify-center gap-3">
+                    <div class="flex flex-col items-center gap-1">
+                      <MayaGlyph :seal-index="c.otherSealIndex" size="md" />
+                      <span class="text-[12px] font-semibold">{{ c.otherSealName }}</span>
+                    </div>
+                    <span class="text-[13px]" style="color: var(--gold-deep);">×</span>
+                    <div class="flex flex-col items-center gap-1">
+                      <MayaGlyph :seal-index="c.selfSealIndex" size="md" />
+                      <span class="text-[12px] font-semibold">{{ c.selfSealName }}</span>
+                    </div>
+                  </div>
+
+                  <span class="dossier__badge mt-2.5 inline-block">{{ c.relationLabel }}</span>
+                  <p class="mt-2 text-left text-[12px] leading-[1.7]" style="color: var(--ink-soft);">{{ COMPATIBILITY_RELATION_CONTENT[c.relation].text }}</p>
+                </div>
+
+                <div class="rounded-lg px-3.5 py-4 text-center" style="border: 1px solid var(--gold-line-soft); background: var(--paper);">
+                  <span class="text-[10.5px] tracking-[.04em]" style="color: var(--ink-faint);">運命数字</span>
+
+                  <div class="mt-2 flex items-center justify-center gap-3">
+                    <div class="flex flex-col items-center gap-1">
+                      <GoldMedal :value="pair.otherKin" :size="68" :num-font-size="16" />
+                      <span class="text-[12px] font-semibold">{{ pair.otherName }}</span>
+                    </div>
+                    <span class="text-[13px]" style="color: var(--gold-deep);">×</span>
+                    <div class="flex flex-col items-center gap-1">
+                      <GoldMedal :value="result.self.kin" :size="68" :num-font-size="16" />
+                      <span class="text-[12px] font-semibold">{{ result.self.name }}</span>
+                    </div>
+                  </div>
+
+                  <span
+                    class="mt-2.5 inline-block rounded-full px-2.5 py-1 text-[11.5px] font-bold"
+                    :style="pair.destinyRelation
+                      ? { background: 'var(--gold)', color: '#241a06' }
+                      : { border: '1px solid var(--gold-line-soft)', color: 'var(--ink-faint)' }"
+                  >
+                    {{ pair.destinyRelationLabel ?? '特になし' }}
+                  </span>
+                  <p v-if="pair.destinyRelation" class="mt-2 text-left text-[12px] leading-[1.7]" style="color: var(--ink-soft);">
+                    {{ DESTINY_RELATION_CONTENT[pair.destinyRelation].text }}
+                  </p>
                 </div>
               </div>
             </div>
@@ -219,7 +275,8 @@ function editAgain() {
         <div class="mt-8 flex justify-center">
           <button
             type="button"
-            class="rounded-full border border-parchment-300/30 px-6.5 py-2.5 text-center text-[13.5px] font-semibold text-parchment-100"
+            class="rounded-full px-6.5 py-2.5 text-center text-[13.5px] font-semibold"
+            style="border: 1px solid var(--gold-line); color: var(--ink-soft);"
             @click="editAgain"
           >
             もう一度診断する
