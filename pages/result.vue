@@ -248,16 +248,15 @@ const demoPapers: { id: PaperVariant; label: string }[] = [
               </div>
             </div>
           </div>
-        </div>
-
-        <div v-if="sunPersonalityStrength" class="block">
-          <div class="block__head"><svg><use :href="`#${iconFor(sunPersonalityStrength.label)}`" /></svg><h3>{{ sunPersonalityStrength.label }}</h3></div>
-          <template v-if="sunPersonalityStrength.kind === 'list-then-text'">
-            <ul class="checklist">
-              <li v-for="(item, i) in sunPersonalityStrength.items" :key="i"><svg><use href="#i-check" /></svg>{{ item }}</li>
-            </ul>
-            <p v-if="sunPersonalityStrength.text">{{ sunPersonalityStrength.text }}</p>
-          </template>
+          <div v-if="sunPersonalityStrength" class="block dossier__strength">
+            <div class="block__head"><svg><use :href="`#${iconFor(sunPersonalityStrength.label)}`" /></svg><h3>{{ sunPersonalityStrength.label }}</h3></div>
+            <template v-if="sunPersonalityStrength.kind === 'list-then-text'">
+              <ul class="checklist">
+                <li v-for="(item, i) in sunPersonalityStrength.items" :key="i"><svg><use href="#i-check" /></svg>{{ item }}</li>
+              </ul>
+              <p v-if="sunPersonalityStrength.text">{{ sunPersonalityStrength.text }}</p>
+            </template>
+          </div>
         </div>
 
         <div class="block">
@@ -312,16 +311,15 @@ const demoPapers: { id: PaperVariant; label: string }[] = [
               </div>
             </div>
           </div>
-        </div>
-
-        <div v-if="wavespellPersonalityStrength" class="block">
-          <div class="block__head"><svg><use :href="`#${iconFor(wavespellPersonalityStrength.label)}`" /></svg><h3>{{ wavespellPersonalityStrength.label }}</h3></div>
-          <template v-if="wavespellPersonalityStrength.kind === 'list-then-text'">
-            <ul class="checklist">
-              <li v-for="(item, i) in wavespellPersonalityStrength.items" :key="i"><svg><use href="#i-check" /></svg>{{ item }}</li>
-            </ul>
-            <p v-if="wavespellPersonalityStrength.text">{{ wavespellPersonalityStrength.text }}</p>
-          </template>
+          <div v-if="wavespellPersonalityStrength" class="block dossier__strength">
+            <div class="block__head"><svg><use :href="`#${iconFor(wavespellPersonalityStrength.label)}`" /></svg><h3>{{ wavespellPersonalityStrength.label }}</h3></div>
+            <template v-if="wavespellPersonalityStrength.kind === 'list-then-text'">
+              <ul class="checklist">
+                <li v-for="(item, i) in wavespellPersonalityStrength.items" :key="i"><svg><use href="#i-check" /></svg>{{ item }}</li>
+              </ul>
+              <p v-if="wavespellPersonalityStrength.text">{{ wavespellPersonalityStrength.text }}</p>
+            </template>
+          </div>
         </div>
 
         <div class="block">
