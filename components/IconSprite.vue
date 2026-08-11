@@ -25,5 +25,6 @@
     <symbol id="i-clover" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="3.3" /><circle cx="15" cy="9" r="3.3" /><circle cx="9" cy="15" r="3.3" /><circle cx="15" cy="15" r="3.3" /><path d="M12 18v3" /></symbol>
     <symbol id="i-clover-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="3.3" /><circle cx="15" cy="9" r="3.3" /><circle cx="9" cy="15" r="3.3" /><circle cx="15" cy="15" r="3.3" /><path d="M12 18v3" /><path d="M4.5 4.5l15 15" /></symbol>
     <symbol id="i-arrow-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15.5M13.5 5.5 20 12l-6.5 6.5" /></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6" /><path d="m15 15 5 5" /></symbol>
   </svg>
 </template>
