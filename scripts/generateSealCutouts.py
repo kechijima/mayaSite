@@ -59,6 +59,27 @@ SEAL_NAMES = [
 BUST_HEIGHT_RATIO = 0.42
 PAD = 6
 
+# After trimming, each character's bust has a different aspect ratio (the top-42% slice re-cropped
+# to the character's own bounds), so at a fixed render width their heights — and thus on-screen
+# size — differed per archetype. Normalize every bust to a single target aspect ratio, anchored at
+# the top so any excess is trimmed off the BOTTOM (heads are never touched). The target is the
+# 女性の赤い竜 (seal-0 female) ratio, which is the widest/shortest of all busts — so every other
+# bust only ever gets a bottom crop, never a side crop.
+TARGET_BUST_AR = 846 / 668
+
+
+def normalize_bust_ar(im: Image.Image, target_ar: float = TARGET_BUST_AR) -> Image.Image:
+    w, h = im.size
+    ar = w / h
+    if ar < target_ar:  # taller than target -> crop bottom, keep the top (head)
+        new_h = round(w / target_ar)
+        return im.crop((0, 0, w, new_h))
+    if ar > target_ar:  # wider than target -> center-crop the sides (only ~赤い蛇 male, sub-pixel)
+        new_w = round(h * target_ar)
+        left = (w - new_w) // 2
+        return im.crop((left, 0, left + new_w, h))
+    return im
+
 
 def find_source(raw_dir: str, seal_index: int) -> str:
     # The raw filenames' leading number is NOT sealIndex+1 — it's grouped by color family
@@ -103,7 +124,7 @@ def main():
 
             bust_bottom = int(full.height * BUST_HEIGHT_RATIO)
             bust_slice = full.crop((0, 0, full.width, bust_bottom))
-            bust = alpha_crop(bust_slice, pad=4)
+            bust = normalize_bust_ar(alpha_crop(bust_slice, pad=4))
             bust_path = os.path.join(OUT_DIR, f'seal-{seal_index}-bust{suffix}.webp')
             bust.save(bust_path, 'WEBP', quality=88, method=6)
 
