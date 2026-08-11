@@ -283,19 +283,19 @@
 .relcard::after { content: ""; position: absolute; inset: 0; border-radius: 16px; border: 1px solid var(--rel-line); pointer-events: none; }
 .relcard--red { --rel-glow: rgba(190, 64, 45, .16); --rel-line: rgba(190, 64, 45, .38); }
 .relcard--red .relcard__label { color: var(--seal-red); }
-.relcard--red .relcard__cta-icon { border-color: var(--seal-red); }
+.relcard--red .relcard__cta-icon { color: var(--seal-red); }
 .relcard--white { --rel-glow: rgba(138, 131, 104, .18); --rel-line: rgba(138, 131, 104, .4); }
 .relcard--white .relcard__label { color: var(--seal-white); }
-.relcard--white .relcard__cta-icon { border-color: var(--seal-white); }
+.relcard--white .relcard__cta-icon { color: var(--seal-white); }
 .relcard--blue { --rel-glow: rgba(28, 81, 127, .16); --rel-line: rgba(28, 81, 127, .38); }
 .relcard--blue .relcard__label { color: var(--seal-blue); }
-.relcard--blue .relcard__cta-icon { border-color: var(--seal-blue); }
+.relcard--blue .relcard__cta-icon { color: var(--seal-blue); }
 /* --rel-line uses a darker gold than --seal-yellow here (not the same value as the label/icon
    below) — the lighter seal-yellow tone is close enough in hue/luminance to the beige parchment
    panel that the card border became nearly invisible against it, unlike red/white/blue. */
 .relcard--yellow { --rel-glow: rgba(201, 154, 31, .18); --rel-line: rgba(154, 111, 16, .55); }
 .relcard--yellow .relcard__label { color: var(--seal-yellow); }
-.relcard--yellow .relcard__cta-icon { border-color: var(--seal-yellow); }
+.relcard--yellow .relcard__cta-icon { color: var(--seal-yellow); }
 .relcard__figure { position: relative; z-index: 2; flex: none; align-self: flex-end; width: 340px; margin: -46px 0 0 -34px; }
 .relcard__figure img { display: block; width: 100%; height: auto; filter: drop-shadow(-6px 8px 10px rgba(30, 20, 4, .18)); }
 .relcard__body { position: relative; z-index: 1; flex: 1; min-width: 0; padding: 30px 0 26px; }
@@ -307,8 +307,8 @@
    prototype" state for anything beyond the KIN diagnosis itself), so this is a plain <span>
    styled as a button rather than a real <button>/<a> with no destination. */
 .relcard__cta { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; padding: 4px 16px 4px 4px; border-radius: 999px; background: var(--paper); border: 1px solid var(--gold-line-soft); box-shadow: var(--shadow); font-size: 12px; font-weight: 700; color: var(--gold-deep); letter-spacing: .02em; }
-.relcard__cta-icon { position: relative; overflow: hidden; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--gold); background: var(--paper-panel-2); flex: none; }
-.relcard__cta-icon img { position: absolute; top: -6%; left: 50%; width: 130%; height: auto; transform: translateX(-50%); }
+.relcard__cta-icon { position: relative; display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--gold-line-soft); background: var(--paper-panel-2); flex: none; color: var(--gold-deep); }
+.relcard__cta-icon svg { width: 14px; height: 14px; }
 @media (max-width: 560px) {
   /* Extra breathing room below the section title, beyond .section__title's own margin-bottom. */
   .relwrap { margin-top: 14px; }

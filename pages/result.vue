@@ -10,7 +10,6 @@ import mastheadArchSrc from '~/assets/images/optimized/top-bg.webp'
 const route = useRoute()
 const { plan, rank, setPlan } = useMembership()
 const { paper, setPaper } = usePaperTheme()
-const { bustSrc } = useSealCutouts()
 
 const input = computed(() => {
   const genderQuery = route.query.gender as string | undefined
@@ -400,7 +399,7 @@ const demoPapers: { id: PaperVariant; label: string }[] = [
               <span class="relcard__label">{{ r.label }}</span>
               <h3 class="font-display relcard__name">{{ r.seal.name }}</h3>
               <p class="relcard__desc">{{ RELATION_DESCRIPTION[r.label] }}</p>
-              <span class="relcard__cta"><span class="relcard__cta-icon"><img :src="bustSrc(r.seal.index)" :alt="''" /></span>詳しく見る</span>
+              <span class="relcard__cta"><span class="relcard__cta-icon"><svg><use href="#i-search" /></svg></span>詳しく見る</span>
             </div>
           </div>
         </div>
