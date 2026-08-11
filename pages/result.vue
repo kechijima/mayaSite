@@ -211,7 +211,7 @@ const demoPapers: { id: PaperVariant; label: string }[] = [
       <!-- ドリームスペル暦: KIN番号 + 太陽の紋章/ウェイブスペル/銀河の音 概要 -->
       <div class="kinhero">
         <div class="kinhero__portrait">
-          <div class="kinhero__frame"><MayaPortraitFrame :seal-index="result.sealIndex" /></div>
+          <div class="kinhero__frame"><MayaPortraitFrame :seal-index="result.sealIndex" :gender="result.gender" /></div>
           <span class="kinhero__name-plate">{{ result.sun.seal.name }}</span>
         </div>
         <div class="kinhero__center">
@@ -222,7 +222,7 @@ const demoPapers: { id: PaperVariant; label: string }[] = [
           <span class="kinhero__name-plate">{{ result.tone.info.name }}</span>
         </div>
         <div class="kinhero__portrait">
-          <div class="kinhero__frame"><MayaPortraitFrame :seal-index="result.wavespellSealIndex" /></div>
+          <div class="kinhero__frame"><MayaPortraitFrame :seal-index="result.wavespellSealIndex" :gender="result.gender" /></div>
           <span class="kinhero__name-plate">{{ result.wavespell.seal.name }}</span>
         </div>
       </div>
@@ -231,7 +231,7 @@ const demoPapers: { id: PaperVariant; label: string }[] = [
       <section class="section" :data-seal="sealColor(result.sealIndex)">
         <SectionDivider label="太陽の紋章" eyebrow="顕在意識 — 行動を司るアーキタイプ" />
         <div class="dossier">
-          <MayaPortrait :seal-index="result.sealIndex" />
+          <MayaPortrait :seal-index="result.sealIndex" :gender="result.gender" />
           <div class="dossier__main">
             <div class="dossier__headrow">
               <h3 class="font-display dossier__name">{{ result.sun.seal.name }}</h3>
@@ -294,7 +294,7 @@ const demoPapers: { id: PaperVariant; label: string }[] = [
       <section class="section" :data-seal="sealColor(result.wavespellSealIndex)">
         <SectionDivider label="ウェイブスペル" eyebrow="潜在意識 — 可能性を担うアーキタイプ" />
         <div class="dossier">
-          <MayaPortrait :seal-index="result.wavespellSealIndex" />
+          <MayaPortrait :seal-index="result.wavespellSealIndex" :gender="result.gender" />
           <div class="dossier__main">
             <div class="dossier__headrow">
               <h3 class="font-display dossier__name">{{ result.wavespell.seal.name }}</h3>
@@ -395,7 +395,7 @@ const demoPapers: { id: PaperVariant; label: string }[] = [
         <SectionDivider label="KINの関係性" eyebrow="周囲の紋章とのつながり" />
         <div class="relwrap">
           <div v-for="r in relations" :key="r.label" class="relcard" :class="`relcard--${sealColor(r.seal.index)}`">
-            <div class="relcard__figure"><MayaBust :seal-index="r.seal.index" :alt="r.seal.name" /></div>
+            <div class="relcard__figure"><MayaBust :seal-index="r.seal.index" :alt="r.seal.name" :gender="result.gender" /></div>
             <div class="relcard__body">
               <span class="relcard__label">{{ r.label }}</span>
               <h3 class="font-display relcard__name">{{ r.seal.name }}</h3>

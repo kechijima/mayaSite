@@ -2,11 +2,12 @@
 # automatically. Produces the transparent character cutouts consumed by MayaPortrait.vue
 # (full-body) and the KINの関係性 relation cards in result.vue (upper-body "bust" crop).
 #
-# Source: the 20 full-resolution originals in assets/images/*.png (raw, gitignored), named
-# `{sealIndex+1}{japanese name}.png` per utils/mayaData.ts's SEALS order (1-indexed). Output:
-# assets/images/optimized/seal-{sealIndex}-cutout.webp (full-body, alpha-cropped) and
-# assets/images/optimized/seal-{sealIndex}-bust.webp (top ~42% of the cropped content height),
-# for sealIndex 0..19 — no "raw" counterpart, same precedent as assets/images/faces/.
+# Source: the 20 full-resolution originals in assets/images/*.png (raw, gitignored — female,
+# the default) and assets/images/male/*.png (male), named `{sealIndex+1}{japanese name}.png`
+# per utils/mayaData.ts's SEALS order (1-indexed) in both directories. Output:
+# assets/images/optimized/seal-{sealIndex}-cutout.webp / seal-{sealIndex}-bust.webp (female) and
+# seal-{sealIndex}-cutout-male.webp / seal-{sealIndex}-bust-male.webp (male), sealIndex 0..19 —
+# no "raw" counterpart, same precedent as assets/images/faces/.
 #
 # Usage: pip install rembg pillow ; python3 scripts/generateSealCutouts.py
 #
@@ -39,8 +40,13 @@ def clean_alpha_noise(im: Image.Image, floor: int = ALPHA_NOISE_FLOOR) -> Image.
     return Image.fromarray(arr, 'RGBA')
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RAW_DIR = os.path.join(ROOT, 'assets', 'images')
 OUT_DIR = os.path.join(ROOT, 'assets', 'images', 'optimized')
+
+# (raw source dir, output filename suffix) — female is the default/unsuffixed set.
+GENDERS = [
+    (os.path.join(ROOT, 'assets', 'images'), ''),
+    (os.path.join(ROOT, 'assets', 'images', 'male'), '-male'),
+]
 
 # SEALS order from utils/mayaData.ts — must stay in sync.
 SEAL_NAMES = [
@@ -54,16 +60,16 @@ BUST_HEIGHT_RATIO = 0.42
 PAD = 6
 
 
-def find_source(seal_index: int) -> str:
+def find_source(raw_dir: str, seal_index: int) -> str:
     # The raw filenames' leading number is NOT sealIndex+1 — it's grouped by color family
     # (1-5 red, 6-10 white, 11-15 blue, 16-20 yellow), a different order than SEALS. Match by
     # the Japanese name only (with an optional stray space before it, see "17 黄色い星.png").
     name = SEAL_NAMES[seal_index]
     pattern = re.compile(rf'^\d+\s*{re.escape(name)}\.png$')
-    for fname in os.listdir(RAW_DIR):
+    for fname in os.listdir(raw_dir):
         if pattern.match(fname):
-            return os.path.join(RAW_DIR, fname)
-    raise FileNotFoundError(f'No source PNG found for seal {seal_index} ({name})')
+            return os.path.join(raw_dir, fname)
+    raise FileNotFoundError(f'No source PNG found for seal {seal_index} ({name}) in {raw_dir}')
 
 
 def alpha_crop(im: Image.Image, pad: int = PAD) -> Image.Image:
@@ -80,26 +86,28 @@ def alpha_crop(im: Image.Image, pad: int = PAD) -> Image.Image:
 
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
-    for seal_index in range(20):
-        name = SEAL_NAMES[seal_index]
-        src_path = find_source(seal_index)
-        print(f'[{seal_index:2d}] {name} <- {os.path.basename(src_path)}')
+    for raw_dir, suffix in GENDERS:
+        print(f'--- {raw_dir} (suffix "{suffix}") ---')
+        for seal_index in range(20):
+            name = SEAL_NAMES[seal_index]
+            src_path = find_source(raw_dir, seal_index)
+            print(f'[{seal_index:2d}] {name} <- {os.path.basename(src_path)}')
 
-        src_bytes = open(src_path, 'rb').read()
-        transparent = Image.open(__import__('io').BytesIO(remove(src_bytes, session=REMBG_SESSION))).convert('RGBA')
-        transparent = clean_alpha_noise(transparent)
+            src_bytes = open(src_path, 'rb').read()
+            transparent = Image.open(__import__('io').BytesIO(remove(src_bytes, session=REMBG_SESSION))).convert('RGBA')
+            transparent = clean_alpha_noise(transparent)
 
-        full = alpha_crop(transparent)
-        full_path = os.path.join(OUT_DIR, f'seal-{seal_index}-cutout.webp')
-        full.save(full_path, 'WEBP', quality=88, method=6)
+            full = alpha_crop(transparent)
+            full_path = os.path.join(OUT_DIR, f'seal-{seal_index}-cutout{suffix}.webp')
+            full.save(full_path, 'WEBP', quality=88, method=6)
 
-        bust_bottom = int(full.height * BUST_HEIGHT_RATIO)
-        bust_slice = full.crop((0, 0, full.width, bust_bottom))
-        bust = alpha_crop(bust_slice, pad=4)
-        bust_path = os.path.join(OUT_DIR, f'seal-{seal_index}-bust.webp')
-        bust.save(bust_path, 'WEBP', quality=88, method=6)
+            bust_bottom = int(full.height * BUST_HEIGHT_RATIO)
+            bust_slice = full.crop((0, 0, full.width, bust_bottom))
+            bust = alpha_crop(bust_slice, pad=4)
+            bust_path = os.path.join(OUT_DIR, f'seal-{seal_index}-bust{suffix}.webp')
+            bust.save(bust_path, 'WEBP', quality=88, method=6)
 
-        print(f'      -> {os.path.basename(full_path)} ({full.size}), {os.path.basename(bust_path)} ({bust.size})')
+            print(f'      -> {os.path.basename(full_path)} ({full.size}), {os.path.basename(bust_path)} ({bust.size})')
 
     print('Done.')
 
