@@ -1,8 +1,10 @@
 <script setup lang="ts">
 // Upper-body-only cutout used by KINの関係性's .relcard__figure.
-const props = defineProps<{ sealIndex: number; alt?: string }>()
+import type { Gender } from '~/utils/gender'
+
+const props = withDefaults(defineProps<{ sealIndex: number; alt?: string; gender?: Gender }>(), { gender: 'female' })
 const { bustSrc } = useSealCutouts()
-const src = computed(() => bustSrc(props.sealIndex))
+const src = computed(() => bustSrc(props.sealIndex, props.gender))
 </script>
 
 <template>
