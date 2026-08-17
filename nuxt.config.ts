@@ -29,7 +29,23 @@ export default defineNuxtConfig({
     head: {
       title: 'マヤ暦占い',
       htmlAttrs: { lang: 'ja' },
-      meta: [{ name: 'description', content: '古代マヤ暦「ツォルキン」であなたの本質と運勢を読み解く診断サイト' }]
+      meta: [{ name: 'description', content: '古代マヤ暦「ツォルキン」であなたの本質と運勢を読み解く診断サイト' }],
+      // assets/css/main.css の @import から移動 — <link>ならHTMLのプリロードスキャナが
+      // 即座に見つけるので、CSSのダウンロード完了を待たずにフォント取得を始められる。
+      // preconnectはgstatic(実フォントファイルの配信元)へのTLS確立を前倒しするため。
+      //
+      // ウェイトは400のみ。実測(document.fonts)で500/600/italicおよびCinzel Decorativeは
+      // 一度もloadedにならず、Cinzelはtailwindのfont-decorative経由でどこからも使われて
+      // いなかった。JPフォントはウェイトごとに200超の@font-face(unicode-range分割)が
+      // 生成されるため、使わないウェイトを外すだけでCSSのパース量が1/3になる。
+      link: [
+        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+        {
+          rel: 'stylesheet',
+          href: 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400&family=Shippori+Mincho+B1:wght@400&display=swap'
+        }
+      ]
     }
   },
   runtimeConfig: {

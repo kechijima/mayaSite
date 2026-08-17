@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { DEFAULT_GENDER, GENDER_OPTIONS, type Gender } from '~/utils/gender'
+import { DEFAULT_GENDER, type Gender } from '~/utils/gender'
 import mastheadArchSrc from '~/assets/images/optimized/top-bg.webp'
+import jmbLogoSrc from '~/assets/images/optimized/jmb-logo.webp'
 
 const name = ref('')
 const birthdate = ref('')
@@ -30,16 +31,21 @@ const todayLabel = computed(() => `${today.getFullYear()}年${today.getMonth() +
 
 <template>
   <div class="paper-page min-h-screen">
+    <IconSprite />
+
     <div class="sheet sheet--flush">
       <div class="masthead">
-        <div class="masthead__arch" aria-hidden="true"><img :src="mastheadArchSrc" alt="" /></div>
+        <div class="masthead__arch" aria-hidden="true"><img :src="mastheadArchSrc" alt="" width="1536" height="1024" fetchpriority="high" decoding="async" /></div>
+        <!-- JMB(日本マヤ暦文化協会)認定ロゴ。ページタイトルの上に置く認定バッジなので、
+             見出しの一部ではなく独立した画像として扱う(alt付き)。 -->
+        <img class="masthead__logo" :src="jmbLogoSrc" width="448" height="448" alt="JAPAN MAYA BU CERTIFIED" fetchpriority="high" decoding="async" />
         <span class="masthead__eyebrow">Maya Sacred Calendar</span>
         <h1 class="font-display masthead__title">マヤ暦占い</h1>
         <p class="masthead__sub">古代マヤの神聖暦「ツォルキン」が、あなたの生年月日から本質と運勢を読み解きます。</p>
       </div>
 
       <!-- 診断入力: 1人用のKIN診断(名前+生年月日 → /result) -->
-      <form class="mx-auto mt-8 max-w-[560px] space-y-3.5 rounded-xl p-6" style="border: 1px solid var(--gold-line-soft); background: var(--paper-panel); box-shadow: var(--shadow);" @submit.prevent="submit">
+      <form id="diagnose" class="mx-auto mt-8 max-w-[560px] space-y-3.5 rounded-xl p-6" style="border: 1px solid var(--gold-line-soft); background: var(--paper-panel); box-shadow: var(--shadow);" @submit.prevent="submit">
         <div>
           <label class="mb-1.5 block text-[11px] tracking-[.1em]" style="color: var(--ink-soft);">お名前</label>
           <input
@@ -56,13 +62,7 @@ const todayLabel = computed(() => `${today.getFullYear()}年${today.getMonth() +
         </div>
         <div>
           <label class="mb-1.5 block text-[11px] tracking-[.1em]" style="color: var(--ink-soft);">性別</label>
-          <select
-            v-model="gender"
-            class="w-full rounded px-3.5 py-2.5 text-sm outline-none"
-            style="border: 1px solid var(--gold-line); background: var(--paper); color: var(--ink);"
-          >
-            <option v-for="opt in GENDER_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-          </select>
+          <GenderRadio v-model="gender" />
         </div>
         <button
           type="submit"
@@ -77,31 +77,40 @@ const todayLabel = computed(() => `${today.getFullYear()}年${today.getMonth() +
         まずは無料診断で、あなたの太陽の紋章とウェイブスペルをご覧いただけます。
       </p>
 
-      <!-- 今日のアーキタイプ: 現在の日付のKIN/紋章/音/ウェイブスペル。result.vueの最上部エリアと
-           同じ kinhero レイアウトを、背景画像(masthead__arch)なしで表示する。表示のみ・導線なし。 -->
-      <section class="section">
+      <!-- 今日のアーキタイプ: 現在の日付のKIN/紋章/音/ウェイブスペル。診断結果ページ(/result)の
+           最上部と同じ並び — 数字カード + 「太陽の紋章 × ウェイブスペル」。表示のみ・導線なし。
+           日付は SectionDivider の eyebrow に出しているので、カードは KIN と銀河の音の2枚。 -->
+      <section id="today" class="section">
         <SectionDivider label="今日のアーキタイプ" :eyebrow="todayLabel" />
-        <div class="kinhero">
-          <div class="kinhero__portrait">
-            <div class="kinhero__frame"><MayaPortraitFrame :seal-index="todayResult.sealIndex" :gender="todayResult.gender" /></div>
-            <span class="kinhero__name-plate">{{ todayResult.sun.seal.name }}</span>
+
+        <div class="herostats herostats--pair">
+          <div class="numcell">
+            <span class="numcell__label">KIN</span>
+            <span class="herostats__num">{{ todayResult.kin }}</span>
           </div>
-          <div class="kinhero__center">
-            <KinBadge :kin="todayResult.kin" />
-            <div class="kinhero__tone-spacer">
-              <GoldMedal :value="todayResult.toneIndex + 1" diamonds />
-            </div>
-            <span class="kinhero__name-plate">{{ todayResult.tone.info.name }}</span>
+          <div class="numcell">
+            <span class="numcell__label">銀河の音</span>
+            <span class="herostats__num">{{ todayResult.toneIndex + 1 }}</span>
           </div>
-          <div class="kinhero__portrait">
-            <div class="kinhero__frame"><MayaPortraitFrame :seal-index="todayResult.wavespellSealIndex" :gender="todayResult.gender" /></div>
-            <span class="kinhero__name-plate">{{ todayResult.wavespell.seal.name }}</span>
+        </div>
+
+        <div class="kinduo">
+          <div class="kinduo__art kinduo__art--l"><MayaPortraitFrame :seal-index="todayResult.sealIndex" :gender="todayResult.gender" /></div>
+          <div class="kinduo__art kinduo__art--r"><MayaPortraitFrame :seal-index="todayResult.wavespellSealIndex" :gender="todayResult.gender" /></div>
+          <div class="kinduo__cap kinduo__cap--l">
+            <span class="kinduo__role">太陽の紋章</span>
+            <span class="font-display kinduo__seal">{{ todayResult.sun.seal.name }}</span>
+          </div>
+          <span class="kinduo__x" aria-hidden="true"><svg><use href="#i-cross" /></svg></span>
+          <div class="kinduo__cap kinduo__cap--r">
+            <span class="kinduo__role">ウェイブスペル</span>
+            <span class="font-display kinduo__seal">{{ todayResult.wavespell.seal.name }}</span>
           </div>
         </div>
       </section>
 
       <!-- 相性診断への誘導: 無料機能、ゲート無し -->
-      <section class="section">
+      <section id="compatibility" class="section">
         <SectionDivider label="相性診断" eyebrow="大切な人とのつながりを読み解く" />
         <!-- スマホではディバイダーの縦レール(左右のダイヤ飾り)がコンテンツ幅内に入り込むため、
              カードを左右に寄せてレールの内側に収める。sm以上はレールが.sheetの余白外に逃げるので
@@ -120,7 +129,7 @@ const todayLabel = computed(() => `${today.getFullYear()}年${today.getMonth() +
       </section>
 
       <!-- ニュース: 現状はSNSアイコンのみ -->
-      <section class="section">
+      <section id="news" class="section">
         <SectionDivider label="ニュース" eyebrow="News &amp; Social" />
         <div class="mx-auto flex max-w-[560px] items-center justify-center gap-4">
           <a href="#" aria-label="X (Twitter)" class="sns-icon" @click.prevent>

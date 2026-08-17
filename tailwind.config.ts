@@ -19,8 +19,9 @@ export default <Partial<Config>>{
       },
       fontFamily: {
         // Cormorant Garamond + Shippori Mincho B1, mirroring mayadan.jp's serif pairing
+        // font-decorative (Cinzel Decorative) は2026-08-16に削除 — どこからも使われて
+        // おらず、Webフォントを1ファミリ丸ごと無駄に読み込んでいたため。
         display: ['"Cormorant Garamond"', '"Shippori Mincho B1"', '"Yu Mincho"', 'serif'],
-        decorative: ['"Cinzel Decorative"', 'cursive'],
         body: ['"Shippori Mincho B1"', '"Hiragino Mincho ProN"', '"Yu Mincho"', 'serif']
       },
       colors: {

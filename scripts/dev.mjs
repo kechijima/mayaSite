@@ -135,7 +135,7 @@ async function main() {
   }
 
   console.log('▸ seeding diagnosisContent (skips docs that already exist/already seeded)...')
-  for (const scriptName of ['seed:characters:emulator', 'seed:tones:emulator', 'seed:kins:emulator']) {
+  for (const scriptName of ['seed:characters:emulator', 'seed:tones:emulator', 'seed:kins:emulator', 'seed:celebrities:emulator']) {
     await new Promise((resolve, reject) => {
       seed = runScript(scriptName)
       seed.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`${scriptName} exited with code ${code}`))))

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Shared circular gold-ring medal badge (mockup's `.tone-medal` family), reused for: the hero's
 // 銀河の音 number, PersonProfileCard's tone row, compatibility's KIN-number circles, and 運命数字's
-// number cells. The hero's KIN number uses the separate pill-shaped KinBadge.vue instead — visually
+// number cells. KinBadge.vue(ピル型のKIN番号)は2026-08-17時点でどこからも使われていない — visually
 // different (oval, with a "KIN" label), not a variant of this one.
 withDefaults(
   defineProps<{ value: number | string; size?: number; diamonds?: boolean; numFontSize?: number }>(),

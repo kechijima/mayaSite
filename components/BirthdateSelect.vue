@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { DEFAULT_BIRTHDATE_YEAR, DEFAULT_BIRTHDATE_MONTH, DEFAULT_BIRTHDATE_DAY } from '~/utils/birthdate'
+
 // Renders 生年月日 as three native <select>s (年/月/日) instead of <input type="date"> —
 // native selects render as a drum-roll/wheel picker on iOS and a scrollable list on Android,
 // which is far easier to operate than a native date-input's calendar widget on mobile.
@@ -22,9 +24,11 @@ const optionClass = computed(() => (props.theme === 'paper' ? '' : 'bg-ink-950')
 
 const MIN_YEAR = 1900
 const MAX_YEAR = 2050
-const DEFAULT_YEAR = '2000'
-const DEFAULT_MONTH = '1'
-const DEFAULT_DAY = '1'
+// 既定値は utils/birthdate.ts と共有 — pages/compatibility.vue が「既定値のままか＝未入力か」を
+// 判定するのに同じ値を必要とするため、こちらで直書きしない。
+const DEFAULT_YEAR = DEFAULT_BIRTHDATE_YEAR
+const DEFAULT_MONTH = DEFAULT_BIRTHDATE_MONTH
+const DEFAULT_DAY = DEFAULT_BIRTHDATE_DAY
 
 function parse(v: string): [string, string, string] {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || '')
@@ -34,17 +38,18 @@ function parse(v: string): [string, string, string] {
 }
 
 const [initYear, initMonth, initDay] = parse(props.modelValue)
-// Default to 2000/01/01 rather than a blank placeholder when no value is passed in — avoids
+// Default to 1985/01/01 rather than a blank placeholder when no value is passed in — avoids
 // making every visitor scroll a drum-roll picker from empty, and the immediate watcher below
 // emits this default back to the parent right away so v-model never silently disagrees with
-// what's shown on screen.
+// what's shown on screen. 1985 is roughly the middle of the expected visitor age range, so
+// it's the shortest average scroll in either direction.
 const year = ref(initYear || DEFAULT_YEAR)
 const month = ref(initMonth || DEFAULT_MONTH)
 const day = ref(initDay || DEFAULT_DAY)
 
-// Newest-first — matches the common Japanese birthdate-picker convention, and minimizes
-// scrolling for the common case since most visitors were born in recent decades, not 1900.
-const years = Array.from({ length: MAX_YEAR - MIN_YEAR + 1 }, (_, i) => String(MAX_YEAR - i))
+// Oldest-first (1900 → 2050): scrolling up goes into the past, down goes into the future,
+// matching 月/日 which also ascend downward. 2026-08-16以前は新しい年が上の降順だった。
+const years = Array.from({ length: MAX_YEAR - MIN_YEAR + 1 }, (_, i) => String(MIN_YEAR + i))
 const months = Array.from({ length: 12 }, (_, i) => String(i + 1))
 
 const days = computed(() => {

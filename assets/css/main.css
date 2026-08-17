@@ -1,4 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Cinzel+Decorative:wght@700;900&family=Shippori+Mincho+B1:wght@400;500;600&display=swap');
+/* Web font は CSS @import ではなく nuxt.config.ts の app.head の <link> で読み込む。
+   @import はこのCSSがダウンロード・パースされて初めて発見されるため、フォント取得が
+   1往復ぶん遅れる(= 本文が出てから遅れて字形が入れ替わる)。 */
 
 @tailwind base;
 @tailwind components;

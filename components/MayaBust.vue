@@ -8,5 +8,5 @@ const src = computed(() => bustSrc(props.sealIndex, props.gender))
 </script>
 
 <template>
-  <img :src="src" :alt="alt ?? ''" />
+  <img :src="src" :alt="alt ?? ''" decoding="async" />
 </template>

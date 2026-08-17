@@ -9,7 +9,7 @@ withDefaults(defineProps<{ label: string; eyebrow?: string; numeric?: boolean }>
 </script>
 
 <template>
-  <div class="archframe" aria-hidden="true"><img :src="dividerSrc" alt="" /></div>
+  <div class="archframe" aria-hidden="true"><img :src="dividerSrc" alt="" width="1536" height="1024" decoding="async" /></div>
   <div v-if="eyebrow" class="section__eyebrow">{{ eyebrow }}</div>
   <h2 class="section__title" :class="numeric ? '' : 'font-display'" :style="numeric ? { fontFamily: '\'Shippori Mincho\', serif' } : {}">{{ label }}</h2>
 </template>

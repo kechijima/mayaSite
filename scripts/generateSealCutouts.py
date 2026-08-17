@@ -59,6 +59,20 @@ SEAL_NAMES = [
 BUST_HEIGHT_RATIO = 0.42
 PAD = 6
 
+# 全身カットアウトの出力上限幅。実測した最大の表示サイズは
+#   PC  : .dossier__portrait 320 CSS px × DPR2 = 640px
+#   スマホ: .dossier__portrait 169 CSS px × DPR3 = 507px
+# なので640pxあれば足りる。元は900px前後で書き出していて、スマホでは表示に必要な画素数の
+# 3倍以上を落としていた(= 通信量とデコード時間の無駄)。bustは既に必要サイズ(スマホ
+# 264 CSS px × DPR3 = 792px)とほぼ一致しているので縮小しない。
+MAX_CUTOUT_WIDTH = 640
+
+
+def limit_width(im: Image.Image, max_w: int) -> Image.Image:
+    if im.width <= max_w:
+        return im
+    return im.resize((max_w, round(im.height * max_w / im.width)), Image.LANCZOS)
+
 # After trimming, each character's bust has a different aspect ratio (the top-42% slice re-cropped
 # to the character's own bounds), so at a fixed render width their heights — and thus on-screen
 # size — differed per archetype. Normalize every bust to a single target aspect ratio, anchored at
@@ -120,8 +134,9 @@ def main():
 
             full = alpha_crop(transparent)
             full_path = os.path.join(OUT_DIR, f'seal-{seal_index}-cutout{suffix}.webp')
-            full.save(full_path, 'WEBP', quality=88, method=6)
+            limit_width(full, MAX_CUTOUT_WIDTH).save(full_path, 'WEBP', quality=88, method=6)
 
+            # bustは縮小前の full から切り出す(bust自体は縮小対象外 — 上のMAX_CUTOUT_WIDTH参照)。
             bust_bottom = int(full.height * BUST_HEIGHT_RATIO)
             bust_slice = full.crop((0, 0, full.width, bust_bottom))
             bust = normalize_bust_ar(alpha_crop(bust_slice, pad=4))

@@ -19,14 +19,14 @@
   --gold-deep: #7c5a1e;
   --gold-line: rgba(169, 124, 47, .38);
   --gold-line-soft: rgba(169, 124, 47, .2);
-  --mosaic-a: #e7dcbf;
-  --mosaic-b: #d9cba3;
   --shadow: 0 18px 40px -20px rgba(60, 42, 10, .35);
   --seal-red: #be402d;
   --seal-white: #8a8368;
   --seal-blue: #1c517f;
   --seal-yellow: #c99a1f;
+  --header-h: 56px;
 }
+@media (min-width: 768px) { :root { --header-h: 64px; } }
 :root[data-paper="white"] {
   --paper: #fbfaf6;
   --paper-panel: #ffffff;
@@ -38,8 +38,6 @@
   --gold-deep: #6e4f16;
   --gold-line: rgba(161, 117, 31, .32);
   --gold-line-soft: rgba(161, 117, 31, .16);
-  --mosaic-a: #efece2;
-  --mosaic-b: #e2ddca;
   --shadow: 0 18px 40px -22px rgba(40, 30, 10, .22);
 }
 
@@ -48,7 +46,19 @@
   color: var(--ink);
   font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic Medium", "Yu Gothic", "Noto Sans JP", sans-serif;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+  /* 装飾画像(masthead__arch / archframe)がわざと枠外にはみ出すのを隠すための指定。
+     縦も必ず切ること — 最終セクションのarchframeは絶対配置＋aspect-ratioでセクション本体より
+     背が高く、切らないと .paper-page の下端(=背景の下端)を越えて描画され、その下に地の白が
+     見えてしまう。以前のoverflow-x:hiddenは「片軸hiddenならもう片軸はautoになる」規則で
+     縦も結果的に切っていたので同じ見た目だった。
+     clipはスクロールコンテナを作らないぶんiOSのスクロールに優しいので、対応ブラウザでは
+     そちらを使う(未対応なら上のhiddenにフォールバック)。 */
+  overflow: hidden;
+  overflow: clip;
+  /* 最下部の余白。上のoverflowで下端をぴったり切っているぶん、ここが狭いと最終セクションの
+     装飾枠(archframe)が唐突に断ち切られて見える。/result と /compatibility が個別に付けていた
+     Tailwindのpb-24(96px)をここに集約し、3ページとも同じだけ空くようにした。 */
+  padding-bottom: clamp(120px, 16vw, 200px);
 }
 
 .sheet { position: relative; padding: 34px 20px 56px; max-width: 1180px; margin: 0 auto; }
@@ -76,25 +86,72 @@
 @media (min-width: 1000px) { .masthead__arch { width: min(calc(100% + 152px), 1180px); } }
 @media (min-width: 1300px) { .masthead__arch { width: min(calc(100% + 184px), 1180px); } }
 .masthead__arch img { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+/* ファーストビューを下から閉じる装飾。masthead__arch と同じ画像・同じ幅の出し方で、
+   上下反転(scaleY)して置く。幅の式を揃えているのは、上のアーチと左右の飾り位置を
+   ぴったり合わせるため — ズレると額縁に見えない。 */
+/* margin-top のマイナスは、画像の上寄り(反転後は上側が空白)のぶんを詰めて、閉じの装飾が
+   ファーストビュー内に収まるようにするため。%指定なのは画面幅に比例させるため — 固定pxだと
+   PCでアーチだけ巨大になり、位置が合わなくなる(%のmarginは親要素の"幅"を基準にする)。 */
+/* 中央寄せは margin:auto ではなく left:50% + translateX(-50%) で行う。この要素は親より幅が
+   広い(100% + 余白ぶん)ため、その状態の auto マージンは中央寄せにならず左端に寄ってしまう
+   (CSSの過剰制約の解決規則で margin-right 側が無視されるため)。上のアーチ(.masthead__arch)が
+   同じ理由で left/translateX を使っているのと揃えている。 */
+.heroclose { position: relative; left: 50%; transform: translateX(-50%); width: min(calc(100% + 40px), 1180px); margin: -33% 0 0; aspect-ratio: 1536 / 1024; pointer-events: none; z-index: 0; }
+@media (min-width: 640px) { .heroclose { width: min(calc(100% + 80px), 1180px); } }
+@media (min-width: 1000px) { .heroclose { width: min(calc(100% + 152px), 1180px); } }
+@media (min-width: 1300px) { .heroclose { width: min(calc(100% + 184px), 1180px); } }
+.heroclose img { width: 100%; height: 100%; object-fit: contain; display: block; transform: scaleY(-1); }
+/* JMB認定ロゴ (pages/index.vue)。width/height属性は512x512(=正方形)を宣言してあるので、
+   読み込み前から正しい高さが確保され、遅れて表示されてもタイトルが動かない。 */
+.masthead__logo { position: relative; z-index: 1; display: block; width: clamp(104px, 26vw, 152px); height: auto; margin: 0 auto 14px; }
 .masthead__eyebrow { position: relative; z-index: 1; font-size: 11.5px; letter-spacing: .28em; color: var(--gold-deep); margin-bottom: 6px; }
 .masthead__title { position: relative; z-index: 1; font-size: clamp(26px, 5vw, 32px); letter-spacing: .14em; margin: 0 0 6px; text-wrap: balance; }
 .masthead__sub { position: relative; z-index: 1; font-size: 13px; color: var(--ink-soft); letter-spacing: .02em; }
+/* アーチ装飾を持たないページ(相性診断 / マイページ / お申し込み)用の見出し。
+   これらのページにはヘッダーが無い(layouts/default.vue 参照)ので、ヘッダー高さは足さない。 */
+.masthead--plain { padding-top: 48px; }
 
-/* ---------------- KIN hero: full-body cutouts flanking the KIN/tone medals ---------------- */
-.kinhero { margin-top: 24px; display: flex; align-items: stretch; justify-content: center; gap: 28px; }
-.kinhero__portrait { flex: none; width: 132px; display: flex; flex-direction: column; align-items: center; }
-/* overflow:visible + width:auto (was 100%/hidden) — always scales to the frame's full height and
-   lets width follow naturally, so a proportionally wide character (e.g. a flared cape) overflows
-   the frame's sides instead of shrinking to fit and looking short next to a narrower sibling.
-   min-height:0 overrides the flex item's default auto min-size, which otherwise floors this at
-   the child img's own unshrunk natural height (now that max-width:none lets it be huge) instead
-   of the aspect-ratio-computed size. */
-.kinhero__frame { display: block; width: 100%; aspect-ratio: 132 / 250; overflow: visible; min-height: 0; }
-.kinhero__frame img { display: block; width: auto; max-width: none; height: 100%; margin: 0 auto; object-fit: contain; object-position: top center; }
-.kinhero__name-plate { display: block; margin-top: 9px; width: fit-content; max-width: 100%; padding: 5px 13px; border-radius: 6px; background: radial-gradient(120% 170% at 50% 15%, var(--paper-panel) 0%, var(--paper-panel-2) 100%); border: 1px solid var(--gold); color: var(--gold-deep); font-size: 12.5px; letter-spacing: .03em; white-space: nowrap; box-shadow: var(--shadow); text-align: center; }
-.kinhero__center { flex: none; display: flex; flex-direction: column; align-items: center; }
-.kinhero__tone-spacer { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 16px; }
-@media (min-width: 1000px) { .kinhero__name-plate { font-size: 14px; padding: 6px 16px; } }
+/* ページ内リンク(トップページのメニュー)の着地位置。固定ヘッダーのぶん下げないと
+   セクションの先頭がヘッダーに隠れる。 */
+:where(#diagnose, #today, #compatibility, #news) { scroll-margin-top: calc(var(--header-h) + 14px); }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+/* ---------------- /result 最上部: 生年月日 / KIN / 銀河の音 ---------------- */
+.herostats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-width: 560px; margin: 0 auto 8px; text-align: center; }
+.herostats__date {
+  /* 「1974年1月8日」が1行に収まる大きさ。漢字3文字ぶんだけ全角なので、桁数が増えても
+     カード幅(最小でおよそ90px)を超えない範囲に抑えている。 */
+  font-family: "Shippori Mincho", serif; font-variant-numeric: tabular-nums;
+  font-size: clamp(12px, 3.5vw, 15px); color: var(--ink); letter-spacing: -.01em; white-space: nowrap;
+}
+/* 「1974年1月8日」を1行に収めるため、この行のカードだけ左右paddingを詰める。 */
+.herostats .numcell { padding-left: 5px; padding-right: 5px; }
+.herostats__num { font-family: "Shippori Mincho", serif; font-variant-numeric: tabular-nums; font-size: clamp(26px, 7.5vw, 34px); line-height: 1; color: var(--gold-deep); }
+/* トップページの「今日のアーキタイプ」用。日付はセクション見出しに出ているので2枚。 */
+.herostats--pair { grid-template-columns: repeat(2, 1fr); max-width: 380px; }
+@media (min-width: 640px) { .herostats { gap: 16px; } }
+
+/* ---------------- /result 最上部: 太陽の紋章 × ウェイブスペル ---------------- */
+/* トップページの「今日のアーキタイプ」(.kinhero)とは別レイアウト — あちらは中央にKIN/音の
+   メダルが入る3カラムのまま。こちらはKIN/音を上の .herostats に移したので2体だけを大きく
+   見せる。行を明示的に分けているのは、紋章名が2行に折り返しても(白い世界の橋渡し など)
+   左右のキャラの高さがズレないようにするため。 */
+.kinduo { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); column-gap: 6px; row-gap: 14px; max-width: 500px; margin: 22px auto 0; }
+.kinduo__art { display: block; width: 100%; min-width: 0; aspect-ratio: 132 / 250; overflow: visible; min-height: 0; }
+/* width:auto + max-width:none は .kinhero__frame と同じ狙い — 横に広いポーズの
+   キャラが枠に合わせて縮まず、はみ出して等身が揃う。 */
+.kinduo__art img { display: block; width: auto; max-width: none; height: 100%; margin: 0 auto; object-fit: contain; object-position: top center; }
+.kinduo__art--l { grid-column: 1; grid-row: 1; }
+.kinduo__art--r { grid-column: 3; grid-row: 1; }
+.kinduo__cap { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; text-align: center; }
+.kinduo__cap--l { grid-column: 1; grid-row: 2; }
+.kinduo__cap--r { grid-column: 3; grid-row: 2; }
+.kinduo__role { font-size: 11.5px; letter-spacing: .12em; color: var(--ink-faint); }
+.kinduo__seal { font-size: clamp(19px, 5.4vw, 26px); line-height: 1.3; letter-spacing: .05em; color: var(--gold-deep); }
+/* 2行目(紋章名の行)の中央に置く — 画像の高さに影響させないため grid-row:2 のみ。 */
+.kinduo__x { grid-column: 2; grid-row: 2; align-self: center; display: flex; align-items: center; justify-content: center; color: var(--gold); }
+.kinduo__x svg { width: clamp(18px, 5vw, 24px); height: clamp(18px, 5vw, 24px); }
 
 /* ---------------- gold medallions (KIN number / tone number / relation numbers) ---------------- */
 .kin-medal { position: relative; width: 200px; height: 108px; margin: 4px auto 14px; display: flex; align-items: center; justify-content: center; }
@@ -145,7 +202,11 @@
 .archframe img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: top center; }
 .section__eyebrow { position: relative; z-index: 1; font-size: 11px; letter-spacing: .22em; color: var(--gold-deep); text-align: center; margin-bottom: 4px; }
 .section__title { position: relative; z-index: 1; font-size: 19px; text-align: center; letter-spacing: .05em; margin: 0 0 26px; }
-.kinletter { max-width: 640px; margin: 0 auto; text-align: center; font-size: 14.5px; line-height: 1.95; color: var(--ink-soft); white-space: pre-line; }
+/* 本文は左寄せ(ブロック自体は中央寄せのまま)。125文字で切って残りを有料エリアに送るので、
+   中央寄せだと切れ目のラギッドさが目立つ、という理由もある — pages/result.vue参照。 */
+.kinletter { max-width: 640px; margin: 0 auto; text-align: left; font-size: 14.5px; line-height: 1.95; color: var(--ink-soft); white-space: pre-line; }
+/* 無料分の直後から続けてモザイクが始まるように、.section > .gated の標準余白は使わない。 */
+.section > .gated.kinletter-gate { max-width: 640px; margin: 8px auto 0; }
 @media (max-width: 600px) { .section { padding-top: 100px; } }
 
 /* 紋章の色属性(赤/白/青/黄)をアイコンに反映 — utils/mayaData.tsのsealColor()と同じ4系統。
@@ -200,9 +261,9 @@
   .dossier__badge { font-size: 9.5px; padding: 2px 8.5px; }
   .dossier__catch { font-size: 12.5px; line-height: 1.75; margin: 5px 0 16px; }
   .dossier .block { margin-top: 17px; }
-  .dossier .block__head { gap: 6.5px; margin-bottom: 7px; }
-  .dossier .block__head svg { width: 12.5px; height: 12.5px; }
-  .dossier .block__head h3 { font-size: 11.5px; }
+  .dossier .block__head { gap: 7px; margin-bottom: 8px; }
+  .dossier .block__head svg { width: 14px; height: 14px; }
+  .dossier .block__head h3 { font-size: 13px; }
   .dossier .block p { font-size: 13px; line-height: 1.8; margin-bottom: 9px; }
   .dossier .checklist { gap: 5.5px; }
   .dossier .checklist li { font-size: 13px; line-height: 1.65; gap: 6.5px; }
@@ -211,11 +272,26 @@
 
 /* ---------------- prose blocks (shared by every section, incl. the archetype area) ---------------- */
 .block { margin-top: 26px; max-width: 720px; margin-left: auto; margin-right: auto; }
-.block__head { display: flex; align-items: center; gap: 8px; margin-bottom: 11px; }
-.block__head svg { width: 15px; height: 15px; color: var(--gold); flex: none; }
-.block__head h3 { margin: 0; font-size: 12.5px; font-weight: 700; letter-spacing: .1em; color: var(--gold-deep); }
+.block__head { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+.block__head svg { width: 17px; height: 17px; color: var(--gold); flex: none; }
+.block__head h3 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: .1em; color: var(--gold-deep); }
 .block p { margin: 0 0 12px; font-size: 14px; line-height: 1.95; white-space: pre-line; }
 .block p:last-child { margin-bottom: 0; }
+
+/* セクション直下のブロック(総合解説 / キャリアパス / 実践的なヒント …)は、項目ごとに
+   区切り線+広めの余白を入れて読みやすくする。.dossier や .gated の中のブロックは
+   ひとかたまりの塊として見せたいので対象外(子孫セレクタではなく直下セレクタなのはそのため)。 */
+/* ラベル無しブロック(cautionDetailPremium)は直前ブロックの本文の続きなので、この区切りの
+   対象から外す — セレクタ側で除外しているのは、単に後から margin/padding を打ち消す書き方
+   だと、下のスマホ用上書きにも同じ打ち消しを書き足す必要があり(実際それを忘れていて、
+   スマホの「注意すべき傾向」だけ続きの段落が52px下に離れていた)、追加のたびに漏れるため。 */
+.section > .block:not(.block--cont) { margin-top: 36px; padding-top: 32px; border-top: 1px solid var(--gold-line-soft); }
+.block--cont { margin-top: 10px; }
+@media (max-width: 600px) {
+  .section > .block:not(.block--cont) { margin-top: 28px; padding-top: 24px; }
+  .block__head svg { width: 15.5px; height: 15.5px; }
+  .block__head h3 { font-size: 13.5px; }
+}
 
 /* gap is deliberately much less than the 12px between-paragraph margin above — that value made
    sense for spacing between two block-level chunks, but here it's the row-to-row gap *within*
@@ -230,18 +306,58 @@
 @media (max-width: 600px) { .twocol { grid-template-columns: 1fr; gap: 26px; } }
 
 /* ---------------- gated (LockedVeil) premium-content mosaic ---------------- */
-.gated { position: relative; }
-.gated__mosaic {
-  border-radius: 4px; overflow: hidden; border: 1px solid var(--gold-line-soft);
-  background-image: linear-gradient(45deg, var(--mosaic-a) 25%, transparent 25%), linear-gradient(-45deg, var(--mosaic-a) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, var(--mosaic-a) 75%), linear-gradient(-45deg, transparent 75%, var(--mosaic-a) 75%);
-  background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0; background-color: var(--mosaic-b);
-  min-height: 96px; display: flex; align-items: center; justify-content: center;
+/* 以前はモザイク模様の箱で中身を完全に差し替えていたが、今は本文をそのままブラーで潰した
+   ものを背景として見せる(= モザイク)。「まだこれだけ続きがある」という分量が伝わるのが
+   狙いで、参考サイトが blurred-text 画像を敷いているのと同じ考え方。 */
+.gated { position: relative; min-height: 210px; }
+/* 有料エリアの先頭は「注意すべき傾向」本文の続き(ラベル無しブロック)なので、文章がそこで
+   途切れて続くだけ。段落の切れ目ぶん(= 解除後に .block--cont が空ける量)だけ空けて、
+   無料部分と地続きに見せる。20pxあった頃はスマホで一段落ぶん以上あいて見えていた。
+   ブラーで先頭行が薄くなるぶん実際より広く見えるので、解除後よりわずかに詰めている。 */
+.section > .gated { margin-top: 8px; }
+.gated__reveal {
+  /* 高さを抑えて下端だけフェードアウト。overflow:hidden で切るぶん上下左右に余白を持たせて
+     おかないと、ブラーが箱の端で断ち切られて不自然な直線が出る。 */
+  max-height: 310px; overflow: hidden; padding: 12px 18px; margin: -12px -18px;
+  filter: blur(5px) saturate(.6); opacity: .62;
+  user-select: none; pointer-events: none;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 84%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 84%, transparent 100%);
 }
-.gated__lock { display: flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 999px; background: var(--paper); border: 1px solid var(--gold-line); box-shadow: var(--shadow); font-size: 12px; font-weight: 700; color: var(--gold-deep); letter-spacing: .03em; }
-.gated__lock svg { width: 13px; height: 13px; flex: none; }
+.gated__reveal > .block:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+/* ただし先頭が見出し付きブロックのとき(cautionDetailPremiumが無いキャラ)は「続き」ではなく
+   独立した項目なので、通常のブロック間隔ぶん空ける — 上の詰めた余白のままだと窮屈になる。 */
+.gated__reveal > .block:not(.block--cont):first-child { margin-top: 24px; }
 .gated__reveal p { margin: 0 0 12px; font-size: 14px; line-height: 1.95; white-space: pre-line; }
 .gated__reveal p:last-child { margin-bottom: 0; }
 .gated__reveal .checklist { margin-bottom: 12px; }
+/* 細かいグリッド(ピクセル感)+ 下に向かって濃くなる紙色のスクリム。 */
+.gated__mosaic {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 0 16px;
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--paper) 50%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--paper) 50%, transparent) 1px, transparent 1px),
+    linear-gradient(180deg, color-mix(in srgb, var(--paper) 14%, transparent) 0%, color-mix(in srgb, var(--paper) 32%, transparent) 55%, color-mix(in srgb, var(--paper) 62%, transparent) 100%);
+  background-size: 9px 9px, 9px 9px, 100% 100%;
+}
+.gated__cta {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  width: min(100%, 360px); padding: 17px 26px; border-radius: 12px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 78%, #fff) 0%, var(--gold) 44%, var(--gold-deep) 100%);
+  border: 1px solid var(--gold-deep);
+  box-shadow: 0 14px 28px -14px rgba(60, 42, 10, .65), inset 0 1px 0 rgba(255, 255, 255, .42);
+  color: #fffaf0; font-size: 17px; font-weight: 700; letter-spacing: .1em;
+  text-decoration: none; white-space: nowrap;
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+.gated__cta svg { width: 17px; height: 17px; flex: none; }
+.gated__cta:hover { transform: translateY(-1px); filter: brightness(1.06); box-shadow: 0 18px 32px -14px rgba(60, 42, 10, .7), inset 0 1px 0 rgba(255, 255, 255, .42); }
+.gated__cta:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: 3px; }
+@media (max-width: 600px) {
+  .gated { min-height: 176px; }
+  .gated__reveal { max-height: 250px; }
+  .gated__cta { padding: 15px 20px; font-size: 15.5px; }
+}
 
 /* ---------------- 銀河の音 tonecard ---------------- */
 /* Mobile: single stacked column (medal → eyebrow/name → title/desc). From 560px up ("PC"),
@@ -266,6 +382,10 @@
 @media (min-width: 560px) { .celeblist { grid-template-columns: 1fr 1fr; } }
 .celeblist li { font-size: 13px; line-height: 1.7; }
 .celeblist li span { color: var(--ink-faint); }
+/* KIN別の有名人は「分野｜生年月日」を添えるため1行に収まらない。名前を1行目、補足を2行目に
+   分けて、名前の並びが読み取りやすいようにする(銀河の音側の1行表示はそのまま)。 */
+.celeblist--kin li { display: flex; flex-direction: column; gap: 1px; }
+.celeblist--kin li span { font-size: 11.5px; }
 
 /* ---------------- small ring-cropped portrait rows (relations, compatibility profile cards) ---------------- */
 .medalrow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; max-width: 640px; margin-left: auto; margin-right: auto; }
@@ -279,21 +399,24 @@
 /* ---------------- KINの関係性 relation cards ---------------- */
 .relwrap { display: flex; flex-direction: column; gap: 56px; max-width: 660px; margin: 0 auto; }
 .relcard { position: relative; display: flex; align-items: flex-end; gap: 22px; border-radius: 16px; padding: 0 26px 0 0; text-align: left; box-shadow: var(--shadow); background: radial-gradient(140% 170% at 18% 8%, var(--paper-panel) 0%, var(--paper-panel-2) 100%); overflow: visible; }
-.relcard::before { content: ""; position: absolute; inset: 0; border-radius: 16px; background: radial-gradient(120% 140% at 0% 0%, var(--rel-glow) 0%, transparent 68%); pointer-events: none; }
+/* 2層構成: 左上から差す紋章カラーのグロー(--rel-glow)と、カード全体にうっすら乗せる同色の
+   ベタ(--rel-wash)。以前はグロー1層だけで、しかも薄すぎて紋章の色属性がほとんど読み取れ
+   なかったため、両方を濃いめに振り直している。 */
+.relcard::before { content: ""; position: absolute; inset: 0; border-radius: 16px; background: radial-gradient(120% 140% at 0% 0%, var(--rel-glow) 0%, transparent 82%), linear-gradient(var(--rel-wash), var(--rel-wash)); pointer-events: none; }
 .relcard::after { content: ""; position: absolute; inset: 0; border-radius: 16px; border: 1px solid var(--rel-line); pointer-events: none; }
-.relcard--red { --rel-glow: rgba(190, 64, 45, .16); --rel-line: rgba(190, 64, 45, .38); }
+.relcard--red { --rel-glow: rgba(190, 64, 45, .32); --rel-wash: rgba(190, 64, 45, .1); --rel-line: rgba(190, 64, 45, .5); }
 .relcard--red .relcard__label { color: var(--seal-red); }
 .relcard--red .relcard__cta-icon { color: var(--seal-red); }
-.relcard--white { --rel-glow: rgba(138, 131, 104, .18); --rel-line: rgba(138, 131, 104, .4); }
+.relcard--white { --rel-glow: rgba(138, 131, 104, .34); --rel-wash: rgba(138, 131, 104, .12); --rel-line: rgba(138, 131, 104, .52); }
 .relcard--white .relcard__label { color: var(--seal-white); }
 .relcard--white .relcard__cta-icon { color: var(--seal-white); }
-.relcard--blue { --rel-glow: rgba(28, 81, 127, .16); --rel-line: rgba(28, 81, 127, .38); }
+.relcard--blue { --rel-glow: rgba(28, 81, 127, .3); --rel-wash: rgba(28, 81, 127, .1); --rel-line: rgba(28, 81, 127, .5); }
 .relcard--blue .relcard__label { color: var(--seal-blue); }
 .relcard--blue .relcard__cta-icon { color: var(--seal-blue); }
 /* --rel-line uses a darker gold than --seal-yellow here (not the same value as the label/icon
    below) — the lighter seal-yellow tone is close enough in hue/luminance to the beige parchment
    panel that the card border became nearly invisible against it, unlike red/white/blue. */
-.relcard--yellow { --rel-glow: rgba(201, 154, 31, .18); --rel-line: rgba(154, 111, 16, .55); }
+.relcard--yellow { --rel-glow: rgba(201, 154, 31, .34); --rel-wash: rgba(186, 140, 24, .12); --rel-line: rgba(154, 111, 16, .62); }
 .relcard--yellow .relcard__label { color: var(--seal-yellow); }
 .relcard--yellow .relcard__cta-icon { color: var(--seal-yellow); }
 .relcard__figure { position: relative; z-index: 2; flex: none; align-self: flex-end; width: 340px; margin: -46px 0 0 -34px; }
@@ -321,13 +444,159 @@
 }
 
 /* ---------------- 運命数字 / KIN number medallions ---------------- */
-.numrow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; max-width: 720px; margin-left: auto; margin-right: auto; }
+/* 1行目=同じKIN(=本人のKIN)、2行目=前のKIN/次のKIN、3行目=鏡の向こうの自分KIN/
+   絶対反対KIN の3行組み。同じKINは下2枚ぶんの横幅いっぱい(カード2枚+隙間)に広げる。 */
+.numrow { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; max-width: 440px; margin-left: auto; margin-right: auto; }
+.numrow > :first-child { grid-column: 1 / -1; }
 @media (max-width: 560px) {
   /* Inset from the section divider above it, same treatment as .relcard. */
-  .numrow { grid-template-columns: repeat(2, 1fr); gap: 16px; margin-left: 10px; margin-right: 10px; width: auto; }
+  .numrow { gap: 16px; margin-left: 10px; margin-right: 10px; width: auto; }
 }
 .numcell { position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 22px 8px 18px; border-radius: 12px; border: 1px solid var(--gold-line-soft); background: radial-gradient(140% 170% at 30% 0%, var(--paper-panel) 0%, var(--paper-panel-2) 100%); box-shadow: var(--shadow); }
 .numcell::after { content: ""; position: absolute; inset: 4px; border: 1px solid var(--gold-line-soft); border-radius: 8px; pointer-events: none; }
 .numcell__label { position: relative; font-size: 11px; color: var(--ink-faint); letter-spacing: .02em; text-align: center; line-height: 1.4; }
 
 .foot { text-align: center; margin-top: 52px; font-size: 11px; color: var(--ink-faint); letter-spacing: .04em; }
+
+/* ---------------- 診断入力フォームの性別ラジオ (components/GenderRadio.vue) ---------------- */
+/* 実体は<input type="radio">のまま(キーボード操作・フォーム送信・a11yをネイティブに任せる)で、
+   それを視覚的に隠してラベル全体をタップ領域にしている。 */
+.genderpick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.genderpick__opt {
+  position: relative; display: flex; align-items: center; gap: 9px; cursor: pointer;
+  padding: 10px 14px; border-radius: 8px;
+  border: 1px solid var(--gold-line); background: var(--paper); color: var(--ink);
+  font-size: 14px; line-height: 1.4;
+  transition: border-color .15s ease, background .15s ease;
+}
+.genderpick__opt input { position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0; pointer-events: none; }
+.genderpick__dot { position: relative; flex: none; width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--gold); background: var(--paper-panel); }
+.genderpick__opt.is-on { border-color: var(--gold); background: var(--paper-panel-2); }
+.genderpick__opt.is-on .genderpick__dot::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--gold-deep); }
+.genderpick__opt:has(input:focus-visible) { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+/* ---------------- サイト共通ヘッダー (components/SiteHeader.vue) ---------------- */
+/* 最上部では背景を敷かずアーチ装飾を透かし、スクロールすると背景+境界線が出る。
+   ただし完全な透過だと、アーチの濃い緑の角に文字が重なって読めなくなるので、
+   薄い紙色のグラデーションだけは常に敷いている。 */
+.siteheader { position: fixed; top: 0; left: 0; right: 0; z-index: 70; }
+.siteheader__inner {
+  position: relative; z-index: 2;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  height: var(--header-h); padding: 0 16px; margin: 0 auto; max-width: 1180px;
+}
+/* 背景レイヤーを疑似要素に分けているのは、開閉のたびに inner 側を再描画させないため。 */
+.siteheader::before {
+  content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--paper) 88%, transparent) 0%, color-mix(in srgb, var(--paper) 55%, transparent) 60%, transparent 100%);
+  transition: background .2s ease, box-shadow .2s ease;
+}
+.siteheader.is-scrolled::before {
+  background: var(--paper);
+  box-shadow: 0 1px 0 var(--gold-line-soft), 0 10px 24px -22px rgba(60, 42, 10, .7);
+}
+@media (min-width: 768px) { .siteheader__inner { padding: 0 28px; } }
+
+.siteheader__brand { display: flex; align-items: center; gap: 9px; min-width: 0; text-decoration: none; color: var(--gold-deep); }
+.siteheader__logo { display: block; width: 32px; height: 32px; flex: none; }
+.siteheader__title { font-size: 16px; letter-spacing: .1em; white-space: nowrap; }
+@media (min-width: 768px) { .siteheader__logo { width: 36px; height: 36px; } .siteheader__title { font-size: 18px; } }
+
+/* PC用の横並びメニュー。スマホはドロワーを使うので隠す。 */
+.siteheader__nav { display: none; align-items: center; gap: 22px; }
+@media (min-width: 900px) { .siteheader__nav { display: flex; } }
+.siteheader__link { font-size: 13.5px; letter-spacing: .04em; color: var(--ink-soft); text-decoration: none; white-space: nowrap; transition: color .15s ease; }
+.siteheader__link:hover { color: var(--gold-deep); }
+/* 現在地ハイライトは付けない。メニューが全てページ内リンクになったため、vue-routerの
+   現在地判定(ハッシュを見ずパスだけで比較する)では常に全項目が「現在地」になってしまう。 */
+
+/* ハンバーガー。開いている間は×に変形する(ドロワーより上に重ねてあるので閉じるボタンを兼ねる)。 */
+.siteheader__burger { appearance: none; border: 0; background: transparent; cursor: pointer; padding: 8px; margin-right: -8px; display: flex; flex-direction: column; justify-content: center; gap: 5px; width: 40px; height: 40px; flex: none; }
+@media (min-width: 900px) { .siteheader__burger { display: none; } }
+.siteheader__burger-bar { display: block; width: 22px; height: 1.5px; border-radius: 2px; background: var(--gold-deep); transition: transform .22s ease, opacity .18s ease; }
+.siteheader.is-open .siteheader__burger-bar:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+.siteheader.is-open .siteheader__burger-bar:nth-child(2) { opacity: 0; }
+.siteheader.is-open .siteheader__burger-bar:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+.siteheader__burger:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 6px; }
+
+.siteheader__scrim { position: fixed; inset: 0; z-index: 0; background: rgba(38, 27, 8, .42); opacity: 0; pointer-events: none; transition: opacity .25s ease; }
+.siteheader.is-open .siteheader__scrim { opacity: 1; pointer-events: auto; }
+
+.sitemenu {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 1;
+  width: min(78vw, 300px); padding: calc(var(--header-h) + 12px) 0 24px;
+  display: flex; flex-direction: column;
+  background: var(--paper-panel); border-left: 1px solid var(--gold-line-soft);
+  box-shadow: -18px 0 40px -24px rgba(60, 42, 10, .6);
+  transform: translateX(100%); transition: transform .25s ease; visibility: hidden;
+}
+.siteheader.is-open .sitemenu { transform: none; visibility: visible; }
+@media (min-width: 900px) { .sitemenu, .siteheader__scrim { display: none; } }
+.sitemenu__link { display: block; padding: 15px 22px; font-size: 14.5px; letter-spacing: .04em; color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--gold-line-soft); }
+.sitemenu__link:first-child { border-top: 1px solid var(--gold-line-soft); }
+.sitemenu__link:focus-visible { outline: 2px solid var(--gold); outline-offset: -3px; }
+
+/* アニメーションを減らす設定の利用者には動きを出さない。 */
+@media (prefers-reduced-motion: reduce) {
+  .siteheader::before, .siteheader__burger-bar, .siteheader__scrim, .sitemenu { transition: none; }
+}
+
+/* ---------------- 汎用パーツ (マイページ / お申し込み画面) ---------------- */
+/* デモ画面である旨の注意書き。金系だと本文に埋もれるので、少しだけ赤みを足した警告色。 */
+.notice { border: 1px solid color-mix(in srgb, var(--seal-red) 40%, transparent); background: color-mix(in srgb, var(--seal-red) 7%, transparent); color: color-mix(in srgb, var(--seal-red) 82%, var(--ink)); border-radius: 10px; padding: 10px 14px; text-align: center; font-size: 12.5px; line-height: 1.7; }
+
+.panel { border: 1px solid var(--gold-line-soft); background: var(--paper-panel); box-shadow: var(--shadow); border-radius: 12px; padding: 24px; }
+.panel--plan { border-color: var(--gold-line); background: radial-gradient(140% 170% at 30% 0%, var(--paper-panel) 0%, var(--paper-panel-2) 100%); padding: 16px 18px; }
+.panel--danger { border-color: color-mix(in srgb, var(--seal-red) 45%, transparent); background: color-mix(in srgb, var(--seal-red) 6%, var(--paper-panel)); }
+
+/* ボタン3種。診断フォームの送信ボタン(pages/index.vue)と同じ形・同じ金色に揃えている。 */
+.btn-gold, .btn-outline, .btn-quiet, .btn-danger {
+  display: inline-block; border-radius: 999px; padding: 12px 26px; text-align: center;
+  font-size: 13.5px; font-weight: 700; letter-spacing: .03em; text-decoration: none;
+  cursor: pointer; appearance: none; transition: filter .15s ease, background .15s ease, color .15s ease;
+}
+.btn-gold { background: var(--gold); color: #241a06; border: 1px solid var(--gold); }
+.btn-gold:hover { filter: brightness(1.06); }
+.btn-gold:disabled { opacity: .5; cursor: default; filter: none; }
+.btn-outline { border: 1px solid var(--gold); color: var(--gold-deep); background: transparent; }
+.btn-outline:hover { background: color-mix(in srgb, var(--gold) 10%, transparent); }
+.btn-quiet { border: 1px solid var(--gold-line); color: var(--ink-soft); background: transparent; }
+.btn-quiet:hover { color: var(--ink); }
+.btn-danger { border: 1px solid var(--seal-red); background: var(--seal-red); color: #fff6f2; }
+.btn-danger:hover { filter: brightness(1.08); }
+.btn-gold:focus-visible, .btn-outline:focus-visible, .btn-quiet:focus-visible, .btn-danger:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: 2px; }
+
+.formlabel { display: block; margin-bottom: 5px; font-size: 11px; letter-spacing: .1em; color: var(--ink-soft); }
+.formfield { width: 100%; border-radius: 6px; border: 1px solid var(--gold-line-soft); background: var(--paper-panel-2); padding: 9px 12px; font-size: 13.5px; color: var(--ink); }
+.formfield:disabled { color: var(--ink-faint); }
+.formfield::placeholder { color: var(--ink-faint); }
+
+/* ---------------- サイト共通フッター (components/SiteFooter.vue) ---------------- */
+/* .paper-page の外(layouts/default.vue直下)に置くので、背景色は自前で持つ必要がある
+   — 持たせないと、ここだけ地の白が出てしまう。 */
+.sitefooter { background: var(--paper); color: var(--ink-faint); border-top: 1px solid var(--gold-line-soft); }
+.sitefooter__inner { max-width: 720px; margin: 0 auto; padding: 26px 20px 34px; text-align: center; }
+.sitefooter__notice { font-size: 11.5px; line-height: 1.9; letter-spacing: .02em; }
+.sitefooter__copy { margin-top: 12px; font-size: 11px; letter-spacing: .06em; color: var(--ink-faint); }
+@media (min-width: 640px) { .sitefooter__inner { padding: 30px 40px 40px; } }
+
+/* ---------------- テキスト選択・コピーの抑止 ---------------- */
+/* 注意: これは「うっかり/手軽なコピー」を防ぐだけで、技術的な保護にはならない。
+   ページのHTMLはブラウザに届いている以上、開発者ツール・ソース表示・JavaScript無効化・
+   リーダーモード等で誰でも取得できる。実効的な抑止力は上のフッターに出した著作権表示の方。
+   /admin/** は layouts/admin.vue で .paper-page を使わないため対象外(コピペが必要なため)。 */
+.paper-page,
+.sitefooter {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none; /* iOSの長押しメニュー(コピー/調べる/画像を保存)を出さない */
+}
+/* 入力欄は選択・編集できないと使い物にならないので元に戻す(診断フォーム・相性診断フォーム)。 */
+.paper-page input,
+.paper-page textarea,
+.paper-page select {
+  -webkit-user-select: auto;
+  user-select: auto;
+}
+/* 画像のドラッグ&ドロップによる保存も抑止する(キャラクターイラスト対策)。 */
+.paper-page img { -webkit-user-drag: none; user-drag: none; }
