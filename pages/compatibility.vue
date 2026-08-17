@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { MAX_OTHER_PEOPLE, type PersonInput, type SealAttribute } from '~/composables/useCompatibility'
-import { DEFAULT_GENDER, GENDER_OPTIONS, isGender } from '~/utils/gender'
+import { DEFAULT_GENDER, isGender } from '~/utils/gender'
+import { DEFAULT_BIRTHDATE } from '~/utils/birthdate'
 import { COMPATIBILITY_RELATION_CONTENT } from '~/utils/compatibility'
 import { DESTINY_RELATION_CONTENT } from '~/utils/destinyCompatibility'
 
@@ -24,7 +25,9 @@ let nextOtherId = 0
 function makeOther(): PersonInput {
   return { id: `other-${nextOtherId++}`, name: '', birthdate: '', gender: DEFAULT_GENDER }
 }
-const others = ref<PersonInput[]>([makeOther()])
+// 最初から上限(6人)ぶんの枠を並べておく — 「追加」を押させてから入力させるより、
+// 何人まで登録できるのかが一目で分かり、複数人を続けて入力するときの操作も減る。
+const others = ref<PersonInput[]>(Array.from({ length: MAX_OTHER_PEOPLE }, makeOther))
 
 const canAddMore = computed(() => others.value.length < MAX_OTHER_PEOPLE)
 function addPerson() {
@@ -34,12 +37,35 @@ function removePerson(id: string) {
   others.value = others.value.filter((p) => p.id !== id)
 }
 
-const compatibilityInput = computed(() => ({ self: self.value, others: others.value }))
+// 手つかずの枠を診断対象から外す。6枠を最初から並べている以上これが無いと、使っていない枠まで
+// 「1985年生まれの誰か」として結果に並んでしまう。
+// BirthdateSelectは表示された時点で既定値(DEFAULT_BIRTHDATE)を必ず入れてしまい空にならないので、
+// 「生年月日が入っているか」では判定できない。代わりに「名前を入れた or 生年月日を既定値から
+// 動かした」を"その枠を使った"の合図とみなす。
+// 制約: 名前を空のまま、生年月日もちょうど既定値のままにしたい人(=1985年1月1日生まれで匿名)は
+// 対象にできない。その場合は名前を1文字でも入れてもらう必要がある。
+const usedOthers = computed(() =>
+  others.value.filter((p) => p.name.trim() !== '' || (!!p.birthdate && p.birthdate !== DEFAULT_BIRTHDATE))
+)
+const canSubmit = computed(() => usedOthers.value.length > 0)
+
+// 名前が未入力の人には、登場順にA・B・C…を割り当てる(全員まとめて「ゲスト」になると、
+// 複数人いるときに結果のどれが誰か分からなくなるため)。名前を入れた人は飛ばして数えるので、
+// 未入力が2人なら必ずA・Bになる。上限6人なのでZを超えることはない。
+const namedOthers = computed(() => {
+  let unnamed = 0
+  return usedOthers.value.map((p) =>
+    p.name.trim() ? p : { ...p, name: String.fromCharCode(65 + unnamed++) }
+  )
+})
+
+const compatibilityInput = computed(() => ({ self: self.value, others: namedOthers.value }))
 const { result } = useCompatibility(compatibilityInput)
 
 const submitted = ref(false)
 const { recordCompatibilityDiagnosis } = useDiagnosisHistory()
 function submit() {
+  if (!canSubmit.value) return
   submitted.value = true
   recordCompatibilityDiagnosis(result.value.self, result.value.others)
 }
@@ -49,11 +75,11 @@ function editAgain() {
 </script>
 
 <template>
-  <div class="paper-page min-h-screen pb-24">
+  <div class="paper-page min-h-screen">
     <IconSprite />
 
     <div class="sheet">
-      <div class="masthead" style="padding-top: 48px;">
+      <div class="masthead masthead--plain">
         <span class="masthead__eyebrow">Compatibility Reading</span>
         <h1 class="font-display masthead__title">相性診断</h1>
         <p class="masthead__sub">紋章の組み合わせから、あなたと大切な人との相性を読み解きます。</p>
@@ -79,16 +105,16 @@ function editAgain() {
             </div>
             <div>
               <label class="mb-1.5 block text-[11px] tracking-[.1em]" style="color: var(--ink-soft);">性別</label>
-              <select
-                v-model="self.gender"
-                class="w-full rounded px-3.5 py-2.5 text-sm outline-none"
-                style="border: 1px solid var(--gold-line); background: var(--paper); color: var(--ink);"
-              >
-                <option v-for="opt in GENDER_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-              </select>
+              <GenderRadio v-model="self.gender" />
             </div>
           </div>
         </div>
+
+        <!-- 空欄の枠が並ぶことになるので、埋めなくてよいことを明示しておく。 -->
+        <p class="text-center text-[12px]" style="color: var(--ink-faint);">
+          お相手は最大{{ MAX_OTHER_PEOPLE }}人まで同時に診断できます。使わない枠は空のままで構いません。<br />
+          お名前が未入力の方は、A・B…と表示されます。
+        </p>
 
         <div v-for="(other, i) in others" :key="other.id" class="rounded-xl p-6" style="border: 1px solid var(--gold-line-soft); background: var(--paper-panel); box-shadow: var(--shadow);">
           <div class="mb-3 flex items-center justify-between">
@@ -109,7 +135,7 @@ function editAgain() {
               <input
                 v-model="other.name"
                 type="text"
-                placeholder="例：友人A"
+                placeholder="例：たろう"
                 class="w-full rounded px-3.5 py-2.5 text-sm outline-none"
                 style="border: 1px solid var(--gold-line); background: var(--paper); color: var(--ink);"
               />
@@ -120,21 +146,17 @@ function editAgain() {
             </div>
             <div>
               <label class="mb-1.5 block text-[11px] tracking-[.1em]" style="color: var(--ink-soft);">性別</label>
-              <select
-                v-model="other.gender"
-                class="w-full rounded px-3.5 py-2.5 text-sm outline-none"
-                style="border: 1px solid var(--gold-line); background: var(--paper); color: var(--ink);"
-              >
-                <option v-for="opt in GENDER_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-              </select>
+              <GenderRadio v-model="other.gender" />
             </div>
           </div>
         </div>
 
+        <!-- 既定で上限ぶんの枠が出ているので、通常このボタンは出ない。枠を削除した後だけ
+             戻す手段として現れる(常時disabledのボタンを置くと壊れて見えるためv-if)。 -->
         <button
+          v-if="canAddMore"
           type="button"
-          :disabled="!canAddMore"
-          class="w-full rounded-full px-6.5 py-2.5 text-center text-[13.5px] font-semibold disabled:opacity-30"
+          class="w-full rounded-full px-6.5 py-2.5 text-center text-[13.5px] font-semibold"
           style="border: 1px solid var(--gold-line); color: var(--ink-soft);"
           @click="addPerson"
         >
@@ -143,11 +165,15 @@ function editAgain() {
 
         <button
           type="submit"
-          class="w-full rounded-full py-3.5 text-[14.5px] font-bold tracking-[.03em]"
+          :disabled="!canSubmit"
+          class="w-full rounded-full py-3.5 text-[14.5px] font-bold tracking-[.03em] disabled:opacity-40"
           style="background: var(--gold); color: #241a06;"
         >
           相性を診断する
         </button>
+        <p v-if="!canSubmit" class="text-center text-[12px]" style="color: var(--ink-faint);">
+          診断したいお相手を、1人以上ご入力ください（お名前か生年月日のどちらかで結構です）。
+        </p>
       </form>
 
       <template v-else>

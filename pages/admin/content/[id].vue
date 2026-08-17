@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { doc, getDoc, serverTimestamp, updateDoc, type Firestore } from 'firebase/firestore'
 import { CHARACTER_PROFILE_FIELDS, TONE_PROFILE_FIELDS, buildContentRow, typeLabel, type ContentRow } from '~/utils/diagnosisContentAdmin'
+import { formatKinCelebrities, type KinCelebrity } from '~/utils/kinCelebrities'
 
 definePageMeta({ layout: 'admin' })
 
@@ -10,6 +11,16 @@ const id = route.params.id as string
 const row = ref<ContentRow | null>(buildContentRow(id))
 const loadError = ref('')
 const notFound = ref(!row.value)
+
+// KIN別の有名人。Firestoreにはオブジェクトの配列で入っているので、「1行1人・｜区切り」の
+// テキストに直して見せる(変換は utils/kinCelebrities.ts)。
+//
+// 現状は表示のみで、保存対象に含めていない。diagnosisContent は firestore.rules で書き込みを
+// 全面拒否している(管理者認証が未導入のため — CLAUDE.md参照)ので、編集させても必ず失敗する。
+// 書き込みを有効化する際は、この ref を編集可能に戻し、save() の updateDoc に
+// `kinCelebrities: parseKinCelebrities(celebritiesText.value)` を足せばよい。
+const celebritiesText = ref('')
+const celebritiesCount = computed(() => celebritiesText.value.split('\n').filter((l) => l.trim()).length)
 
 const freeProfileFields = CHARACTER_PROFILE_FIELDS.filter((f) => f.tier === 'free')
 const premiumProfileFields = CHARACTER_PROFILE_FIELDS.filter((f) => f.tier === 'premium')
@@ -53,6 +64,9 @@ onMounted(async () => {
       }
       if (row.value.type === 'tone') {
         for (const f of TONE_PROFILE_FIELDS) row.value[f.key] = data[f.key] ?? (f.kind === 'list' ? [] : '')
+      }
+      if (row.value.type === 'kin') {
+        celebritiesText.value = formatKinCelebrities(((data as { kinCelebrities?: KinCelebrity[] }).kinCelebrities) ?? [])
       }
     }
   } catch {
@@ -145,6 +159,25 @@ async function save() {
             <textarea v-model="row.premiumText" class="min-h-[120px] w-full rounded-lg border border-slate-200 bg-white p-3 text-[13px] dark:border-slate-800 dark:bg-slate-900"></textarea>
           </div>
         </div>
+
+        <template v-if="row.type === 'kin'">
+          <div class="mb-2 mt-6 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
+            同じKINを持つ有名人（{{ celebritiesCount }}人）
+            <span class="rounded-full border border-slate-300 px-2 py-0.5 text-[10.5px] font-medium text-slate-500 dark:border-slate-700 dark:text-slate-400">非会員・無料会員に表示</span>
+            <span class="rounded-full bg-amber-50 px-2 py-0.5 text-[10.5px] font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-400">表示のみ（編集不可）</span>
+          </div>
+          <p class="mb-1.5 text-[11.5px] leading-relaxed text-slate-500 dark:text-slate-400">
+            1行に1人、「名前｜生年月日｜分野」の形式です。内容の変更は
+            <code class="rounded bg-slate-100 px-1 dark:bg-slate-800">scripts/celebrities.data.ts</code> を編集して
+            <code class="rounded bg-slate-100 px-1 dark:bg-slate-800">npm run seed:celebrities</code> を実行してください。
+          </p>
+          <textarea
+            :value="celebritiesText"
+            readonly
+            spellcheck="false"
+            class="min-h-[260px] w-full cursor-default rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-[12.5px] leading-relaxed text-slate-600 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-300"
+          ></textarea>
+        </template>
 
         <template v-if="row.type === 'tone'">
           <div class="mb-2 mt-6 flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">

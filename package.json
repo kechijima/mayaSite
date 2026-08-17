@@ -16,6 +16,8 @@
     "seed:tones:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/seedTones.ts",
     "seed:kins": "tsx --env-file=.env scripts/seedKins.ts",
     "seed:kins:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/seedKins.ts",
+    "seed:celebrities": "tsx --env-file=.env scripts/seedCelebrities.ts",
+    "seed:celebrities:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/seedCelebrities.ts",
     "cleanup:legacy-content": "tsx --env-file=.env scripts/deleteLegacyContent.ts",
     "cleanup:legacy-content:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/deleteLegacyContent.ts",
     "backfill:caution-split": "tsx --env-file=.env scripts/backfillCautionSplit.ts",

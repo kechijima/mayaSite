@@ -17,6 +17,6 @@ const size = computed(() => dims[props.size])
 
 <template>
   <span class="medal__ring" :style="{ width: `${size}px`, height: `${size}px` }">
-    <img :src="src" alt="" />
+    <img :src="src" alt="" decoding="async" />
   </span>
 </template>

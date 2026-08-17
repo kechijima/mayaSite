@@ -2,9 +2,10 @@
 import { PLAN_META, type MembershipPlan } from '~/composables/useMembership'
 import type { CharacterProfileFields } from '~/composables/useDiagnosisContent'
 import type { PaperVariant } from '~/composables/usePaperTheme'
-import { DEFAULT_GENDER, genderLabel, isGender } from '~/utils/gender'
+import { DEFAULT_GENDER, isGender } from '~/utils/gender'
 import { parseCelebrities } from '~/utils/toneCelebrities'
 import { sealColor } from '~/utils/mayaData'
+import { type ProfileSection, iconFor } from '~/utils/profileSections'
 import mastheadArchSrc from '~/assets/images/optimized/top-bg.webp'
 
 const route = useRoute()
@@ -37,18 +38,14 @@ const toneProfile = computed(() => content.toneProfile.value)
 // 元々ハードコードされたフォールバック文言が無いので、Firestoreにまだ無ければセクション自体を
 // 出さない(v-if="kinText" — 下のtemplate参照)。全260件無料公開。
 const kinText = computed(() => content.kinText.value)
-
-// 2026-08-10: 純粋な箇条書きのフィールド(下記参照)はFirestore側もstring[]に変更した
-// (scripts/migrateBulletFields.ts参照)。混在フィールド(bestEnvironment/bestRole/
-// luckDownHabits)は対象外で従来通りstring。表示側はkindで分岐し、textはpタグ、listは
-// チェックアイコン付きの.checklistとして描画する。
-type ProfileSection = { label: string } & (
-  | { kind: 'text'; text: string }
-  | { kind: 'list'; items: string[] }
-  // あなたの性格の強み(strengthsSummary+strengthsDetail)・注意すべき傾向(cautionSummary+
-  // cautionDetail)専用 — 箇条書きの要約に続けて、プレーンな文章の詳細を1ブロック内に表示する。
-  | { kind: 'list-then-text'; items: string[]; text: string }
-)
+// KIN別の有名人(docs/芸能人マスタ.xlsx由来)。本文は125文字で切って以降を有料にしているが、
+// この一覧はユーザー指定により有料エリアの「後ろ」に無料で全件出す。
+const kinCelebrities = computed(() => content.kinCelebrities.value)
+function formatCelebrityBirth(birthdate: string) {
+  // マスタに生年月日が無い2件は空文字で入っているので、その場合は日付を出さない。
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthdate)
+  return m ? `${Number(m[1])}年${Number(m[2])}月${Number(m[3])}日` : ''
+}
 
 // 銀河の音プロフィール(docs/銀河の音診断結果マスタ.xlsx由来)の深掘り項目。紋章プロフィールと違い
 // 無料/有料の区切りがマスタ側に無いため、全項目を常時無料で表示する。3項目とも純粋な箇条書き。
@@ -119,32 +116,17 @@ const sunOtherFreeProfileSections = computed(() => excludingLabel(sunFreeProfile
 const wavespellPersonalityStrength = computed(() => findByLabel(wavespellFreeProfileSections.value, 'あなたの性格の強み'))
 const wavespellOtherFreeProfileSections = computed(() => excludingLabel(wavespellFreeProfileSections.value, 'あなたの性格の強み'))
 
-// アイコンは見た目だけの割り当て(業務ロジックとは無関係)。ラベル文字列は上の
-// free/premiumProfileSections で定義した固定値と一致させている。
-const SECTION_ICON: Record<string, string> = {
-  '総合解説': 'i-scroll',
-  'あなたはこんな人です': 'i-crown',
-  'キャリアパス': 'i-path',
-  'あなたが喜ぶこと': 'i-heart',
-  'あなたが嫌がること': 'i-heart-off',
-  'コミュニケーションの強み': 'i-chat',
-  'コミュニケーションの課題': 'i-chat-x',
-  'あなたの性格の強み': 'i-gem',
-  '注意すべき傾向': 'i-warn',
-  '実践的なヒント': 'i-bulb',
-  '人生で一番伸びる環境': 'i-sprout',
-  '人生で一番向いている役割': 'i-shield',
-  '恋愛・パートナーシップ': 'i-heart',
-  '仕事で成功する方法': 'i-trophy',
-  '運気が上がる行動': 'i-clover',
-  '運気が下がるクセ': 'i-clover-off',
-  '基本スペック': 'i-crown',
-  '性格の強み': 'i-gem',
-  '注意するべき点': 'i-warn'
-}
-function iconFor(label: string) {
-  return SECTION_ICON[label] ?? 'i-scroll'
-}
+// KIN番号のあなたへ: 冒頭125文字だけ無料で読ませ、残りは有料エリア(モザイク+「続きを見る」)
+// に送る。サロゲートペアの途中で切らないよう[...str]で文字単位に分解してから切っている。
+const KIN_LETTER_FREE_CHARS = 125
+const kinLetterChars = computed(() => [...(kinText.value ?? '')])
+const kinLetterRest = computed(() => kinLetterChars.value.slice(KIN_LETTER_FREE_CHARS).join('').trimStart())
+const kinLetterLocked = computed(() => !deepUnlocked.value && kinLetterRest.value.length > 0)
+const kinLetterFree = computed(() => {
+  if (!kinLetterLocked.value) return kinText.value ?? ''
+  // 続きがあるときは参考サイトと同じく三点リーダで「まだ続く」ことを示す。
+  return `${kinLetterChars.value.slice(0, KIN_LETTER_FREE_CHARS).join('').trimEnd()}…`
+})
 
 // KINの関係性(ガイド/神秘/反対/類似KIN)・運命数字(同じ番号/連番/鏡の向こうの自分/絶対反対KIN)。
 // 「同じ番号」「連番」は参照元(マヤDAN)の個別KINページ上に定義が見当たらなかったため、
@@ -168,7 +150,6 @@ const displayBirthdate = computed(() => {
   const d = new Date(input.value.birthdate)
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
 })
-const displayGender = computed(() => genderLabel(result.value.gender))
 
 const demoPlans: { id: MembershipPlan; label: string }[] = [
   { id: 'free', label: '無料' },
@@ -181,50 +162,53 @@ const demoPapers: { id: PaperVariant; label: string }[] = [
 </script>
 
 <template>
-  <div class="paper-page min-h-screen pb-24">
+  <div class="paper-page min-h-screen">
     <IconSprite />
 
     <div class="sheet sheet--flush">
       <div class="masthead">
-        <div class="masthead__arch" aria-hidden="true"><img :src="mastheadArchSrc" alt="" /></div>
-        <span class="masthead__eyebrow">Maya Sacred Calendar</span>
+        <div class="masthead__arch" aria-hidden="true"><img :src="mastheadArchSrc" alt="" width="1536" height="1024" fetchpriority="high" decoding="async" /></div>
+        <span class="masthead__eyebrow">JMBマヤ暦</span>
         <h1 class="font-display masthead__title">あなたの本質と運勢</h1>
-        <p class="masthead__sub">古代マヤの暦「ツォルキン」があなたの生年月日から読み解く、本当のあなた。</p>
+        <p class="masthead__sub">マヤのツォルキン暦から未来のあるべき自分を知ろう</p>
       </div>
 
-      <div class="mx-auto mb-8 grid max-w-[640px] grid-cols-3 gap-3 text-center">
-        <div class="numcell">
-          <span class="numcell__label">お名前</span>
-          <span class="font-display text-[17px]">{{ result.name }} 様</span>
-        </div>
+      <!-- 生年月日 / KIN / 銀河の音。KINと音の数字は以前この下のヒーロー中央にメダルで
+           出していたものをここへ集約した(お名前・性別の表示は廃止)。 -->
+      <div class="herostats">
         <div class="numcell">
           <span class="numcell__label">生年月日</span>
-          <span class="text-[17px] tabular-nums" style="font-family: 'Shippori Mincho', serif;">{{ displayBirthdate }}</span>
+          <span class="herostats__date">{{ displayBirthdate }}</span>
         </div>
         <div class="numcell">
-          <span class="numcell__label">性別</span>
-          <span class="font-display text-[17px]">{{ displayGender }}</span>
+          <span class="numcell__label">KIN</span>
+          <span class="herostats__num">{{ result.kin }}</span>
+        </div>
+        <div class="numcell">
+          <span class="numcell__label">銀河の音</span>
+          <span class="herostats__num">{{ result.toneIndex + 1 }}</span>
         </div>
       </div>
 
-      <!-- ドリームスペル暦: KIN番号 + 太陽の紋章/ウェイブスペル/銀河の音 概要 -->
-      <div class="kinhero">
-        <div class="kinhero__portrait">
-          <div class="kinhero__frame"><MayaPortraitFrame :seal-index="result.sealIndex" :gender="result.gender" /></div>
-          <span class="kinhero__name-plate">{{ result.sun.seal.name }}</span>
+      <!-- 太陽の紋章 × ウェイブスペル。KIN/音の数字は上のherostatsへ移したので、
+           ここは2体のアーキタイプだけを大きく見せる。 -->
+      <div class="kinduo">
+        <div class="kinduo__art kinduo__art--l"><MayaPortraitFrame :seal-index="result.sealIndex" :gender="result.gender" /></div>
+        <div class="kinduo__art kinduo__art--r"><MayaPortraitFrame :seal-index="result.wavespellSealIndex" :gender="result.gender" /></div>
+        <div class="kinduo__cap kinduo__cap--l">
+          <span class="kinduo__role">太陽の紋章</span>
+          <span class="font-display kinduo__seal">{{ result.sun.seal.name }}</span>
         </div>
-        <div class="kinhero__center">
-          <KinBadge :kin="result.kin" />
-          <div class="kinhero__tone-spacer">
-            <GoldMedal :value="result.toneIndex + 1" diamonds />
-          </div>
-          <span class="kinhero__name-plate">{{ result.tone.info.name }}</span>
-        </div>
-        <div class="kinhero__portrait">
-          <div class="kinhero__frame"><MayaPortraitFrame :seal-index="result.wavespellSealIndex" :gender="result.gender" /></div>
-          <span class="kinhero__name-plate">{{ result.wavespell.seal.name }}</span>
+        <span class="kinduo__x" aria-hidden="true"><svg><use href="#i-cross" /></svg></span>
+        <div class="kinduo__cap kinduo__cap--r">
+          <span class="kinduo__role">ウェイブスペル</span>
+          <span class="font-display kinduo__seal">{{ result.wavespell.seal.name }}</span>
         </div>
       </div>
+
+      <!-- ファーストビューの締め。最上部のアーチ装飾(masthead__arch)と同じ画像を上下反転して
+           下端に置き、額縁のように閉じる。装飾のみなのでaria-hidden。 -->
+      <div class="heroclose" aria-hidden="true"><img :src="mastheadArchSrc" alt="" width="1536" height="1024" decoding="async" /></div>
 
       <!-- 太陽の紋章 -->
       <section class="section" :data-seal="sealColor(result.sealIndex)">
@@ -263,30 +247,14 @@ const demoPapers: { id: PaperVariant; label: string }[] = [
           <p style="white-space: pre-line;">{{ sunText }}</p>
         </div>
 
-        <div v-for="s in sunOtherFreeProfileSections" :key="s.label" class="block">
-          <div class="block__head"><svg><use :href="`#${iconFor(s.label)}`" /></svg><h3>{{ s.label }}</h3></div>
-          <p v-if="s.kind === 'text'">{{ s.text }}</p>
-          <ul v-else class="checklist">
-            <li v-for="(item, i) in s.items" :key="i"><svg><use href="#i-check" /></svg>{{ item }}</li>
-          </ul>
-          <p v-if="s.kind === 'list-then-text' && s.text">{{ s.text }}</p>
-        </div>
+        <ProfileBlocks :sections="sunOtherFreeProfileSections" />
 
-        <div v-for="s in sunPremiumProfileSections" :key="s.label" class="block" :style="!s.label ? { marginTop: deepUnlocked ? '-3px' : '12px' } : {}">
-          <div v-if="s.label" class="block__head"><svg><use :href="`#${iconFor(s.label)}`" /></svg><h3>{{ s.label }}</h3></div>
-          <template v-if="deepUnlocked">
-            <p v-if="s.kind === 'text'">{{ s.text }}</p>
-            <ul v-else class="checklist">
-              <li v-for="(item, i) in s.items" :key="i"><svg><use href="#i-check" /></svg>{{ item }}</li>
-            </ul>
-          </template>
-          <LockedVeil v-else label="有料プランで続きを読む">
-            <p v-if="s.kind === 'text'">{{ s.text }}</p>
-            <ul v-else class="checklist">
-              <li v-for="(item, i) in s.items" :key="i"><svg><use href="#i-check" /></svg>{{ item }}</li>
-            </ul>
-          </LockedVeil>
-        </div>
+        <!-- 有料項目はまとめて1つのモザイクに入れる(項目ごとに小さなロック箱を並べるより、
+             「この分量の続きがある」ことが伝わるため)。参考: kinoshita-reon.jp -->
+        <ProfileBlocks v-if="deepUnlocked" :sections="sunPremiumProfileSections" />
+        <LockedVeil v-else-if="sunPremiumProfileSections.length">
+          <ProfileBlocks :sections="sunPremiumProfileSections" />
+        </LockedVeil>
       </section>
 
       <!-- ウェイブスペル -->
@@ -326,30 +294,12 @@ const demoPapers: { id: PaperVariant; label: string }[] = [
           <p style="white-space: pre-line;">{{ wavespellText }}</p>
         </div>
 
-        <div v-for="s in wavespellOtherFreeProfileSections" :key="s.label" class="block">
-          <div class="block__head"><svg><use :href="`#${iconFor(s.label)}`" /></svg><h3>{{ s.label }}</h3></div>
-          <p v-if="s.kind === 'text'">{{ s.text }}</p>
-          <ul v-else class="checklist">
-            <li v-for="(item, i) in s.items" :key="i"><svg><use href="#i-check" /></svg>{{ item }}</li>
-          </ul>
-          <p v-if="s.kind === 'list-then-text' && s.text">{{ s.text }}</p>
-        </div>
+        <ProfileBlocks :sections="wavespellOtherFreeProfileSections" />
 
-        <div v-for="s in wavespellPremiumProfileSections" :key="s.label" class="block" :style="!s.label ? { marginTop: deepUnlocked ? '-3px' : '12px' } : {}">
-          <div v-if="s.label" class="block__head"><svg><use :href="`#${iconFor(s.label)}`" /></svg><h3>{{ s.label }}</h3></div>
-          <template v-if="deepUnlocked">
-            <p v-if="s.kind === 'text'">{{ s.text }}</p>
-            <ul v-else class="checklist">
-              <li v-for="(item, i) in s.items" :key="i"><svg><use href="#i-check" /></svg>{{ item }}</li>
-            </ul>
-          </template>
-          <LockedVeil v-else label="有料プランで続きを読む">
-            <p v-if="s.kind === 'text'">{{ s.text }}</p>
-            <ul v-else class="checklist">
-              <li v-for="(item, i) in s.items" :key="i"><svg><use href="#i-check" /></svg>{{ item }}</li>
-            </ul>
-          </LockedVeil>
-        </div>
+        <ProfileBlocks v-if="deepUnlocked" :sections="wavespellPremiumProfileSections" />
+        <LockedVeil v-else-if="wavespellPremiumProfileSections.length">
+          <ProfileBlocks :sections="wavespellPremiumProfileSections" />
+        </LockedVeil>
       </section>
 
       <!-- 銀河の音 -->
@@ -383,10 +333,24 @@ const demoPapers: { id: PaperVariant; label: string }[] = [
       </section>
 
       <!-- KIN番号のあなたへ: docs/KIN番号診断結果マスタ.xlsx由来、個別要素(紋章/音)ではなくKIN
-           全体への語りかけなので、内訳を読んだ後・関係性データの前に置く。全260件無料公開。 -->
+           全体への語りかけなので、内訳を読んだ後・関係性データの前に置く。冒頭125文字が無料、
+           残りは有料エリア(KIN_LETTER_FREE_CHARS参照)。 -->
       <section v-if="kinText" class="section">
         <SectionDivider :label="`KIN${result.kin}のあなたへ`" eyebrow="紋章や音を超えた、あなたへの言葉" numeric />
-        <p class="kinletter">{{ kinText }}</p>
+        <p class="kinletter">{{ kinLetterFree }}</p>
+        <LockedVeil v-if="kinLetterLocked" class="kinletter-gate">
+          <p class="kinletter">{{ kinLetterRest }}</p>
+        </LockedVeil>
+
+        <!-- 同じKINを持つ有名人。有料エリアより後ろに置き、無料/有料を問わず全件表示する。 -->
+        <div v-if="kinCelebrities.length" class="block">
+          <div class="block__head"><svg><use href="#i-trophy" /></svg><h3>同じKINを持つ有名人</h3></div>
+          <ul class="celeblist celeblist--kin">
+            <li v-for="c in kinCelebrities" :key="c.name + c.birthdate">
+              {{ c.name }}<span>{{ c.field }}<template v-if="formatCelebrityBirth(c.birthdate)"> ｜ {{ formatCelebrityBirth(c.birthdate) }}</template></span>
+            </li>
+          </ul>
+        </div>
       </section>
 
       <!-- KINの関係性: 無料 -->
@@ -456,7 +420,10 @@ const demoPapers: { id: PaperVariant; label: string }[] = [
          as the plan switcher. Paper theme is a persisted global preference (usePaperTheme), so
          /compatibility inherits whatever's chosen here with no switcher of its own, mirroring how
          it already silently inherits `plan`/`rank` today. -->
-    <div class="fixed inset-x-4 bottom-4 z-40 flex flex-wrap items-center justify-center gap-2.5 rounded-2xl px-3.5 py-2.5 text-xs shadow-lg backdrop-blur sm:inset-x-auto sm:right-4 sm:flex-nowrap sm:rounded-full" style="border: 1px solid var(--gold-line); background: color-mix(in srgb, var(--paper-panel) 92%, transparent); color: var(--ink-soft);">
+    <!-- backdrop-blur は使わない: position:fixed と組み合わせると、スクロールの毎フレーム
+         「背後のページを読み直してぼかす」処理が走り、スマホでスクロールが引っかかる原因に
+         なる。背景を不透明にすれば見た目はほぼ同じで、その処理自体が不要になる。 -->
+    <div class="fixed inset-x-4 bottom-4 z-40 flex flex-wrap items-center justify-center gap-2.5 rounded-2xl px-3.5 py-2.5 text-xs shadow-lg sm:inset-x-auto sm:right-4 sm:flex-nowrap sm:rounded-full" style="border: 1px solid var(--gold-line); background: var(--paper-panel); color: var(--ink-soft);">
       <span class="whitespace-nowrap">検証用：</span>
       <div class="switch">
         <button v-for="d in demoPlans" :key="d.id" :aria-pressed="plan === d.id" @click="setPlan(d.id)">{{ d.label }}</button>

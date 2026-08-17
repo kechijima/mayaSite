@@ -22,49 +22,56 @@ function pay() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50 px-4 py-10 font-body text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-    <div class="mx-auto max-w-[440px]">
-      <div class="mb-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-center text-[12.5px] text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300">
-        これはデモ決済画面です。実際の課金は発生しません（Stripe Checkout の実装例）。
+  <!-- 2026-08-17: slate系の明るい独自配色(+ダークモード対応)から、他のユーザー向けページと
+       同じ paper(羊皮紙)配色へ統一。共通ヘッダー追加にあわせて、ヘッダーだけ浮いて見えない
+       ように。darkModeはmedia指定なので、OSがダークでも配色が切り替わらないよう
+       Tailwindのdark:ユーティリティは使っていない。 -->
+  <div class="paper-page min-h-screen">
+    <div class="sheet">
+      <div class="masthead masthead--plain">
+        <span class="masthead__eyebrow">SUBSCRIPTION</span>
+        <h1 class="font-display masthead__title">有料プランのお申し込み</h1>
+        <p class="masthead__sub">お申し込みいただくと、有料エリアの内容まですべてご覧いただけます。</p>
       </div>
 
-      <h1 class="mb-1 text-lg font-bold">マヤ暦占い 有料プラン</h1>
-      <p class="mb-6 text-sm text-slate-500 dark:text-slate-400">お申し込みいただくと、有料エリアの内容まですべてご覧いただけます。</p>
+      <div class="mx-auto max-w-[440px]">
+        <p class="notice">これはデモ決済画面です。実際の課金は発生しません（Stripe Checkout の実装例）。</p>
 
-      <div class="mb-6 flex items-center justify-between rounded-lg border border-brass-700 bg-brass-700/5 px-4 py-3.5 ring-1 ring-brass-700">
-        <div>
-          <div class="text-sm font-semibold">{{ plan.name }}</div>
-          <div class="text-xs text-slate-500 dark:text-slate-400">{{ plan.desc }}</div>
-        </div>
-        <div class="text-sm font-bold tabular-nums">{{ plan.price }}<span class="font-normal text-slate-400">/月</span></div>
-      </div>
-
-      <div class="mb-6 space-y-3 rounded-lg border border-slate-200 p-4 dark:border-slate-800">
-        <div>
-          <label class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">カード番号</label>
-          <input type="text" placeholder="4242 4242 4242 4242" disabled class="w-full rounded border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-400 dark:border-slate-800 dark:bg-slate-900" />
-        </div>
-        <div class="flex gap-3">
-          <div class="flex-1">
-            <label class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">有効期限</label>
-            <input type="text" placeholder="MM / YY" disabled class="w-full rounded border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-400 dark:border-slate-800 dark:bg-slate-900" />
+        <div class="panel panel--plan mt-6 flex items-center justify-between">
+          <div>
+            <div class="font-display text-[17px]" style="color: var(--gold-deep);">{{ plan.name }}</div>
+            <div class="mt-0.5 text-[12px]" style="color: var(--ink-soft);">{{ plan.desc }}</div>
           </div>
-          <div class="flex-1">
-            <label class="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">CVC</label>
-            <input type="text" placeholder="123" disabled class="w-full rounded border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-400 dark:border-slate-800 dark:bg-slate-900" />
+          <div class="font-display text-[19px] tabular-nums whitespace-nowrap">
+            {{ plan.price }}<span class="text-[12px] font-normal" style="color: var(--ink-faint);">/月</span>
           </div>
         </div>
+
+        <div class="panel mt-4 space-y-3.5">
+          <div>
+            <label class="formlabel">カード番号</label>
+            <input type="text" placeholder="4242 4242 4242 4242" disabled class="formfield" />
+          </div>
+          <div class="flex gap-3">
+            <div class="flex-1">
+              <label class="formlabel">有効期限</label>
+              <input type="text" placeholder="MM / YY" disabled class="formfield" />
+            </div>
+            <div class="flex-1">
+              <label class="formlabel">CVC</label>
+              <input type="text" placeholder="123" disabled class="formfield" />
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="btn-gold mt-6 w-full" :disabled="submitting" @click="pay">
+          {{ submitting ? '処理中…' : 'お申し込みを確定する' }}
+        </button>
+
+        <NuxtLink to="/" class="mt-4 block text-center text-[12px] hover:underline" style="color: var(--ink-faint);">
+          トップへ戻る
+        </NuxtLink>
       </div>
-
-      <button
-        class="w-full rounded-lg bg-brass-700 py-3 text-sm font-bold text-white disabled:opacity-60"
-        :disabled="submitting"
-        @click="pay"
-      >
-        {{ submitting ? '処理中…' : 'お申し込みを確定する' }}
-      </button>
-
-      <NuxtLink to="/result" class="mt-4 block text-center text-xs text-slate-400 hover:underline">診断結果に戻る</NuxtLink>
     </div>
   </div>
 </template>

@@ -8,6 +8,6 @@ const src = computed(() => cutoutSrc(props.sealIndex, props.gender))
 
 <template>
   <div class="dossier__portrait">
-    <img :src="src" alt="" />
+    <img :src="src" alt="" decoding="async" />
   </div>
 </template>
