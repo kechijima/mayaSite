@@ -663,7 +663,7 @@ html { scroll-behavior: smooth; }
      どんな高さになっても歪まず縮小フィットする — これが「収まらない」を構造的に防ぐ本体。 */
   .hero .kinduo {
     flex: 1 1 auto; min-height: 0; max-width: 84vw; width: 100%;
-    margin: 0 auto; padding-bottom: 4vw;
+    margin: 0 auto; padding-bottom: 12vw;
     grid-template-rows: minmax(0, 1fr) auto;
   }
   .hero .kinduo__art { height: 100%; aspect-ratio: auto; }
