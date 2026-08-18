@@ -25,6 +25,18 @@ export default defineNuxtConfig({
       routes: ['/']
     }
   },
+  // CSSのbackground-imageから参照している装飾画像(top-bg / hero-frame)に、Nuxtが自動で
+  // <link rel="prefetch"> を張るのを止める。この2枚はメディアクエリで出し分けており、
+  // どの画面幅でも片方しか使わないのに、prefetchのせいで両方(計345KB)落ちてしまうため。
+  // manifestのassetsはprefetch/preloadヒントの生成にしか使われないので、外してもCSSからの
+  // 読み込みには影響しない。
+  hooks: {
+    'build:manifest'(manifest) {
+      for (const entry of Object.values(manifest)) {
+        if (entry.assets) entry.assets = entry.assets.filter((a) => !/(top-bg|hero-frame)\.[^.]+\.webp$/.test(a))
+      }
+    }
+  },
   app: {
     head: {
       title: 'マヤ暦占い',
