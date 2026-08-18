@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { DEFAULT_GENDER, type Gender } from '~/utils/gender'
-import mastheadArchSrc from '~/assets/images/optimized/top-bg.webp'
 import jmbLogoSrc from '~/assets/images/optimized/jmb-logo.webp'
 
 const name = ref('')
@@ -35,7 +34,7 @@ const todayLabel = computed(() => `${today.getFullYear()}年${today.getMonth() +
 
     <div class="sheet sheet--flush">
       <div class="masthead">
-        <div class="masthead__arch" aria-hidden="true"><img :src="mastheadArchSrc" alt="" width="1536" height="1024" fetchpriority="high" decoding="async" /></div>
+        <div class="masthead__arch" aria-hidden="true" />
         <!-- JMB(日本マヤ暦文化協会)認定ロゴ。ページタイトルの上に置く認定バッジなので、
              見出しの一部ではなく独立した画像として扱う(alt付き)。 -->
         <img class="masthead__logo" :src="jmbLogoSrc" width="448" height="448" alt="JAPAN MAYA BU CERTIFIED" fetchpriority="high" decoding="async" />
