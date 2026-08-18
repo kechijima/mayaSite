@@ -609,50 +609,59 @@ html { scroll-behavior: smooth; }
 .heroframe { display: none; }
 
 @media (max-width: 640px) {
-  /* フレームの幅。画面幅いっぱいにしたいが、1:2なので幅から決めた高さがファーストビューを
-     超えてしまう機種がある(実測: iPhone SEで197px、iPhone 13で46pxはみ出していた)。
-     そこで「画面幅」と「見える高さの半分」の小さいほうを採る。svh はURLバーが出ている
-     状態の高さ = 必ず見える高さ。非対応ブラウザ向けに vh を先に書いて上書きしている。 */
+  /* 枠は常に画面幅いっぱい。高さは「見える高さ」に合わせる(svh = URLバーが出ている状態の
+     高さ = 必ず見える高さ。非対応ブラウザ向けに vh を先に書いて上書きしている)。 */
   .hero {
-    --frame-w: min(100vw, 50vh);
-    --frame-w: min(100vw, 50svh);
     /* .sheet の左右paddingを越えて画面端まで広げるため(幅が親より広くなり得るので
        margin:auto では中央に来ない — .masthead__arch と同じ手法)。 */
     position: relative; left: 50%; transform: translateX(-50%);
-    width: var(--frame-w); min-height: calc(var(--frame-w) * 2);
+    width: 100vw; min-height: 100vh; min-height: 100svh;
+    /* 下の飾りが占める高さ(幅の約38%)を確保して、本文が絶対に重ならないようにする。
+       画面が短くてこの余白ぶんが入りきらない端末(iPhone SEなど)では、min-heightを超えて
+       枠ごと下に伸びる — 本文を潰してまで1画面に押し込めるより、少しスクロールさせるほうが
+       読みやすいと判断した。 */
+    padding-bottom: 36vw;
   }
-  .heroframe {
-    display: block; position: absolute; top: 0; left: 0; width: 100%;
-    aspect-ratio: 887 / 1774; pointer-events: none; z-index: 0;
-    background: url("../images/optimized/hero-frame.webp") center / 100% 100% no-repeat;
+  .heroframe { display: block; position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+  /* 画像(1:2)の上半分と下半分を、それぞれ元の縦横比(1:1)のまま上端・下端に貼る。
+     background-size: 100% 200% で「画像全体が要素の2倍の高さ」になるので、要素には
+     ちょうど半分だけが入り、position の top / bottom でどちらの半分かが決まる。
+     画像の中央は透明なので、上下の間がどれだけ空いても絵は一切歪まない。
+     = 画面の高さが機種ごとに違っても、枠を作り直さずそのまま追従できる。 */
+  .heroframe::before,
+  .heroframe::after {
+    content: ""; position: absolute; left: 0; right: 0; aspect-ratio: 1 / 1;
+    background-image: url("../images/optimized/hero-frame.webp");
+    background-repeat: no-repeat; background-size: 100% 200%;
   }
+  .heroframe::before { top: 0; background-position: top center; }
+  .heroframe::after { bottom: 0; background-position: bottom center; }
+
   /* 2枚組のほうは隠す。 */
   .masthead__arch, .heroclose { display: none; }
 
-  /* 本文はフレーム幅を基準に配置する。画面幅(vw)基準のままだと、フレームが高さに合わせて
-     縮んだ機種で本文だけフレームからはみ出す。.hero 自体がフレーム幅なので、%指定は
-     そのままフレーム幅に対する割合になる。
+  /* 本文は画面幅基準。枠が常に全幅なので、機種が変わっても本文と装飾の位置関係は変わらない。
      割合はフレームのアルファチャンネルを実測した「本文を置ける幅」に合わせている
-     (フレーム幅390px換算で、高さ93pxで237px、163pxで325px、257〜491pxで390px(全開)、
-     631pxで258px、655pxで246px)。 */
-  .hero .masthead { padding: 24% 5% 0; }
-  .hero .masthead__title { font-size: calc(var(--frame-w) * .054); margin-bottom: 4px; }
-  .hero .masthead__sub { font-size: calc(var(--frame-w) * .031); }
-  .hero .herostats { max-width: 84%; }
-  .hero .kinduo { max-width: 84%; margin-top: 3%; }
-  /* キャラクターの高さを詰めて、紋章名が下の装飾に当たらないようにする。 */
+     (幅390px換算で、上端から94pxまでは装飾、187pxで84%幅、以降は全開)。 */
+  .hero .masthead { padding: 24vw 5vw 0; }
+  .hero .masthead__title { font-size: 5.4vw; margin-bottom: 4px; }
+  .hero .masthead__sub { font-size: 3.1vw; }
+  .hero .herostats { max-width: 84vw; }
+  .hero .kinduo { max-width: 84vw; margin-top: 3vw; }
   .hero .kinduo__art { aspect-ratio: 132 / 205; }
-
-  /* 文字・余白もフレーム幅基準に揃える。既定値は clamp(...vw...) や固定pxで「画面幅」に
-     追従するため、フレームが画面より狭くなる機種(縦の短い端末)では本文だけが相対的に
-     大きくなり、下の装飾に食い込む。実測でiPhone SEだけ本文下端が85%まで下がっていた。
-     割合はフレーム幅367px時点(iPhone 13)の実効値から逆算している。 */
-  .hero .numcell { padding: 6% 1.4% 4.9%; gap: 3%; }
-  .hero .numcell__label { font-size: calc(var(--frame-w) * .03); }
-  .hero .herostats__date { font-size: calc(var(--frame-w) * .037); }
-  .hero .herostats__num { font-size: calc(var(--frame-w) * .08); }
-  .hero .kinduo__role { font-size: calc(var(--frame-w) * .031); }
-  .hero .kinduo__seal { font-size: calc(var(--frame-w) * .057); }
-  .hero .kinduo__x svg { width: calc(var(--frame-w) * .055); height: calc(var(--frame-w) * .055); }
 }
+
+/* 縦の短い端末(iPhone SEなど)だけ、本文が下の飾りに届いてしまうので詰める。
+   幅ではなく高さで分岐しているのは、足りないのが縦方向だけのため。 */
+/* 縦の短い端末(iPhone SEなど)は上下の余白だけ少し詰める。ここで本文を大きく縮めると
+   逆に読みにくくなるので、詰めるのは余白のみに留めている。 */
+@media (max-width: 640px) and (max-height: 660px) {
+  .hero .masthead { padding-top: 15vw; }
+  .hero .masthead__title { font-size: 4.9vw; }
+  .hero .herostats { margin-bottom: 0; }
+  .hero .numcell { padding-top: 4%; padding-bottom: 3%; }
+  .hero .kinduo { margin-top: 0; }
+  .hero .kinduo__art { aspect-ratio: 132 / 145; }
+}
+
 
