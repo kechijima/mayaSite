@@ -81,11 +81,13 @@
    horizontal padding at each breakpoint below, so the image bleeds into the padding gutter
    instead of being squeezed by it — centering still works unaffected since left:50%/translateX
    anchors on the center point, not the box width. */
-.masthead__arch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: min(calc(100% + 40px), 1180px); aspect-ratio: 1536 / 1024; pointer-events: none; z-index: 0; }
+/* <img>ではなく背景画像で置くのは、display:noneにした時にダウンロード自体を止めるため。
+   スマホでは1枚フレーム(.heroframe)に切り替えてこちらを隠すが、<img>のままだと隠していても
+   取得されてしまい、実測で両方(計364KB)を読み込んでいた。 */
+.masthead__arch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: min(calc(100% + 40px), 1180px); aspect-ratio: 1536 / 1024; pointer-events: none; z-index: 0; background: url("../images/optimized/top-bg.webp") center / 100% 100% no-repeat; }
 @media (min-width: 640px) { .masthead__arch { width: min(calc(100% + 80px), 1180px); } }
 @media (min-width: 1000px) { .masthead__arch { width: min(calc(100% + 152px), 1180px); } }
 @media (min-width: 1300px) { .masthead__arch { width: min(calc(100% + 184px), 1180px); } }
-.masthead__arch img { width: 100%; height: 100%; object-fit: contain; display: block; }
 
 /* ファーストビューを下から閉じる装飾。masthead__arch と同じ画像・同じ幅の出し方で、
    上下反転(scaleY)して置く。幅の式を揃えているのは、上のアーチと左右の飾り位置を
@@ -97,11 +99,10 @@
    広い(100% + 余白ぶん)ため、その状態の auto マージンは中央寄せにならず左端に寄ってしまう
    (CSSの過剰制約の解決規則で margin-right 側が無視されるため)。上のアーチ(.masthead__arch)が
    同じ理由で left/translateX を使っているのと揃えている。 */
-.heroclose { position: relative; left: 50%; transform: translateX(-50%); width: min(calc(100% + 40px), 1180px); margin: -33% 0 0; aspect-ratio: 1536 / 1024; pointer-events: none; z-index: 0; }
+.heroclose { position: relative; left: 50%; transform: translateX(-50%) scaleY(-1); width: min(calc(100% + 40px), 1180px); margin: -33% 0 0; aspect-ratio: 1536 / 1024; pointer-events: none; z-index: 0; background: url("../images/optimized/top-bg.webp") center / 100% 100% no-repeat; }
 @media (min-width: 640px) { .heroclose { width: min(calc(100% + 80px), 1180px); } }
 @media (min-width: 1000px) { .heroclose { width: min(calc(100% + 152px), 1180px); } }
 @media (min-width: 1300px) { .heroclose { width: min(calc(100% + 184px), 1180px); } }
-.heroclose img { width: 100%; height: 100%; object-fit: contain; display: block; transform: scaleY(-1); }
 /* JMB認定ロゴ (pages/index.vue)。width/height属性は512x512(=正方形)を宣言してあるので、
    読み込み前から正しい高さが確保され、遅れて表示されてもタイトルが動かない。 */
 .masthead__logo { position: relative; z-index: 1; display: block; width: clamp(104px, 26vw, 152px); height: auto; margin: 0 auto 14px; }
@@ -600,3 +601,35 @@ html { scroll-behavior: smooth; }
 }
 /* 画像のドラッグ&ドロップによる保存も抑止する(キャラクターイラスト対策)。 */
 .paper-page img { -webkit-user-drag: none; user-drag: none; }
+
+/* ---------------- ファーストビューの枠(1枚もの / スマホ用) ---------------- */
+/* PCでは従来どおり .masthead__arch + .heroclose の2枚で組む。この1枚フレームは縦横比1:2で
+   描かれているため、PCの幅(最大1180px)に合わせると高さ2360pxになり成立しない。
+   逆にスマホは画面自体が縦長なので、1枚で上下を囲めるこちらのほうが素直。 */
+.heroframe { display: none; }
+
+@media (max-width: 640px) {
+  /* フレームは絶対配置で高さに寄与しないので、フレームと同じ高さ(幅の2倍)を親に持たせる。 */
+  .hero { position: relative; min-height: 200vw; }
+  .heroframe {
+    display: block; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 100vw; aspect-ratio: 887 / 1774; pointer-events: none; z-index: 0;
+    background: url("../images/optimized/hero-frame.webp") center / 100% 100% no-repeat;
+  }
+  /* 2枚組のほうは隠す。 */
+  .masthead__arch, .heroclose { display: none; }
+
+  /* 本文をフレームの空きスペースに収める。フレームのアルファチャンネルを実測した結果、
+     390px幅換算で使える幅は 高さ93pxで237px、163pxで325px、257〜491pxで390px(全開)、
+     561pxで326px、631pxで258px、655pxで246px。上下端は装飾が中央近くまで張り出すので、テキストの
+     開始位置を下げ、幅も詰める必要がある。単位をvwにしているのは、フレーム自体が
+     100vw幅・200vw高で拡縮するため — pxで書くと機種によって当たり方が変わる。 */
+  /* 左右paddingは .sheet の20pxに上乗せされる点に注意(合計で内側に入る)。 */
+  .hero .masthead { padding: 24vw 5vw 0; }
+  .hero .masthead__title { font-size: 5.4vw; margin-bottom: 4px; }
+  .hero .masthead__sub { font-size: 3.1vw; }
+  .hero .herostats { max-width: 84vw; }
+  .hero .kinduo { max-width: 84vw; margin-top: 3vw; }
+  /* キャラクターの高さを詰めて、紋章名が下の装飾に当たらないようにする。 */
+  .hero .kinduo__art { aspect-ratio: 132 / 205; }
+}

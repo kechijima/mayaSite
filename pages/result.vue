@@ -6,7 +6,6 @@ import { DEFAULT_GENDER, isGender } from '~/utils/gender'
 import { parseCelebrities } from '~/utils/toneCelebrities'
 import { sealColor } from '~/utils/mayaData'
 import { type ProfileSection, iconFor } from '~/utils/profileSections'
-import mastheadArchSrc from '~/assets/images/optimized/top-bg.webp'
 
 const route = useRoute()
 const { plan, rank, setPlan } = useMembership()
@@ -166,8 +165,14 @@ const demoPapers: { id: PaperVariant; label: string }[] = [
     <IconSprite />
 
     <div class="sheet sheet--flush">
+      <!-- ファーストビュー全体。スマホは1枚の縦長フレーム(.heroframe)で囲み、PCは従来どおり
+           上のアーチ(.masthead__arch)と反転した閉じ(.heroclose)の2枚で構成する。1:2のフレームは
+           PC幅(最大1180px)だと高さ2360pxになってしまい成立しないため。 -->
+      <div class="hero">
+        <div class="heroframe" aria-hidden="true" />
+
       <div class="masthead">
-        <div class="masthead__arch" aria-hidden="true"><img :src="mastheadArchSrc" alt="" width="1536" height="1024" fetchpriority="high" decoding="async" /></div>
+        <div class="masthead__arch" aria-hidden="true" />
         <span class="masthead__eyebrow">JMBマヤ暦</span>
         <h1 class="font-display masthead__title">あなたの本質と運勢</h1>
         <p class="masthead__sub">マヤのツォルキン暦から未来のあるべき自分を知ろう</p>
@@ -208,7 +213,8 @@ const demoPapers: { id: PaperVariant; label: string }[] = [
 
       <!-- ファーストビューの締め。最上部のアーチ装飾(masthead__arch)と同じ画像を上下反転して
            下端に置き、額縁のように閉じる。装飾のみなのでaria-hidden。 -->
-      <div class="heroclose" aria-hidden="true"><img :src="mastheadArchSrc" alt="" width="1536" height="1024" decoding="async" /></div>
+      <div class="heroclose" aria-hidden="true" />
+      </div>
 
       <!-- 太陽の紋章 -->
       <section class="section" :data-seal="sealColor(result.sealIndex)">
