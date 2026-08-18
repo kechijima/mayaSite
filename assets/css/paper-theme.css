@@ -609,27 +609,50 @@ html { scroll-behavior: smooth; }
 .heroframe { display: none; }
 
 @media (max-width: 640px) {
-  /* フレームは絶対配置で高さに寄与しないので、フレームと同じ高さ(幅の2倍)を親に持たせる。 */
-  .hero { position: relative; min-height: 200vw; }
+  /* フレームの幅。画面幅いっぱいにしたいが、1:2なので幅から決めた高さがファーストビューを
+     超えてしまう機種がある(実測: iPhone SEで197px、iPhone 13で46pxはみ出していた)。
+     そこで「画面幅」と「見える高さの半分」の小さいほうを採る。svh はURLバーが出ている
+     状態の高さ = 必ず見える高さ。非対応ブラウザ向けに vh を先に書いて上書きしている。 */
+  .hero {
+    --frame-w: min(100vw, 50vh);
+    --frame-w: min(100vw, 50svh);
+    /* .sheet の左右paddingを越えて画面端まで広げるため(幅が親より広くなり得るので
+       margin:auto では中央に来ない — .masthead__arch と同じ手法)。 */
+    position: relative; left: 50%; transform: translateX(-50%);
+    width: var(--frame-w); min-height: calc(var(--frame-w) * 2);
+  }
   .heroframe {
-    display: block; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-    width: 100vw; aspect-ratio: 887 / 1774; pointer-events: none; z-index: 0;
+    display: block; position: absolute; top: 0; left: 0; width: 100%;
+    aspect-ratio: 887 / 1774; pointer-events: none; z-index: 0;
     background: url("../images/optimized/hero-frame.webp") center / 100% 100% no-repeat;
   }
   /* 2枚組のほうは隠す。 */
   .masthead__arch, .heroclose { display: none; }
 
-  /* 本文をフレームの空きスペースに収める。フレームのアルファチャンネルを実測した結果、
-     390px幅換算で使える幅は 高さ93pxで237px、163pxで325px、257〜491pxで390px(全開)、
-     561pxで326px、631pxで258px、655pxで246px。上下端は装飾が中央近くまで張り出すので、テキストの
-     開始位置を下げ、幅も詰める必要がある。単位をvwにしているのは、フレーム自体が
-     100vw幅・200vw高で拡縮するため — pxで書くと機種によって当たり方が変わる。 */
-  /* 左右paddingは .sheet の20pxに上乗せされる点に注意(合計で内側に入る)。 */
-  .hero .masthead { padding: 24vw 5vw 0; }
-  .hero .masthead__title { font-size: 5.4vw; margin-bottom: 4px; }
-  .hero .masthead__sub { font-size: 3.1vw; }
-  .hero .herostats { max-width: 84vw; }
-  .hero .kinduo { max-width: 84vw; margin-top: 3vw; }
+  /* 本文はフレーム幅を基準に配置する。画面幅(vw)基準のままだと、フレームが高さに合わせて
+     縮んだ機種で本文だけフレームからはみ出す。.hero 自体がフレーム幅なので、%指定は
+     そのままフレーム幅に対する割合になる。
+     割合はフレームのアルファチャンネルを実測した「本文を置ける幅」に合わせている
+     (フレーム幅390px換算で、高さ93pxで237px、163pxで325px、257〜491pxで390px(全開)、
+     631pxで258px、655pxで246px)。 */
+  .hero .masthead { padding: 24% 5% 0; }
+  .hero .masthead__title { font-size: calc(var(--frame-w) * .054); margin-bottom: 4px; }
+  .hero .masthead__sub { font-size: calc(var(--frame-w) * .031); }
+  .hero .herostats { max-width: 84%; }
+  .hero .kinduo { max-width: 84%; margin-top: 3%; }
   /* キャラクターの高さを詰めて、紋章名が下の装飾に当たらないようにする。 */
   .hero .kinduo__art { aspect-ratio: 132 / 205; }
+
+  /* 文字・余白もフレーム幅基準に揃える。既定値は clamp(...vw...) や固定pxで「画面幅」に
+     追従するため、フレームが画面より狭くなる機種(縦の短い端末)では本文だけが相対的に
+     大きくなり、下の装飾に食い込む。実測でiPhone SEだけ本文下端が85%まで下がっていた。
+     割合はフレーム幅367px時点(iPhone 13)の実効値から逆算している。 */
+  .hero .numcell { padding: 6% 1.4% 4.9%; gap: 3%; }
+  .hero .numcell__label { font-size: calc(var(--frame-w) * .03); }
+  .hero .herostats__date { font-size: calc(var(--frame-w) * .037); }
+  .hero .herostats__num { font-size: calc(var(--frame-w) * .08); }
+  .hero .kinduo__role { font-size: calc(var(--frame-w) * .031); }
+  .hero .kinduo__seal { font-size: calc(var(--frame-w) * .057); }
+  .hero .kinduo__x svg { width: calc(var(--frame-w) * .055); height: calc(var(--frame-w) * .055); }
 }
+
