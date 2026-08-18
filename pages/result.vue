@@ -158,6 +158,19 @@ const demoPapers: { id: PaperVariant; label: string }[] = [
   { id: 'beige', label: 'ベージュ' },
   { id: 'white', label: '白' }
 ]
+
+// 検証用バー自体の表示・非表示。バーを消した状態で見た目を確認したい場合があるため。
+// localStorageに保持するのは、確認のたびにページ遷移/リロードするたびに毎回開き直すのが
+// 面倒なため — plan/paperの永続化(useMembership/usePaperTheme)と同じ考え方。
+const DEMO_BAR_KEY = 'maya-demo-bar-hidden'
+const demoBarHidden = ref(false)
+onMounted(() => {
+  if (localStorage.getItem(DEMO_BAR_KEY) === '1') demoBarHidden.value = true
+})
+function toggleDemoBar() {
+  demoBarHidden.value = !demoBarHidden.value
+  localStorage.setItem(DEMO_BAR_KEY, demoBarHidden.value ? '1' : '0')
+}
 </script>
 
 <template>
@@ -429,7 +442,11 @@ const demoPapers: { id: PaperVariant; label: string }[] = [
     <!-- backdrop-blur は使わない: position:fixed と組み合わせると、スクロールの毎フレーム
          「背後のページを読み直してぼかす」処理が走り、スマホでスクロールが引っかかる原因に
          なる。背景を不透明にすれば見た目はほぼ同じで、その処理自体が不要になる。 -->
-    <div class="fixed inset-x-4 bottom-4 z-40 flex flex-wrap items-center justify-center gap-2.5 rounded-2xl px-3.5 py-2.5 text-xs shadow-lg sm:inset-x-auto sm:right-4 sm:flex-nowrap sm:rounded-full" style="border: 1px solid var(--gold-line); background: var(--paper-panel); color: var(--ink-soft);">
+    <div
+      v-if="!demoBarHidden"
+      class="fixed inset-x-4 bottom-4 z-40 flex flex-wrap items-center justify-center gap-2.5 rounded-2xl px-3.5 py-2.5 text-xs shadow-lg sm:inset-x-auto sm:right-4 sm:flex-nowrap sm:rounded-full"
+      style="border: 1px solid var(--gold-line); background: var(--paper-panel); color: var(--ink-soft);"
+    >
       <span class="whitespace-nowrap">検証用：</span>
       <div class="switch">
         <button v-for="d in demoPlans" :key="d.id" :aria-pressed="plan === d.id" @click="setPlan(d.id)">{{ d.label }}</button>
@@ -437,6 +454,23 @@ const demoPapers: { id: PaperVariant; label: string }[] = [
       <div class="switch">
         <button v-for="p in demoPapers" :key="p.id" :aria-pressed="paper === p.id" @click="setPaper(p.id)">{{ p.label }}</button>
       </div>
+      <button
+        type="button"
+        class="demobar__close"
+        aria-label="検証用バーを隠す"
+        title="検証用バーを隠す"
+        @click="toggleDemoBar"
+      >×</button>
     </div>
+    <!-- バーを隠している間の再表示ボタン。同じ隅に、目立たない小さな丸ボタンとして常時置く
+         — 隠したまま二度と出せなくなるのを避けるため。 -->
+    <button
+      v-else
+      type="button"
+      class="demobar__reopen"
+      aria-label="検証用バーを表示する"
+      title="検証用バーを表示する"
+      @click="toggleDemoBar"
+    >検証用</button>
   </div>
 </template>

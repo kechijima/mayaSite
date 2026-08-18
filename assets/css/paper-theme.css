@@ -75,6 +75,24 @@
 .switch button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .switch button[aria-pressed="true"] { background: var(--gold); color: #241a06; }
 
+/* 検証用バーの開閉。閉じるボタンはバー本体の右端、開き直すボタンは同じ角に置く
+   小さな丸タブ(常時表示)。 */
+.demobar__close {
+  appearance: none; border: 0; cursor: pointer; background: transparent; color: var(--ink-faint);
+  font-size: 15px; line-height: 1; padding: 4px 2px; margin-left: 2px; border-radius: 999px;
+}
+.demobar__close:hover { color: var(--ink); }
+.demobar__close:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.demobar__reopen {
+  position: fixed; right: 16px; bottom: 16px; z-index: 40; appearance: none; cursor: pointer;
+  border: 1px solid var(--gold-line-soft); background: color-mix(in srgb, var(--paper-panel) 85%, transparent);
+  color: var(--ink-faint); font-size: 11px; letter-spacing: .04em; padding: 6px 12px; border-radius: 999px;
+  box-shadow: var(--shadow);
+}
+.demobar__reopen:hover { color: var(--ink-soft); border-color: var(--gold-line); }
+.demobar__reopen:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+
 /* ---------------- masthead ---------------- */
 .masthead { text-align: center; padding: clamp(64px, 15vw, 128px) 0 4px; position: relative; }
 /* width intentionally exceeds 100% of .masthead's (padded) content box by exactly 2x .sheet's
@@ -117,6 +135,17 @@
    セクションの先頭がヘッダーに隠れる。 */
 :where(#diagnose, #today, #compatibility, #news) { scroll-margin-top: calc(var(--header-h) + 14px); }
 html { scroll-behavior: smooth; }
+
+/* ---------------- 横スクロールの安全策 ---------------- */
+/* 自動テスト(Chromium/実WebKit、複数画面幅、無料/有料状態、長い英字混じりの有名人リスト等)
+   では横方向のはみ出しを検出できなかったが、実機(特にiPhone SE)で「横スクロールが発生して
+   画面が引っ張られる感じ」の報告があった。原因を特定できていないサブピクセル単位のズレや、
+   iOS Safariのエッジスワイプ・ラバーバンド挙動への保険として、ドキュメントルートに
+   overflow-x:hidden を明示し、横方向のオーバースクロール(バウンス)自体も止める。
+   .paper-page 個別のoverflow:clipだけでは、それより外側(body/html)で起きる横はみ出しは
+   防げないため、二重の安全策として設定する。 */
+html, body { overflow-x: hidden; overscroll-behavior-x: none; }
+
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 /* ---------------- /result 最上部: 生年月日 / KIN / 銀河の音 ---------------- */
 .herostats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-width: 560px; margin: 0 auto 8px; text-align: center; }
@@ -318,9 +347,12 @@ html { scroll-behavior: smooth; }
 .section > .gated { margin-top: 8px; }
 .gated__reveal {
   /* 高さを抑えて下端だけフェードアウト。overflow:hidden で切るぶん上下左右に余白を持たせて
-     おかないと、ブラーが箱の端で断ち切られて不自然な直線が出る。 */
+     おかないと、ブラーが箱の端で断ち切られて不自然な直線が出る。
+     blur(5px)は判読できてしまう(実際に無料状態で読めてしまうという指摘があった)ため、
+     文字の輪郭が一切残らない18pxまで強めた — 「読めるけど読ませない」ではなく
+     「量感だけ伝わる」を狙う。opacityも.62→.4にして、二重に判読性を落としている。 */
   max-height: 310px; overflow: hidden; padding: 12px 18px; margin: -12px -18px;
-  filter: blur(5px) saturate(.6); opacity: .62;
+  filter: blur(18px) saturate(.6); opacity: .4;
   user-select: none; pointer-events: none;
   -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 84%, transparent 100%);
   mask-image: linear-gradient(180deg, #000 0%, #000 84%, transparent 100%);
