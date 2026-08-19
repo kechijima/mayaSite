@@ -653,18 +653,23 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
      実機で「はみ出す」原因になっていた。
      heightを固定してoverflow:hiddenを掛けることで、中身がどれだけ大きくなろうと
      .hero自体は物理的に1画面の高さを超えられない — 見積もりに頼らない構造的な保証。
-     svh/dvhはURLバーの出入りに追従する「見えている高さ」、非対応ブラウザ向けにvhを
-     先に書いて上書きしている。 */
+     高さはvh→svhの順で上書きし、svhを最終的な正とする(下の.heroのheightルールで詳述)。 */
   .hero {
     /* .sheet の左右paddingを越えて画面端まで広げるため(幅が親より広くなり得るので
        margin:auto では中央に来ない — .masthead__arch と同じ手法)。 */
     position: relative; left: 50%; transform: translateX(-50%);
     width: 100vw;
-    /* vh→svh→dvh→JS実測(--vh, plugins/viewportHeight.client.ts)の順で上書き。CSSの
-       dvh/svhはブラウザによって(特にDevToolsの端末エミュレーション中に)実際の表示高さと
-       ズレることがあるため、JSで実測した値を最終的な正とする。CSSの値はJS実行前の
-       初回ペイント用フォールバック。 */
-    height: 100vh; height: 100svh; height: 100dvh; height: calc(var(--vh, 1vh) * 100);
+    /* svhで止め、dvhとJS実測(--vh)は使わない。
+       - dvhは「今まさに見えている高さ」を追従するため、URLバーが出入りするたびに
+         .heroが伸び縮みしてしまう(明示的に排除済み)。
+       - JS実測のwindow.innerHeightは、各ブラウザの生の値をそのまま使うため、
+         「URLバー領域をコンテンツの裏まで含めるか(Safari)/領域として確保して除外するか
+         (Chrome)」というブラウザごとの流儀の違いをそのまま反映してしまい、同じ端末でも
+         SafariとChromeで枠の伸び方が全然違って見える原因になっていた。
+       svhはこの差を吸収するために標準化された値(「ツールバーが最も広く表示された状態」を
+       仕様で固定的に定義しており、各ブラウザの重ね方/確保の仕方の違いに依存しない)なので、
+       SafariでもChromeでも同じ考え方の高さになる。 */
+    height: 100vh; height: 100svh;
     overflow: hidden;
     display: flex; flex-direction: column;
     /* ページ下部に常時浮いている「検証用」切替バー(position:fixed, 高さ実測58px+
