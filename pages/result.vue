@@ -274,7 +274,7 @@ function toggleDemoBar() {
       <div class="sharebar">
         <button type="button" class="sharebar__btn" :disabled="sharing" @click="shareResult">
           <svg><use href="#i-share" /></svg>
-          <span>{{ sharing ? '準備中…' : '結果をシェアする' }}</span>
+          <span>結果をシェアする</span>
         </button>
       </div>
 
