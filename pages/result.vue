@@ -264,17 +264,18 @@ function toggleDemoBar() {
         </div>
       </div>
 
-      <!-- ファーストビューの締め。最上部のアーチ装飾(masthead__arch)と同じ画像を上下反転して
-           下端に置き、額縁のように閉じる。装飾のみなのでaria-hidden。 -->
-      <div class="heroclose" aria-hidden="true" />
-      </div>
-
       <div class="sharebar">
         <button type="button" class="sharebar__btn" :disabled="sharing" @click="shareResult">
           <svg><use href="#i-share" /></svg>
           <span>{{ sharing ? '準備中…' : '結果をシェアする' }}</span>
         </button>
       </div>
+
+      <!-- ファーストビューの締め。最上部のアーチ装飾(masthead__arch)と同じ画像を上下反転して
+           下端に置き、額縁のように閉じる。装飾のみなのでaria-hidden。 -->
+      <div class="heroclose" aria-hidden="true" />
+      </div>
+
       <div ref="shareCardMount" class="sharecard-mount" aria-hidden="true">
         <ShareHeroCard
           :birthdate="displayBirthdate"
