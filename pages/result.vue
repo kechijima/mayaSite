@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { toBlob } from 'html-to-image'
+import { toJpeg } from 'html-to-image'
 import { PLAN_META, type MembershipPlan } from '~/composables/useMembership'
 import type { CharacterProfileFields } from '~/composables/useDiagnosisContent'
 import type { PaperVariant } from '~/composables/usePaperTheme'
@@ -165,9 +165,16 @@ async function shareResult() {
   sharing.value = true
   try {
     await document.fonts.ready
-    const blob = await toBlob(node, { pixelRatio: 2, cacheBust: true })
-    if (!blob) return
-    const file = new File([blob], `maya-kin${result.value.kin}.png`, { type: 'image/png' })
+    // 背景の装飾フレーム(hero-frame.webp)が加わったことで、可逆圧縮のPNGだと数MB台後半に
+    // なってしまう(イラスト全面を再エンコードするため)。共有用途では劣化がほぼ気にならない
+    // JPEGにして、ファイルサイズを現実的な範囲に抑えている。
+    // html-to-imageのtoBlob()はoptionsのtype/qualityを内部でcanvasToBlobへ渡し忘れており
+    // 常にPNGになってしまう(このバージョンのライブラリの既知の実装漏れ、実測で確認済み) —
+    // toJpeg()はcanvas.toDataURL('image/jpeg', quality)を正しく使っているためこちらを使い、
+    // 返ってきたdata URLをfetchでBlob化する。
+    const dataUrl = await toJpeg(node, { pixelRatio: 2, cacheBust: true, quality: 0.92 })
+    const blob = await (await fetch(dataUrl)).blob()
+    const file = new File([blob], `maya-kin${result.value.kin}.jpg`, { type: 'image/jpeg' })
     const shareData = {
       files: [file],
       title: 'マヤ暦占い',

@@ -21,6 +21,10 @@ defineProps<{
 
 <template>
   <div class="sharecard">
+    <div class="sharecard__bg" aria-hidden="true">
+      <div class="sharecard__bg-top" />
+      <div class="sharecard__bg-bottom" />
+    </div>
     <div class="sharecard__frame">
       <p class="sharecard__title">あなたの本質と運勢</p>
       <p class="sharecard__sub">マヤのツォルキン暦から未来のあるべき自分を知ろう</p>
@@ -61,6 +65,7 @@ defineProps<{
 
 <style scoped>
 .sharecard {
+  position: relative;
   width: 1080px;
   height: 1350px;
   background: var(--paper);
@@ -69,11 +74,30 @@ defineProps<{
   justify-content: center;
   font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic Medium", "Yu Gothic", "Noto Sans JP", sans-serif;
   color: var(--ink);
+  overflow: hidden;
 }
+/* 実機のファーストビュー(.hero .heroframe)と同じ、1枚の縦長画像(1:2)を上下2枚の
+   正方形に分けて貼る手法。background-size:100% 200%で「画像全体が正方形の2倍の高さ」に
+   なるので、上半分/下半分がそれぞれの正方形にちょうど収まる(画像中央は透明なので
+   歪みも余白も出ない、詳細はassets/css/paper-theme.cssの.heroframeのコメント参照)。
+   .heroframeは::before/::afterの疑似要素だが、html-to-imageは疑似要素の背景画像を
+   確実には拾えない(実機DOM上は正しく表示されるが、キャプチャしたPNGには出ないことを
+   確認済み)ため、ここは実DOM要素(div)にしている。 */
+.sharecard__bg { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+.sharecard__bg-top,
+.sharecard__bg-bottom {
+  position: absolute; left: 0; right: 0; aspect-ratio: 1 / 1;
+  background-image: url("../assets/images/optimized/hero-frame.webp");
+  background-repeat: no-repeat; background-size: 100% 200%;
+}
+.sharecard__bg-top { top: 0; background-position: top center; }
+.sharecard__bg-bottom { bottom: 0; background-position: bottom center; }
+
 .sharecard__frame {
+  position: relative;
+  z-index: 1;
   width: calc(100% - 96px);
   height: calc(100% - 96px);
-  border: 2px solid var(--gold-line);
   border-radius: 24px;
   display: flex;
   flex-direction: column;
