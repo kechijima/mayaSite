@@ -693,11 +693,13 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
     height: 100vh; height: 100svh;
     overflow: hidden;
     display: flex; flex-direction: column;
-    /* ページ下部に常時浮いている「検証用」切替バー(position:fixed, 高さ実測58px+
-       画面下端から74pxの位置)ぶんの余白。無いとキャラクター名がこのバーの真裏に
-       来てしまい、実測48〜55pxの重なりで隠れていた(全機種で発生 — flex:1のkinduoが
-       .heroの下端いっぱいまで伸びる設計上、必然的にバーの位置と一致するため)。 */
-    padding-bottom: 78px;
+    /* 下端の余白は最小限の見切り(画面端に張り付かないための余白)のみ。以前はここに
+       「検証用」切替バー(position:fixed、QA用の一時的なUIで本番の正式機能ではない)の
+       ぶんの余白(78〜130px)を確保していたが、ユーザー指示によりシェアボタン/
+       キャラクター画像側を優先し、この余白は削った。検証用バーを開いたままだと
+       共有ボタンの真裏に来ることがあるが、バーはワンタップで閉じられる一時的なQA用UIの
+       ため許容している。 */
+    padding-bottom: 16px;
   }
   .heroframe { display: block; position: absolute; inset: 0; pointer-events: none; z-index: 0; }
   /* 画像(1:2)の上半分と下半分を、それぞれ元の縦横比(1:1)のまま上端・下端に貼る。
@@ -766,14 +768,6 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
   .hero .sharebar { flex: none; margin: 0.6vh 0 0; }
   .hero .sharebar__btn { padding: 5px 14px 5px 10px; font-size: 11px; gap: 5px; }
   .hero .sharebar__btn svg { width: 13px; height: 13px; }
-}
-
-/* 検証用バーは幅376px以下(iPhone SE等)だと1行に収まらず2行に折り返り、高さが58px→104px
-   (画面下端からの必要クリアランスも74px→120px)に増える(実測)。上の.heroのpadding-bottom
-   (78px、幅380px以上の1行時を基準に算出)のままだと、共有ボタンがこの折り返した検証用バーの
-   真裏に隠れてしまうため、該当幅だけ追加で余白を確保する。 */
-@media (max-width: 376px) {
-  .hero { padding-bottom: 130px; }
 }
 
 
