@@ -188,10 +188,13 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .kinduo__x { grid-column: 2; grid-row: 2; align-self: center; display: flex; align-items: center; justify-content: center; color: var(--gold); }
 .kinduo__x svg { width: clamp(18px, 5vw, 24px); height: clamp(18px, 5vw, 24px); }
 
-/* ファーストビュー(.hero)直後の共有ボタン。.hero自体は今回のvh調整でバランスを厳密に詰めた
-   領域なので、その内側には置かず外に出す — レイアウトへの影響を避けるため。
+/* ファーストビュー(.hero)内、太陽の紋章/ウェイブスペル名(.kinduo__cap)の下に置く共有ボタン。
    有料導線の.btn-gold相当ではなく副次アクションなので、mockupの.btn-ghostに倣った
-   アウトライン・ピル型にしている。 */
+   アウトライン・ピル型にしている。
+   モバイルは.hero内の他の要素(.masthead/.herostats/.kinduo)と同じく flex:none で
+   .heroのflex列に加わる — .kinduoがflex:1 1 auto; min-height:0で「余った高さ」を
+   引き受ける設計なので、ボタン分の高さは自動的にキャラクター画像側が縮んで吸収する
+   (「収まらない」を防ぐ構造的保証はそのまま保たれる)。 */
 .sharebar { display: flex; justify-content: center; margin: 28px 0 0; }
 .sharebar__btn {
   display: inline-flex; align-items: center; gap: 8px; appearance: none; cursor: pointer;
@@ -754,6 +757,18 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
   .hero .kinduo__art img { width: 100%; max-width: 100%; height: 100%; object-fit: contain; }
   .hero .kinduo__role { font-size: 1.43vh; }
   .hero .kinduo__seal { font-size: 2.5vh; }
+
+  /* .kinduo同様、他の見出し要素と足並みを揃えてflex:noneにし、キャラクター側(.kinduo)だけが
+     ボタンの分だけ自動的に縮んで吸収するようにする。 */
+  .hero .sharebar { flex: none; margin: 1.2vh 0 0; }
+}
+
+/* 検証用バーは幅376px以下(iPhone SE等)だと1行に収まらず2行に折り返り、高さが58px→104px
+   (画面下端からの必要クリアランスも74px→120px)に増える(実測)。上の.heroのpadding-bottom
+   (78px、幅380px以上の1行時を基準に算出)のままだと、共有ボタンがこの折り返した検証用バーの
+   真裏に隠れてしまうため、該当幅だけ追加で余白を確保する。 */
+@media (max-width: 376px) {
+  .hero { padding-bottom: 130px; }
 }
 
 
