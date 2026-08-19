@@ -186,7 +186,6 @@ function toggleDemoBar() {
 
       <div class="masthead">
         <div class="masthead__arch" aria-hidden="true" />
-        <span class="masthead__eyebrow">JMBマヤ暦</span>
         <h1 class="font-display masthead__title">あなたの本質と運勢</h1>
         <p class="masthead__sub">マヤのツォルキン暦から未来のあるべき自分を知ろう</p>
       </div>
