@@ -369,7 +369,9 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 /* 以前はモザイク模様の箱で中身を完全に差し替えていたが、今は本文をそのままブラーで潰した
    ものを背景として見せる(= モザイク)。「まだこれだけ続きがある」という分量が伝わるのが
    狙いで、参考サイトが blurred-text 画像を敷いているのと同じ考え方。 */
-.gated { position: relative; min-height: 210px; }
+/* .blockと同じ720pxの中央寄せカラムに揃える — 付けていないと、直前の本文(.block)より
+   モザイクの方が横に広くなってしまう(.blockには元々max-width:720pxがある)。 */
+.gated { position: relative; min-height: 210px; max-width: 720px; margin-left: auto; margin-right: auto; }
 /* 有料エリアの先頭は「注意すべき傾向」本文の続き(ラベル無しブロック)なので、文章がそこで
    途切れて続くだけ。段落の切れ目ぶん(= 解除後に .block--cont が空ける量)だけ空けて、
    無料部分と地続きに見せる。20pxあった頃はスマホで一段落ぶん以上あいて見えていた。
@@ -396,12 +398,13 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .gated__reveal p:last-child { margin-bottom: 0; }
 .gated__reveal .checklist { margin-bottom: 12px; }
 /* 下に向かって濃くなる紙色のスクリムのみ(格子状のピクセルグリッド線は不要とのことで削除)。
-   このスクリムが.gated__reveal(ブラー済み本文)の上に重なるため、濃すぎると文字の量感が
-   スクリムの下に完全に埋もれてしまう(14/32/62%→6/16/38%→3/8/20%と段階的に薄くした)。 */
+   本文は今は固定ダミー文(実データではない)なので判読性を気にする必要がなく、
+   「もう少し濃くしたい」という要望に沿って12/22/40%まで戻した
+   (14/32/62%→6/16/38%→3/8/20%→12/22/40%)。 */
 .gated__mosaic {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 0 16px;
   background-image:
-    linear-gradient(180deg, color-mix(in srgb, var(--paper) 3%, transparent) 0%, color-mix(in srgb, var(--paper) 8%, transparent) 55%, color-mix(in srgb, var(--paper) 20%, transparent) 100%);
+    linear-gradient(180deg, color-mix(in srgb, var(--paper) 12%, transparent) 0%, color-mix(in srgb, var(--paper) 22%, transparent) 55%, color-mix(in srgb, var(--paper) 40%, transparent) 100%);
 }
 .gated__cta {
   display: inline-flex; align-items: center; justify-content: center; gap: 10px;
