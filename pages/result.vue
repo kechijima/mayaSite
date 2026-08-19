@@ -338,9 +338,7 @@ function toggleDemoBar() {
         <!-- 有料項目はまとめて1つのモザイクに入れる(項目ごとに小さなロック箱を並べるより、
              「この分量の続きがある」ことが伝わるため)。参考: kinoshita-reon.jp -->
         <ProfileBlocks v-if="deepUnlocked" :sections="sunPremiumProfileSections" />
-        <LockedVeil v-else-if="sunPremiumProfileSections.length">
-          <ProfileBlocks :sections="sunPremiumProfileSections" />
-        </LockedVeil>
+        <LockedVeil v-else-if="sunPremiumProfileSections.length" />
       </section>
 
       <!-- ウェイブスペル -->
@@ -383,9 +381,7 @@ function toggleDemoBar() {
         <ProfileBlocks :sections="wavespellOtherFreeProfileSections" />
 
         <ProfileBlocks v-if="deepUnlocked" :sections="wavespellPremiumProfileSections" />
-        <LockedVeil v-else-if="wavespellPremiumProfileSections.length">
-          <ProfileBlocks :sections="wavespellPremiumProfileSections" />
-        </LockedVeil>
+        <LockedVeil v-else-if="wavespellPremiumProfileSections.length" />
       </section>
 
       <!-- 銀河の音 -->
@@ -424,9 +420,7 @@ function toggleDemoBar() {
       <section v-if="kinText" class="section">
         <SectionDivider :label="`KIN${result.kin}のあなたへ`" eyebrow="紋章や音を超えた、あなたへの言葉" numeric />
         <p class="kinletter">{{ kinLetterFree }}</p>
-        <LockedVeil v-if="kinLetterLocked" class="kinletter-gate">
-          <p class="kinletter">{{ kinLetterRest }}</p>
-        </LockedVeil>
+        <LockedVeil v-if="kinLetterLocked" class="kinletter-gate" />
 
         <!-- 同じKINを持つ有名人。有料エリアより後ろに置き、無料/有料を問わず全件表示する。 -->
         <div v-if="kinCelebrities.length" class="block">

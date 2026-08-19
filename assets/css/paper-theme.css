@@ -378,14 +378,12 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .gated__reveal {
   /* 高さを抑えて下端だけフェードアウト。overflow:hidden で切るぶん上下左右に余白を持たせて
      おかないと、ブラーが箱の端で断ち切られて不自然な直線が出る。
-     以前「blur(5px)のみ(高opacity・非減彩)は判読できてしまう」という指摘を受けblur/opacityを
-     18px/.4まで強めたが、今度は.gated__mosaicのスクリムと重なって文字の量感すら一切見えなく
-     なってしまった。逆に「文字感がもっと欲しい」という指摘を受け、blur(5px)まで戻しつつも
-     saturate(.6)による減彩・.gated__mosaicの薄いスクリム・下端のマスクフェードを併用することで、
-     行ごとのブロック状の量感ははっきり感じられるが個々の文字の輪郭は判読できない状態を
-     実機相当の高解像度ズームで確認した上でopacity .85に調整した。 */
+     以前はここに実際の本文(有料コンテンツ)を流し込んでいたため、判読させないための
+     ブラー強度と「量感は見せたい」の板挟みで何度も調整していたが、今はLockedVeil.vue側で
+     本文を一切DOM化しない固定ダミー文にしたため、その制約が無くなった — 文字の形が
+     見える程度まで薄くしてよい。 */
   max-height: 310px; overflow: hidden; padding: 12px 18px; margin: -12px -18px;
-  filter: blur(5px) saturate(.6); opacity: .85;
+  filter: blur(2px) saturate(.7); opacity: .95;
   user-select: none; pointer-events: none;
   -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 84%, transparent 100%);
   mask-image: linear-gradient(180deg, #000 0%, #000 84%, transparent 100%);
@@ -399,13 +397,13 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .gated__reveal .checklist { margin-bottom: 12px; }
 /* 細かいグリッド(ピクセル感)+ 下に向かって濃くなる紙色のスクリム。
    このスクリムが.gated__reveal(ブラー済み本文)の上に重なるため、濃すぎると文字の量感が
-   スクリムの下に完全に埋もれてしまう(指摘を受けて14/32/62%→6/16/38%まで薄くした)。 */
+   スクリムの下に完全に埋もれてしまう(14/32/62%→6/16/38%→3/8/20%と段階的に薄くした)。 */
 .gated__mosaic {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 0 16px;
   background-image:
     linear-gradient(to right, color-mix(in srgb, var(--paper) 50%, transparent) 1px, transparent 1px),
     linear-gradient(to bottom, color-mix(in srgb, var(--paper) 50%, transparent) 1px, transparent 1px),
-    linear-gradient(180deg, color-mix(in srgb, var(--paper) 6%, transparent) 0%, color-mix(in srgb, var(--paper) 16%, transparent) 55%, color-mix(in srgb, var(--paper) 38%, transparent) 100%);
+    linear-gradient(180deg, color-mix(in srgb, var(--paper) 3%, transparent) 0%, color-mix(in srgb, var(--paper) 8%, transparent) 55%, color-mix(in srgb, var(--paper) 20%, transparent) 100%);
   background-size: 9px 9px, 9px 9px, 100% 100%;
 }
 .gated__cta {
