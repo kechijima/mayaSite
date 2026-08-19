@@ -695,12 +695,32 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
   /* 2枚組のほうは隠す。 */
   .masthead__arch, .heroclose { display: none; }
 
-  /* 見出し部分(タイトル/日付カード)は内容なりの高さのまま — 上の飾りをよける
-     padding-topだけ確保する。幅基準(vw)なので.heroの高さがどう決まっても影響しない。 */
-  .hero .masthead { flex: none; padding: 22vw 5vw 0; }
-  .hero .masthead__title { font-size: 5.4vw; margin-bottom: 4px; }
-  .hero .masthead__sub { font-size: 3.1vw; }
+  /* 見出し(タイトル/日付カード/アーキタイプ名)の文字サイズは、幅基準(vw)ではなく
+     高さ基準(vh)で揃える。
+     キャラクター画像は「.heroの高さ(=svh) - 見出し類が消費した縦スペース」の残りを
+     flex:1で埋めるため、その大きさは本質的に高さ(vh)に連動して決まる。もし見出しの
+     文字サイズだけ幅(vw)基準のままだと、画面の縦横比が機種ごとに違う時に
+       ・横に広い/縦に短い画面 → 文字は大きいまま、キャラは(残りが減って)小さくなる
+       ・横に狭い/縦に長い画面 → 文字は小さいまま、キャラは(残りが増えて)大きくなる
+     という形で「文字とキャラの大きさの比率」が機種ごとにバラついてしまう。
+     文字側もvh基準に揃えることで、両方が同じ量(画面の高さ)に連動して伸び縮みするため、
+     機種が変わっても「見出し全体に対してキャラがこのくらいの大きさ」という
+     バランス自体は保たれる。
+     数値はiPhone 13(390x844)を基準に、変更前のvw値と同じ見た目になるよう換算した
+     (例: 5.4vw → 390*.054=21.06px → 844で21.06pxになるvh = 2.5vh)。 */
+  .hero .masthead { flex: none; padding: 10.2vh 5vw 0; }
+  .hero .masthead__title { font-size: 2.5vh; margin-bottom: 4px; }
+  .hero .masthead__sub { font-size: 1.43vh; }
   .hero .herostats { flex: none; max-width: 84vw; margin: 0 auto 8px; }
+  /* 生年月日/KIN/銀河の音の数字・ラベルも同様にvh基準へ。ベースの.herostats__date等は
+     幅clampのままなので、.hero配下だけ上書きする — トップページ「今日のアーキタイプ」
+     (.herostats--pair、.hero外)の見た目には影響させないため。 */
+  .hero .herostats__date { font-size: clamp(12px, 1.62vh, 15px); }
+  .hero .herostats__num { font-size: clamp(26px, 3.47vh, 34px); }
+  .hero .numcell__label { font-size: 1.3vh; }
+  /* カードの余白・行間も文字サイズと同じ比率で伸び縮みさせる — 文字だけ小さくなって
+     カードの余白は据え置き、というちぐはぐな見た目にならないようにするため。 */
+  .hero .numcell { padding: 2.6vh 8px 2.1vh; gap: 1.4vh; }
 
   /* キャラクター部分だけ、残りの縦スペースに合わせて自動的に縮む。
      flex:1 + min-height:0 で「余った分だけ使う」ボックスにし、内側のgridも
@@ -714,8 +734,8 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
   }
   .hero .kinduo__art { height: 100%; aspect-ratio: auto; }
   .hero .kinduo__art img { width: 100%; max-width: 100%; height: 100%; object-fit: contain; }
-  .hero .kinduo__role { font-size: 3.1vw; }
-  .hero .kinduo__seal { font-size: 5.4vw; }
+  .hero .kinduo__role { font-size: 1.43vh; }
+  .hero .kinduo__seal { font-size: 2.5vh; }
 }
 
 
