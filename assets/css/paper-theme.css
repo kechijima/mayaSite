@@ -760,7 +760,7 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
      どんな高さになっても歪まず縮小フィットする — これが「収まらない」を構造的に防ぐ本体。 */
   .hero .kinduo {
     flex: 1 1 auto; min-height: 0; max-width: 84vw; width: 100%;
-    margin: 0 auto; padding-bottom: 12vw;
+    margin: 0 auto; padding-bottom: 2vw;
     grid-template-rows: minmax(0, 1fr) auto;
   }
   .hero .kinduo__art { height: 100%; aspect-ratio: auto; }
@@ -773,7 +773,7 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
      ボタン自体のサイズ(padding/font/アイコン/margin)もモバイルでは大幅に小さくしている —
      .kinduoが引き受ける「余った高さ」はボタンの footprint(高さ+margin-top)ぶんだけ
      そのまま目減りするため、ここを絞るほどキャラクター画像は元のサイズに近づく。 */
-  .hero .sharebar { flex: none; margin: 0.6vh 0 0; }
+  .hero .sharebar { flex: none; margin: 0.3vh 0 0; }
   .hero .sharebar__btn { padding: 5px 14px 5px 10px; font-size: 11px; gap: 5px; }
   .hero .sharebar__btn svg { width: 13px; height: 13px; }
 }
