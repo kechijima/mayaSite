@@ -697,13 +697,17 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
     height: 100vh; height: 100svh;
     overflow: hidden;
     display: flex; flex-direction: column;
-    /* 下端の余白は最小限の見切り(画面端に張り付かないための余白)のみ。以前はここに
-       「検証用」切替バー(position:fixed、QA用の一時的なUIで本番の正式機能ではない)の
-       ぶんの余白(78〜130px)を確保していたが、ユーザー指示によりシェアボタン/
-       キャラクター画像側を優先し、この余白は削った。検証用バーを開いたままだと
-       共有ボタンの真裏に来ることがあるが、バーはワンタップで閉じられる一時的なQA用UIの
-       ため許容している。 */
-    padding-bottom: 16px;
+    /* 下端の余白。以前はここに「検証用」切替バー(position:fixed、QA用の一時的なUIで
+       本番の正式機能ではない)の分の余白(78〜130px)を確保していたが、ユーザー指示により
+       シェアボタン/キャラクター画像側を優先し16pxまで削った。
+       が、実機(ノッチ/Dynamic Island付きiPhoneのホームインジケーター、実測約34px)で
+       検証したところ、16pxでは足りずファーストビューの装飾枠(.heroframe)の下端が
+       ホームインジケーターの陰に隠れてしまった — ヘッドレスブラウザでのテストは実機の
+       セーフエリアを再現できないため、この不具合はPlaywrightでの確認では検出できなかった。
+       viewport-fit=cover + env(safe-area-inset-bottom)がこの種の問題の本来の解決策だが、
+       アプリ全体のmeta viewportに影響するため(検証用バー等、他の固定要素にも影響し得る)、
+       今回はこの.hero単体に留まる固定値で対処している。 */
+    padding-bottom: 40px;
   }
   .heroframe { display: block; position: absolute; inset: 0; pointer-events: none; z-index: 0; }
   /* 画像(1:2)の上半分と下半分を、それぞれ元の縦横比(1:1)のまま上端・下端に貼る。
