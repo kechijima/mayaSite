@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { toBlob } from 'html-to-image'
 import { PLAN_META, type MembershipPlan } from '~/composables/useMembership'
 import type { CharacterProfileFields } from '~/composables/useDiagnosisContent'
 import type { PaperVariant } from '~/composables/usePaperTheme'
@@ -150,6 +151,46 @@ const displayBirthdate = computed(() => {
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
 })
 
+// SNSシェア。og:image的な動的メタタグはサーバーがない(ssr:false)ため出し分けできないので、
+// 代わりにShareHeroCard(画面外に常時マウントした固定サイズの複製カード)をhtml-to-imageで
+// PNG化し、Web Share API(navigator.share)にファイルとして渡す — 対応環境(主にモバイル)では
+// ネイティブの共有シート経由でX/LINE/Instagram等に画像そのものを渡せる。非対応環境(主に
+// デスクトップ)ではダウンロードにフォールバックする。
+const shareCardMount = ref<HTMLElement | null>(null)
+const sharing = ref(false)
+async function shareResult() {
+  if (sharing.value) return
+  const node = shareCardMount.value?.querySelector<HTMLElement>('.sharecard')
+  if (!node) return
+  sharing.value = true
+  try {
+    await document.fonts.ready
+    const blob = await toBlob(node, { pixelRatio: 2, cacheBust: true })
+    if (!blob) return
+    const file = new File([blob], `maya-kin${result.value.kin}.png`, { type: 'image/png' })
+    const shareData = {
+      files: [file],
+      title: 'マヤ暦占い',
+      text: `私のKINは${result.value.kin}、太陽の紋章は${result.value.sun.seal.name}でした。`
+    }
+    if (navigator.canShare?.(shareData)) {
+      await navigator.share(shareData)
+    } else {
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = file.name
+      a.click()
+      URL.revokeObjectURL(url)
+    }
+  } catch (e) {
+    // AbortError = 共有シートをユーザーがキャンセルしただけなので無視する
+    if ((e as Error)?.name !== 'AbortError') console.error(e)
+  } finally {
+    sharing.value = false
+  }
+}
+
 const demoPlans: { id: MembershipPlan; label: string }[] = [
   { id: 'free', label: '無料' },
   { id: 'paid', label: '有料' }
@@ -226,6 +267,25 @@ function toggleDemoBar() {
       <!-- ファーストビューの締め。最上部のアーチ装飾(masthead__arch)と同じ画像を上下反転して
            下端に置き、額縁のように閉じる。装飾のみなのでaria-hidden。 -->
       <div class="heroclose" aria-hidden="true" />
+      </div>
+
+      <div class="sharebar">
+        <button type="button" class="sharebar__btn" :disabled="sharing" @click="shareResult">
+          <svg><use href="#i-share" /></svg>
+          <span>{{ sharing ? '準備中…' : '結果をシェアする' }}</span>
+        </button>
+      </div>
+      <div ref="shareCardMount" class="sharecard-mount" aria-hidden="true">
+        <ShareHeroCard
+          :birthdate="displayBirthdate"
+          :kin="result.kin"
+          :tone-index="result.toneIndex"
+          :seal-index="result.sealIndex"
+          :wavespell-seal-index="result.wavespellSealIndex"
+          :gender="result.gender"
+          :sun-name="result.sun.seal.name"
+          :wavespell-name="result.wavespell.seal.name"
+        />
       </div>
 
       <!-- 太陽の紋章 -->
