@@ -759,8 +759,13 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
   .hero .kinduo__seal { font-size: 2.5vh; }
 
   /* .kinduo同様、他の見出し要素と足並みを揃えてflex:noneにし、キャラクター側(.kinduo)だけが
-     ボタンの分だけ自動的に縮んで吸収するようにする。 */
-  .hero .sharebar { flex: none; margin: 1.2vh 0 0; }
+     ボタンの分だけ自動的に縮んで吸収するようにする。
+     ボタン自体のサイズ(padding/font/アイコン/margin)もモバイルでは大幅に小さくしている —
+     .kinduoが引き受ける「余った高さ」はボタンの footprint(高さ+margin-top)ぶんだけ
+     そのまま目減りするため、ここを絞るほどキャラクター画像は元のサイズに近づく。 */
+  .hero .sharebar { flex: none; margin: 0.6vh 0 0; }
+  .hero .sharebar__btn { padding: 5px 14px 5px 10px; font-size: 11px; gap: 5px; }
+  .hero .sharebar__btn svg { width: 13px; height: 13px; }
 }
 
 /* 検証用バーは幅376px以下(iPhone SE等)だと1行に収まらず2行に折り返り、高さが58px→104px
