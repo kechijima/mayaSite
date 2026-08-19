@@ -194,8 +194,12 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
    モバイルは.hero内の他の要素(.masthead/.herostats/.kinduo)と同じく flex:none で
    .heroのflex列に加わる — .kinduoがflex:1 1 auto; min-height:0で「余った高さ」を
    引き受ける設計なので、ボタン分の高さは自動的にキャラクター画像側が縮んで吸収する
-   (「収まらない」を防ぐ構造的保証はそのまま保たれる)。 */
-.sharebar { display: flex; justify-content: center; margin: 28px 0 0; }
+   (「収まらない」を防ぐ構造的保証はそのまま保たれる)。
+   position:relative; z-index:1 は.masthead__title/subと同じ処理 — .heroframe(装飾枠、
+   z-index:0)は中央が透明な画像だが縁(特に下端)は不透明な絵柄があり、position:staticの
+   ままだと通常フローのボックスより.heroframeが後(手前)に描画されて隠れてしまう。
+   ボタンを下寄せにした結果この下端の絵柄と重なる位置に来たため、明示的に手前へ出す。 */
+.sharebar { display: flex; justify-content: center; margin: 28px 0 0; position: relative; z-index: 1; }
 .sharebar__btn {
   display: inline-flex; align-items: center; gap: 8px; appearance: none; cursor: pointer;
   padding: 11px 22px 11px 16px; border-radius: 999px; border: 1px solid var(--gold-line-soft);
