@@ -55,7 +55,12 @@ export default defineNuxtConfig({
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         {
           rel: 'stylesheet',
-          href: 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400&family=Shippori+Mincho+B1:wght@400&display=swap'
+          // crossorigin: SNSシェア画像生成(html-to-image)がこのシートのcssRulesを読んで
+          // フォントを埋め込もうとするが、CORSモードで取得していないとブラウザがcssRules
+          // アクセスをブロックする(SecurityError)。googleapis.comはAccess-Control-Allow-Origin: *
+          // を返す実測確認済みなので、付けても読み込み自体が失敗する心配はない。
+          href: 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400&family=Shippori+Mincho+B1:wght@400&display=swap',
+          crossorigin: 'anonymous'
         }
       ]
     }
