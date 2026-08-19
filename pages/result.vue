@@ -444,7 +444,7 @@ function toggleDemoBar() {
          なる。背景を不透明にすれば見た目はほぼ同じで、その処理自体が不要になる。 -->
     <div
       v-if="!demoBarHidden"
-      class="fixed inset-x-4 bottom-4 z-40 flex flex-wrap items-center justify-center gap-2.5 rounded-2xl px-3.5 py-2.5 text-xs shadow-lg sm:inset-x-auto sm:right-4 sm:flex-nowrap sm:rounded-full"
+      class="fixed inset-x-4 bottom-4 z-40 flex flex-wrap items-center justify-center gap-2.5 rounded-2xl py-2.5 pl-3.5 pr-6.5 text-xs shadow-lg sm:inset-x-auto sm:right-4 sm:flex-nowrap sm:rounded-full"
       style="border: 1px solid var(--gold-line); background: var(--paper-panel); color: var(--ink-soft);"
     >
       <span class="whitespace-nowrap">検証用：</span>
