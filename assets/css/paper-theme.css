@@ -77,9 +77,14 @@
 
 /* 検証用バーの開閉。閉じるボタンはバー本体の右端、開き直すボタンは同じ角に置く
    小さな丸タブ(常時表示)。 */
+/* flexの通常フローに置くと、幅が狭い時に折り返して✕だけが浮いた行になっていた
+   (実機DevToolsでの確認時に発覚)。position:absoluteで常にバーの右上角に固定し、
+   折り返しの影響を受けないようにする。コンテナ側の右paddingを広げて(pr-8)、
+   スイッチ類とこのボタンが重ならないようにしている。 */
 .demobar__close {
+  position: absolute; top: 6px; right: 6px;
   appearance: none; border: 0; cursor: pointer; background: transparent; color: var(--ink-faint);
-  font-size: 15px; line-height: 1; padding: 4px 2px; margin-left: 2px; border-radius: 999px;
+  font-size: 15px; line-height: 1; padding: 4px; border-radius: 999px;
 }
 .demobar__close:hover { color: var(--ink); }
 .demobar__close:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
@@ -655,7 +660,11 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
        margin:auto では中央に来ない — .masthead__arch と同じ手法)。 */
     position: relative; left: 50%; transform: translateX(-50%);
     width: 100vw;
-    height: 100vh; height: 100svh; height: 100dvh;
+    /* vh→svh→dvh→JS実測(--vh, plugins/viewportHeight.client.ts)の順で上書き。CSSの
+       dvh/svhはブラウザによって(特にDevToolsの端末エミュレーション中に)実際の表示高さと
+       ズレることがあるため、JSで実測した値を最終的な正とする。CSSの値はJS実行前の
+       初回ペイント用フォールバック。 */
+    height: 100vh; height: 100svh; height: 100dvh; height: calc(var(--vh, 1vh) * 100);
     overflow: hidden;
     display: flex; flex-direction: column;
     /* ページ下部に常時浮いている「検証用」切替バー(position:fixed, 高さ実測58px+
