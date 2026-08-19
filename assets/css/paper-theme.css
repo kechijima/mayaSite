@@ -378,13 +378,14 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .gated__reveal {
   /* 高さを抑えて下端だけフェードアウト。overflow:hidden で切るぶん上下左右に余白を持たせて
      おかないと、ブラーが箱の端で断ち切られて不自然な直線が出る。
-     blur(5px)は判読できてしまう(実際に無料状態で読めてしまうという指摘があった)ため
-     18px+opacity .4まで強めたが、今度は.gated__mosaicのスクリムと重なって文字の量感すら
-     一切見えなくなってしまった(指摘を受けて再調整)。判読はできないが「文字があること」の
-     量感(行ごとのブロック状のかたまり)はうっすら見える程度として、blur/opacityを
-     7px/.65に調整した(3px/.9まで下げると判読できてしまうことを実機相当の確認で検証済み)。 */
+     以前「blur(5px)のみ(高opacity・非減彩)は判読できてしまう」という指摘を受けblur/opacityを
+     18px/.4まで強めたが、今度は.gated__mosaicのスクリムと重なって文字の量感すら一切見えなく
+     なってしまった。逆に「文字感がもっと欲しい」という指摘を受け、blur(5px)まで戻しつつも
+     saturate(.6)による減彩・.gated__mosaicの薄いスクリム・下端のマスクフェードを併用することで、
+     行ごとのブロック状の量感ははっきり感じられるが個々の文字の輪郭は判読できない状態を
+     実機相当の高解像度ズームで確認した上でopacity .85に調整した。 */
   max-height: 310px; overflow: hidden; padding: 12px 18px; margin: -12px -18px;
-  filter: blur(7px) saturate(.6); opacity: .65;
+  filter: blur(5px) saturate(.6); opacity: .85;
   user-select: none; pointer-events: none;
   -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 84%, transparent 100%);
   mask-image: linear-gradient(180deg, #000 0%, #000 84%, transparent 100%);
