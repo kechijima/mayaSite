@@ -9,35 +9,31 @@
 # seal-{sealIndex}-cutout-male.webp / seal-{sealIndex}-bust-male.webp (male), sealIndex 0..19 —
 # no "raw" counterpart, same precedent as assets/images/faces/.
 #
-# Usage: pip install rembg pillow ; python3 scripts/generateSealCutouts.py
+# Usage: pip install pillow numpy ; python3 scripts/generateSealCutouts.py
 #
-# Uses the 'isnet-anime' rembg model (not the default 'u2net') — u2net's segmentation
-# regularly fails on ornate held objects (staffs/scepters/swords) in this anime-illustration
-# style, clipping off the top of the object entirely; isnet-anime, trained for anime art,
-# preserves them correctly and also produces cleaner soft alpha edges around hair (u2net left
-# faint whitish halo artifacts around flyaway hair strands on multiple characters).
+# 2026-08-20: dropped the rembg/isnet-anime background-removal step (previously here to strip
+# opaque backgrounds from the raw originals) — the current art set (delivered 2026-08-13) is
+# already supplied with a transparent background per-character, so this script now just
+# trims/normalizes/re-encodes rather than segmenting. If a future art set arrives with an opaque
+# background again, re-add a `remove()` pass before `Image.open(...).convert('RGBA')` below.
 import os
 import re
-from rembg import remove, new_session
 from PIL import Image
 import numpy as np
 
-REMBG_SESSION = new_session('isnet-anime')
-
-# isnet-anime scatters near-invisible alpha noise (values of a handful, not 0) all the way to
-# the canvas edges on most outputs — invisible to the eye but enough that getbbox() (which
-# treats any alpha>0 as content) returns the full, un-cropped canvas instead of the actual
-# character bounds. Zeroing out anything below this floor right after remove() fixes bbox/crop
-# for every character, not just ones where it's visually obvious (see seal-8/赤い月, whose
-# character is narrow relative to its frame, so the inflated bbox was large enough to visibly
-# shrink its rendered size sitewide).
+# Defensive cleanup: background-removal tools (including whatever produced the current
+# already-transparent source art) commonly leave near-invisible alpha noise (values of a
+# handful, not 0) scattered all the way to the canvas edges — invisible to the eye but enough
+# that getbbox() (which treats any alpha>0 as content) returns the full, un-cropped canvas
+# instead of the actual character bounds. Zeroing out anything below this floor keeps bbox/crop
+# correct regardless of source.
 ALPHA_NOISE_FLOOR = 15
 
 
 def clean_alpha_noise(im: Image.Image, floor: int = ALPHA_NOISE_FLOOR) -> Image.Image:
     arr = np.array(im)
     arr[arr[:, :, 3] < floor, 3] = 0
-    return Image.fromarray(arr, 'RGBA')
+    return Image.fromarray(arr)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_DIR = os.path.join(ROOT, 'assets', 'images', 'optimized')
@@ -77,12 +73,13 @@ def limit_width(im: Image.Image, max_w: int) -> Image.Image:
 # to the character's own bounds), so at a fixed render width their heights — and thus on-screen
 # size — differed per archetype. Normalize every bust to a single target aspect ratio, anchored at
 # the top so any excess is trimmed off the BOTTOM (heads are never touched). The target is the
-# 女性の赤い竜 (seal-0 female) ratio, which is the widest/shortest of all busts — so every other
-# bust only ever gets a bottom crop, never a side crop.
-TARGET_BUST_AR = 846 / 668
+# widest/shortest bust among the current art set (computed in main() below, not hardcoded — the
+# right value is specific to whichever character's framing is widest-relative-to-height in THIS
+# art set, so it's recomputed whenever the source art changes rather than carried over from the
+# previous set) — so every other bust only ever gets a bottom crop, never a side crop.
 
 
-def normalize_bust_ar(im: Image.Image, target_ar: float = TARGET_BUST_AR) -> Image.Image:
+def normalize_bust_ar(im: Image.Image, target_ar: float) -> Image.Image:
     w, h = im.size
     ar = w / h
     if ar < target_ar:  # taller than target -> crop bottom, keep the top (head)
@@ -121,29 +118,38 @@ def alpha_crop(im: Image.Image, pad: int = PAD) -> Image.Image:
 
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
-    for raw_dir, suffix in GENDERS:
-        print(f'--- {raw_dir} (suffix "{suffix}") ---')
-        for seal_index in range(20):
-            name = SEAL_NAMES[seal_index]
-            src_path = find_source(raw_dir, seal_index)
-            print(f'[{seal_index:2d}] {name} <- {os.path.basename(src_path)}')
 
-            src_bytes = open(src_path, 'rb').read()
-            transparent = Image.open(__import__('io').BytesIO(remove(src_bytes, session=REMBG_SESSION))).convert('RGBA')
+    # Pass 1: load + trim every character, and slice out (but don't yet AR-normalize) each bust,
+    # so we can find the widest/shortest bust across the whole set before cropping anything else
+    # to match it.
+    entries = []  # (seal_index, suffix, full, bust_slice)
+    for raw_dir, suffix in GENDERS:
+        for seal_index in range(20):
+            src_path = find_source(raw_dir, seal_index)
+            transparent = Image.open(src_path).convert('RGBA')
             transparent = clean_alpha_noise(transparent)
 
             full = alpha_crop(transparent)
-            full_path = os.path.join(OUT_DIR, f'seal-{seal_index}-cutout{suffix}.webp')
-            limit_width(full, MAX_CUTOUT_WIDTH).save(full_path, 'WEBP', quality=88, method=6)
-
-            # bustは縮小前の full から切り出す(bust自体は縮小対象外 — 上のMAX_CUTOUT_WIDTH参照)。
             bust_bottom = int(full.height * BUST_HEIGHT_RATIO)
-            bust_slice = full.crop((0, 0, full.width, bust_bottom))
-            bust = normalize_bust_ar(alpha_crop(bust_slice, pad=4))
-            bust_path = os.path.join(OUT_DIR, f'seal-{seal_index}-bust{suffix}.webp')
-            bust.save(bust_path, 'WEBP', quality=88, method=6)
+            bust_slice = alpha_crop(full.crop((0, 0, full.width, bust_bottom)), pad=4)
+            entries.append((seal_index, suffix, full, bust_slice))
 
-            print(f'      -> {os.path.basename(full_path)} ({full.size}), {os.path.basename(bust_path)} ({bust.size})')
+    target_bust_ar = max(bust_slice.width / bust_slice.height for (*_, bust_slice) in entries)
+    print(f'target bust aspect ratio: {target_bust_ar:.4f}')
+
+    # Pass 2: normalize every bust to that ratio, and write both webp outputs.
+    for seal_index, suffix, full, bust_slice in entries:
+        name = SEAL_NAMES[seal_index]
+        print(f'[{seal_index:2d}]{suffix or " (female)"} {name}')
+
+        full_path = os.path.join(OUT_DIR, f'seal-{seal_index}-cutout{suffix}.webp')
+        limit_width(full, MAX_CUTOUT_WIDTH).save(full_path, 'WEBP', quality=88, method=6)
+
+        bust = normalize_bust_ar(bust_slice, target_bust_ar)
+        bust_path = os.path.join(OUT_DIR, f'seal-{seal_index}-bust{suffix}.webp')
+        bust.save(bust_path, 'WEBP', quality=88, method=6)
+
+        print(f'      -> {os.path.basename(full_path)} ({full.size}), {os.path.basename(bust_path)} ({bust.size})')
 
     print('Done.')
 
