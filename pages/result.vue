@@ -255,6 +255,10 @@ function toggleDemoBar() {
         </div>
       </div>
 
+      <!-- モバイルでは.kinduo+.sharebarをまとめてこの中で縦方向センタリングする
+           (.hero__body、CSS参照)。デスクトップは.heroがflex columnでないため、
+           この包みは単なる無害なblockラッパーとして働く。 -->
+      <div class="hero__body">
       <!-- 太陽の紋章 × ウェイブスペル。KIN/音の数字は上のherostatsへ移したので、
            ここは2体のアーキタイプだけを大きく見せる。 -->
       <div class="kinduo">
@@ -276,6 +280,7 @@ function toggleDemoBar() {
           <svg><use href="#i-share" /></svg>
           <span>結果をシェアする</span>
         </button>
+      </div>
       </div>
 
       <!-- ファーストビューの締め。最上部のアーチ装飾(masthead__arch)と同じ画像を上下反転して
