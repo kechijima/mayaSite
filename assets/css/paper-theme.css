@@ -762,38 +762,54 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
      カードの余白は据え置き、というちぐはぐな見た目にならないようにするため。 */
   .hero .numcell { padding: 2.6vh 8px 2.1vh; gap: 1.4vh; }
 
-  /* キャラクター部分だけ、残りの縦スペースに合わせて自動的に縮む。
-     flex:1 + min-height:0 で「余った分だけ使う」ボックスにし、内側のgridも
-     grid-template-rows: minmax(0,1fr) auto で「キャラ画像=余りを埋める / 名前=中身なり」
-     に分ける。画像はheight:100%(セルの高さいっぱい)+object-fit:containにして、
-     どんな高さになっても歪まず縮小フィットする — これが「収まらない」を構造的に防ぐ本体。
+  /* .kinduo+.sharebarをひとまとめにして「見出し類が消費した残りの高さ」を引き受ける
+     ボックス。以前は.kinduo自体がこの役目(flex:1 1 auto)を持ち、画像はheight:100%
+     (セルの高さいっぱい)+object-fit:containで縮小フィットしていた — が、キャラクターは
+     実際には高さでなく「列の幅」で頭打ちになることが多く(描画高さ = 列幅 ÷ 画像の
+     縦横比)、この場合flex:1で確保した高さのほとんどが未使用の余白になり、しかも
+     その余白は常にキャラの上側だけに出ていた(2026-08-21指摘)。
+     ここでは.hero__bodyがその「残りの高さ」を引き受け、中でjustify-content:centerに
+     よって.kinduo+.sharebarを縦方向センタリングする — 余白は上下に均等配分される。
+     overflow:hiddenは、.heroと同じ「万一収まらない場合は中身を切ってでも枠は超えない」
+     という構造的保証をこの内側のボックスにも及ぼすための保険(通常のスマホ機種では
+     発動しない)。 */
+  .hero .hero__body { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: center; }
 
-     縦長の機種(iPhone 16系等)ではキャラクターは高さではなく「列の幅」で頭打ちになる
-     (描画高さ = 列幅 ÷ 画像の縦横比 < セルの高さ)ため、セル内に縦の余りが出る。
-     以前はobject-position: top(ベースルール由来)でキャラが上寄せされ、この余りが
-     「キャラの足元〜アーキタイプ名の間」に大きな空白として挟まっていた(2026-08-21指摘)。
-     bottomに変えることでキャラが名前の直上に付き、余りは1つにまとまってstatsカードの下
-     (見出しブロックとキャラブロックの間)へ移動する — 余白の総量は減らないが、
-     「名前だけ孤立して浮く」不自然さがなくなる。
-     max-widthも84vw→92vwに広げ、幅で頭打ちになっているキャラ自体を約1割大きくしている。 */
+  /* .kinduoはもうflexで引き伸ばされないため、キャラクター画像の高さ上限は
+     セルの100%(=引き伸ばされた高さ)ではなく、ビューポート高さ基準のvhで
+     直接与える — vhはgrid/flexの入れ子状況に左右されず常に確定値になるため、
+     「引き伸ばされていない祖先のパーセント高さは不定」という問題を避けられる。
+     42vhは実機幅のテスト機種(SE〜16 Pro Max)で見出し・ボタン等を差し引いても
+     余裕を持って収まることを実測確認した値。 */
   .hero .kinduo {
-    flex: 1 1 auto; min-height: 0; max-width: 92vw; width: 100%;
+    max-width: 92vw; width: 100%;
     margin: 0 auto; padding-bottom: 2vw;
-    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
   }
-  .hero .kinduo__art { height: 100%; aspect-ratio: auto; }
+  .hero .kinduo__art { height: 42vh; aspect-ratio: auto; }
+  /* object-position: bottom — 列幅で頭打ちになり42vhより低く描画される場合、余白を
+     アート枠の下ではなく上に集める。これでキャラが名前(すぐ下の行)に密着し続ける
+     (2026-08-21の「名前だけ孤立して浮く」修正をここでも維持)。 */
   .hero .kinduo__art img { width: 100%; max-width: 100%; height: 100%; object-fit: contain; object-position: bottom center; }
   .hero .kinduo__role { font-size: 1.43vh; }
   .hero .kinduo__seal { font-size: 2.5vh; }
 
-  /* .kinduo同様、他の見出し要素と足並みを揃えてflex:noneにし、キャラクター側(.kinduo)だけが
-     ボタンの分だけ自動的に縮んで吸収するようにする。
-     ボタン自体のサイズ(padding/font/アイコン/margin)もモバイルでは大幅に小さくしている —
-     .kinduoが引き受ける「余った高さ」はボタンの footprint(高さ+margin-top)ぶんだけ
-     そのまま目減りするため、ここを絞るほどキャラクター画像は元のサイズに近づく。 */
   .hero .sharebar { flex: none; margin: 0.3vh 0 0; }
   .hero .sharebar__btn { padding: 5px 14px 5px 10px; font-size: 11px; gap: 5px; }
   .hero .sharebar__btn svg { width: 13px; height: 13px; }
+}
+
+/* 検証用バーは幅376px以下(iPhone SE等)だと1行に収まらず2行に折り返り、高さが58px→104px
+   (画面下端からの必要クリアランスも74px→120px)に増える(実測、以前にも同じ現象に対処済み)。
+   .hero .hero__bodyでのセンタリング導入により、.sharebar(グループの最下部)が以前より
+   下寄りに来るようになった結果、幅376px以下でこの折り返した検証用バーと再び重なるように
+   なったため、該当幅だけ.heroの下端余白を追加確保する。
+   この追加余白ぶん.hero__bodyの使える高さが減るため、42vhのままだとキャラクター画像+
+   名前+ボタンの合計がoverflow:hiddenに収まりきらず、頭頂部が欠けてしまう(実機相当の
+   iPhone SEで実測・確認済み)。該当幅ではキャラクターの上限も28vhまで下げて収める。 */
+@media (max-width: 376px) {
+  .hero { padding-bottom: 170px; }
+  .hero .kinduo__art { height: 28vh; }
 }
 
 
