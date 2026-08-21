@@ -766,14 +766,23 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
      flex:1 + min-height:0 で「余った分だけ使う」ボックスにし、内側のgridも
      grid-template-rows: minmax(0,1fr) auto で「キャラ画像=余りを埋める / 名前=中身なり」
      に分ける。画像はheight:100%(セルの高さいっぱい)+object-fit:containにして、
-     どんな高さになっても歪まず縮小フィットする — これが「収まらない」を構造的に防ぐ本体。 */
+     どんな高さになっても歪まず縮小フィットする — これが「収まらない」を構造的に防ぐ本体。
+
+     縦長の機種(iPhone 16系等)ではキャラクターは高さではなく「列の幅」で頭打ちになる
+     (描画高さ = 列幅 ÷ 画像の縦横比 < セルの高さ)ため、セル内に縦の余りが出る。
+     以前はobject-position: top(ベースルール由来)でキャラが上寄せされ、この余りが
+     「キャラの足元〜アーキタイプ名の間」に大きな空白として挟まっていた(2026-08-21指摘)。
+     bottomに変えることでキャラが名前の直上に付き、余りは1つにまとまってstatsカードの下
+     (見出しブロックとキャラブロックの間)へ移動する — 余白の総量は減らないが、
+     「名前だけ孤立して浮く」不自然さがなくなる。
+     max-widthも84vw→92vwに広げ、幅で頭打ちになっているキャラ自体を約1割大きくしている。 */
   .hero .kinduo {
-    flex: 1 1 auto; min-height: 0; max-width: 84vw; width: 100%;
+    flex: 1 1 auto; min-height: 0; max-width: 92vw; width: 100%;
     margin: 0 auto; padding-bottom: 2vw;
     grid-template-rows: minmax(0, 1fr) auto;
   }
   .hero .kinduo__art { height: 100%; aspect-ratio: auto; }
-  .hero .kinduo__art img { width: 100%; max-width: 100%; height: 100%; object-fit: contain; }
+  .hero .kinduo__art img { width: 100%; max-width: 100%; height: 100%; object-fit: contain; object-position: bottom center; }
   .hero .kinduo__role { font-size: 1.43vh; }
   .hero .kinduo__seal { font-size: 2.5vh; }
 
