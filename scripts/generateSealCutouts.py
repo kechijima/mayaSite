@@ -92,6 +92,32 @@ def normalize_bust_ar(im: Image.Image, target_ar: float) -> Image.Image:
     return im
 
 
+# .kinduo__art (hero) and .dossier__portrait both lay each cutout out in a box sized by CSS
+# (not by the image), then object-fit:contain it — so a character's RENDERED size is driven
+# entirely by how its own width:height ratio compares to the box's. Two standing humanoid poses
+# end up with wildly different crop widths purely because of how far accessories (a whip, a
+# flared cloak) reach sideways — e.g. 赤い月(male)'s tight cutout is 530×1662 (ratio 0.32,
+# nearly identical to a typical phone hero box's own ratio) so it renders at the box's FULL
+# height, while 赤い蛇(male) at 1081×1607 (ratio 0.67) is much wider and gets width-capped,
+# rendering at under half that height in the same box — a same-height character pair ends up
+# looking like two different sizes (reported 2026-08-21, iPhone 16-class tall/narrow viewports
+# make it most visible since the box itself is narrowest there).
+# Fix: pad every cutout's canvas WIDTH (transparent, centered) up to a single shared aspect
+# ratio before saving, so every character has the identical ratio and therefore renders at the
+# identical height in any box, regardless of what shape that box happens to be. The target is
+# the widest natural ratio already present in this art set (computed in main(), not hardcoded —
+# using the actual widest character means nothing needs cropping, only padding) rather than an
+# arbitrary number.
+def pad_to_ar(im: Image.Image, target_ar: float) -> Image.Image:
+    w, h = im.size
+    if w / h >= target_ar - 1e-9:
+        return im
+    new_w = round(h * target_ar)
+    padded = Image.new('RGBA', (new_w, h), (0, 0, 0, 0))
+    padded.paste(im, ((new_w - w) // 2, 0), im)
+    return padded
+
+
 def find_source(raw_dir: str, seal_index: int) -> str:
     # The raw filenames' leading number is NOT sealIndex+1 — it's grouped by color family
     # (1-5 red, 6-10 white, 11-15 blue, 16-20 yellow), a different order than SEALS. Match by
@@ -136,12 +162,27 @@ def main():
 
     target_bust_ar = max(bust_slice.width / bust_slice.height for (*_, bust_slice) in entries)
     print(f'target bust aspect ratio: {target_bust_ar:.4f}')
+    # Unlike the bust target (which uses the max — cropping only ever trims excess, never loses
+    # content), the cutout target is a median, not a max. Padding narrow outliers up to the max
+    # (0.69, driven by one or two characters with a sideways-flared accessory like a whip) forces
+    # every OTHER character — including the typical ~0.45-0.65 majority that was already fine —
+    # into the same width-capped rendering, so the whole cast reads visibly smaller with empty
+    # space below (reported 2026-08-21). The median is the natural "typical" ratio for this cast;
+    # targeting it fixes the handful of outlier-narrow characters (padding them up close to
+    # everyone else) while leaving the already-typical majority untouched. The few outlier-WIDE
+    # characters (the whip accessory) stay exactly as before either way, since padding only ever
+    # widens — this narrows the gap for them from >2x down to roughly 1.1-1.2x rather than 1:1,
+    # which is an accepted tradeoff for not shrinking the whole cast to match one outlier.
+    cutout_ars = sorted(full.width / full.height for (_, _, full, _) in entries)
+    target_cutout_ar = cutout_ars[len(cutout_ars) // 2]
+    print(f'target cutout aspect ratio (median of {len(cutout_ars)}): {target_cutout_ar:.4f}')
 
-    # Pass 2: normalize every bust to that ratio, and write both webp outputs.
+    # Pass 2: normalize every bust/cutout to their respective ratios, and write both webp outputs.
     for seal_index, suffix, full, bust_slice in entries:
         name = SEAL_NAMES[seal_index]
         print(f'[{seal_index:2d}]{suffix or " (female)"} {name}')
 
+        full = pad_to_ar(full, target_cutout_ar)
         full_path = os.path.join(OUT_DIR, f'seal-{seal_index}-cutout{suffix}.webp')
         limit_width(full, MAX_CUTOUT_WIDTH).save(full_path, 'WEBP', quality=88, method=6)
 
