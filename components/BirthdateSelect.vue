@@ -24,6 +24,16 @@ const optionClass = computed(() => (props.theme === 'paper' ? '' : 'bg-ink-950')
 
 const MIN_YEAR = 1900
 const MAX_YEAR = 2050
+
+// 元号は年単位の簡易換算(改元月日は無視し、その年の大半を占める元号を採用する一般的な方式)。
+// 対象範囲(1900〜2050年)は明治〜令和のみで収まる。
+function wareki(year: number): string {
+  if (year >= 2019) return `令和${year === 2019 ? '元' : year - 2018}年`
+  if (year >= 1989) return `平成${year === 1989 ? '元' : year - 1988}年`
+  if (year >= 1926) return `昭和${year === 1926 ? '元' : year - 1925}年`
+  if (year >= 1912) return `大正${year === 1912 ? '元' : year - 1911}年`
+  return `明治${year === 1868 ? '元' : year - 1867}年`
+}
 // 既定値は utils/birthdate.ts と共有 — pages/compatibility.vue が「既定値のままか＝未入力か」を
 // 判定するのに同じ値を必要とするため、こちらで直書きしない。
 const DEFAULT_YEAR = DEFAULT_BIRTHDATE_YEAR
@@ -76,7 +86,7 @@ watch(
   <div class="flex gap-2">
     <select v-model="year" required :class="selectClass" :style="selectStyle">
       <option value="" disabled :class="optionClass">年</option>
-      <option v-for="y in years" :key="y" :value="y" :class="optionClass">{{ y }}年</option>
+      <option v-for="y in years" :key="y" :value="y" :class="optionClass">{{ y }}年（{{ wareki(Number(y)) }}）</option>
     </select>
     <select v-model="month" required :class="selectClass" :style="selectStyle">
       <option value="" disabled :class="optionClass">月</option>

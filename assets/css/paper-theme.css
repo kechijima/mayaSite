@@ -470,19 +470,19 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
    なかったため、両方を濃いめに振り直している。 */
 .relcard::before { content: ""; position: absolute; inset: 0; border-radius: 16px; background: radial-gradient(120% 140% at 0% 0%, var(--rel-glow) 0%, transparent 82%), linear-gradient(var(--rel-wash), var(--rel-wash)); pointer-events: none; }
 .relcard::after { content: ""; position: absolute; inset: 0; border-radius: 16px; border: 1px solid var(--rel-line); pointer-events: none; }
-.relcard--red { --rel-glow: rgba(190, 64, 45, .32); --rel-wash: rgba(190, 64, 45, .1); --rel-line: rgba(190, 64, 45, .5); }
+.relcard--red { --rel-glow: rgba(190, 64, 45, .44); --rel-wash: rgba(190, 64, 45, .24); --rel-line: rgba(190, 64, 45, .5); }
 .relcard--red .relcard__label { color: var(--seal-red); }
 .relcard--red .relcard__cta-icon { color: var(--seal-red); }
-.relcard--white { --rel-glow: rgba(138, 131, 104, .34); --rel-wash: rgba(138, 131, 104, .12); --rel-line: rgba(138, 131, 104, .52); }
+.relcard--white { --rel-glow: rgba(138, 131, 104, .46); --rel-wash: rgba(138, 131, 104, .26); --rel-line: rgba(138, 131, 104, .52); }
 .relcard--white .relcard__label { color: var(--seal-white); }
 .relcard--white .relcard__cta-icon { color: var(--seal-white); }
-.relcard--blue { --rel-glow: rgba(28, 81, 127, .3); --rel-wash: rgba(28, 81, 127, .1); --rel-line: rgba(28, 81, 127, .5); }
+.relcard--blue { --rel-glow: rgba(28, 81, 127, .42); --rel-wash: rgba(28, 81, 127, .24); --rel-line: rgba(28, 81, 127, .5); }
 .relcard--blue .relcard__label { color: var(--seal-blue); }
 .relcard--blue .relcard__cta-icon { color: var(--seal-blue); }
 /* --rel-line uses a darker gold than --seal-yellow here (not the same value as the label/icon
    below) — the lighter seal-yellow tone is close enough in hue/luminance to the beige parchment
    panel that the card border became nearly invisible against it, unlike red/white/blue. */
-.relcard--yellow { --rel-glow: rgba(201, 154, 31, .34); --rel-wash: rgba(186, 140, 24, .12); --rel-line: rgba(154, 111, 16, .62); }
+.relcard--yellow { --rel-glow: rgba(201, 154, 31, .46); --rel-wash: rgba(186, 140, 24, .26); --rel-line: rgba(154, 111, 16, .62); }
 .relcard--yellow .relcard__label { color: var(--seal-yellow); }
 .relcard--yellow .relcard__cta-icon { color: var(--seal-yellow); }
 .relcard__figure { position: relative; z-index: 2; flex: none; align-self: flex-end; width: 340px; margin: -46px 0 0 -34px; }
