@@ -799,17 +799,24 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
   .hero .sharebar__btn svg { width: 13px; height: 13px; }
 }
 
-/* 検証用バーは幅376px以下(iPhone SE等)だと1行に収まらず2行に折り返り、高さが58px→104px
-   (画面下端からの必要クリアランスも74px→120px)に増える(実測、以前にも同じ現象に対処済み)。
-   .hero .hero__bodyでのセンタリング導入により、.sharebar(グループの最下部)が以前より
-   下寄りに来るようになった結果、幅376px以下でこの折り返した検証用バーと再び重なるように
-   なったため、該当幅だけ.heroの下端余白を追加確保する。
-   この追加余白ぶん.hero__bodyの使える高さが減るため、42vhのままだとキャラクター画像+
-   名前+ボタンの合計がoverflow:hiddenに収まりきらず、頭頂部が欠けてしまう(実機相当の
-   iPhone SEで実測・確認済み)。該当幅ではキャラクターの上限も28vhまで下げて収める。 */
-@media (max-width: 376px) {
+/* 検証用バーは幅400px以下だと折り返って高さ104px(クリアランス120px)になる(実測)。
+   .hero .hero__bodyでのセンタリング導入により.sharebarが以前より下寄りに来るため、
+   該当幅だけ.heroの下端余白を追加確保している。
+   この余白の計算どおりの数値(旧: 170px/28vh)でも、実機のiPhone SE(2026-08-22ユーザー報告、
+   スクロールしても出てこない=overflow:hiddenで実際に切れている)ではシェアボタン/下端の
+   装飾枠が欠ける現象が再発した。ヘッドレスブラウザでの計測(Chromiumの100vh、フォールバック
+   フォント)では59px前後の余裕があり再現しない — 実機のみで起きる差分(iOS Safariの
+   100svhが初回描画時にツールバー最小状態の高さを返す既知の不具合、またはWebフォント読み込み
+   後の実際の行高がヘッドレス計測と異なる、等)が原因とみられ、正確な必要値を計算で
+   出し切れないため、キャラクター画像側(28vh→24vh)を縮めて.hero__body内側の
+   overflow:hiddenとの間の余白を広げ、安全マージンを積んで対処する。
+   padding-bottomは170pxのまま据え置き — これ以上増やすと.hero__bodyのflex配分ぶんが
+   削られ、.kinduo+.sharebar自体が.hero__body自身のoverflow:hiddenで内側から欠ける
+   逆効果になることを実測で確認済み(230pxで試したところ、外側の.heroには収まっても
+   .hero__body側で約16px不足し、.sharebarの上下がセンタリングの影響で対称に切れた)。 */
+@media (max-width: 400px) {
   .hero { padding-bottom: 170px; }
-  .hero .kinduo__art { height: 28vh; }
+  .hero .kinduo__art { height: 24vh; }
 }
 
 
