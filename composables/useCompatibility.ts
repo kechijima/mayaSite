@@ -18,6 +18,10 @@ export interface PersonProfile {
   birthdate: string
   gender: Gender
   kin: number
+  prevKin: number
+  nextKin: number
+  mirrorKin: number
+  absoluteOppositeKin: number
   sealIndex: number
   toneIndex: number
   wavespellSealIndex: number
@@ -77,6 +81,10 @@ function buildProfile(person: PersonInput): PersonProfile {
     birthdate: person.birthdate,
     gender: person.gender,
     kin: birth.kin,
+    prevKin: birth.prevKin,
+    nextKin: birth.nextKin,
+    mirrorKin: birth.mirrorKin,
+    absoluteOppositeKin: birth.absoluteOppositeKin,
     sealIndex: birth.sealIndex,
     toneIndex: birth.toneIndex,
     wavespellSealIndex: birth.wavespellSealIndex,

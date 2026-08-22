@@ -21,15 +21,18 @@ const displayGender = computed(() => genderLabel(props.profile.gender))
 
     <!-- 太陽の紋章/ウェイブスペル/銀河の音を横並びに(以前は1列に積んでいた)。
          列内の英語名・キーワードは3カラムだと窮屈になるため省略し、名前のみ表示する
-         (このページの「相性」セクションの簡易カードと同じ簡潔さに揃えている)。 -->
+         (このページの「相性」セクションの簡易カードと同じ簡潔さに揃えている)。
+         各列のアイコンは"mx-auto block"ではなく明示的なstyleでdisplay:blockを当てている —
+         paper-theme.cssに無関係な用途の`.block`クラス(プローズブロック用の余白付きクラス)が
+         既に存在し、Tailwindの`block`ユーティリティと名前衝突してmargin-topが乗ってしまうため。 -->
     <div class="grid grid-cols-3 gap-1 text-center">
       <div>
-        <MayaGlyph :seal-index="profile.sealIndex" class="mx-auto block" />
+        <MayaGlyph :seal-index="profile.sealIndex" class="mx-auto" style="display: block;" />
         <div class="mt-1.5 text-[10px] tracking-[.08em]" style="color: var(--ink-faint);">太陽の紋章</div>
         <h4 class="font-display text-[13px] leading-tight">{{ profile.sun.seal.name }}</h4>
       </div>
-      <div class="border-x border-dashed px-1" style="border-color: var(--gold-line-soft);">
-        <MayaGlyph :seal-index="profile.wavespellSealIndex" class="mx-auto block" />
+      <div class="px-1">
+        <MayaGlyph :seal-index="profile.wavespellSealIndex" class="mx-auto" style="display: block;" />
         <div class="mt-1.5 text-[10px] tracking-[.08em]" style="color: var(--ink-faint);">ウェイブスペル</div>
         <h4 class="font-display text-[13px] leading-tight">{{ profile.wavespell.seal.name }}</h4>
       </div>
@@ -40,10 +43,31 @@ const displayGender = computed(() => genderLabel(props.profile.gender))
       </div>
     </div>
 
-    <!-- 運命数字(KIN番号)。ヘッダーの簡易表記(KIN xx)は、この本表示と重複するため廃止した。 -->
-    <div class="mt-3 flex flex-col items-center border-t border-dashed pt-3" style="border-color: var(--gold-line-soft);">
-      <GoldMedal :value="profile.kin" :size="68" :num-font-size="26" />
-      <div class="mt-1.5 text-[10px] tracking-[.08em]" style="color: var(--ink-faint);">運命数字</div>
+    <!-- 運命数字: メダル表示ではなくリストで、同じ/前/次/鏡の向こうの自分/絶対反対の5つのKINを全て記載する。 -->
+    <div class="mt-3 pt-3">
+      <div class="text-center text-[10px] tracking-[.08em]" style="color: var(--ink-faint);">運命数字</div>
+      <ul class="mx-auto mt-1.5 w-full max-w-[220px] space-y-1 text-[12.5px]" style="color: var(--ink-soft);">
+        <li class="flex items-center justify-between">
+          <span>同じKIN</span>
+          <span class="font-semibold" style="color: var(--ink);">{{ profile.kin }}</span>
+        </li>
+        <li class="flex items-center justify-between">
+          <span>前のKIN</span>
+          <span class="font-semibold" style="color: var(--ink);">{{ profile.prevKin }}</span>
+        </li>
+        <li class="flex items-center justify-between">
+          <span>次のKIN</span>
+          <span class="font-semibold" style="color: var(--ink);">{{ profile.nextKin }}</span>
+        </li>
+        <li class="flex items-center justify-between">
+          <span>鏡の向こうの自分KIN</span>
+          <span class="font-semibold" style="color: var(--ink);">{{ profile.mirrorKin }}</span>
+        </li>
+        <li class="flex items-center justify-between">
+          <span>絶対反対KIN</span>
+          <span class="font-semibold" style="color: var(--ink);">{{ profile.absoluteOppositeKin }}</span>
+        </li>
+      </ul>
     </div>
   </div>
 </template>

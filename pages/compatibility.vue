@@ -179,7 +179,7 @@ function editAgain() {
       <template v-else>
         <section class="section">
           <SectionDivider label="参加者" eyebrow="Participants" />
-          <div class="mx-auto grid max-w-[720px] grid-cols-1 gap-3.5 sm:grid-cols-2">
+          <div class="mx-auto grid max-w-[340px] grid-cols-1 gap-3.5 sm:max-w-[720px] sm:grid-cols-2">
             <PersonProfileCard :profile="result.self" />
             <PersonProfileCard v-for="p in result.others" :key="p.id" :profile="p" />
           </div>
@@ -187,7 +187,7 @@ function editAgain() {
 
         <section class="section">
           <SectionDivider label="相性" eyebrow="Compatibility" />
-          <div class="mx-auto max-w-[720px] space-y-6">
+          <div class="mx-auto max-w-[340px] space-y-6 sm:max-w-[720px]">
             <div v-for="pair in result.pairs" :key="pair.otherId" class="rounded-xl p-5" style="border: 1px solid var(--gold-line-soft); background: var(--paper-panel); box-shadow: var(--shadow);">
               <h3 class="mb-4 font-display text-[17px]" :style="{ color: pair.destinyRelation ? 'var(--seal-red)' : 'var(--ink)' }">{{ result.self.name }} × {{ pair.otherName }}</h3>
 
