@@ -74,7 +74,7 @@ defineProps<{
 .sharecard {
   position: relative;
   width: 1080px;
-  height: 1350px;
+  height: 1620px;
   background: var(--paper);
   display: flex;
   align-items: center;
@@ -110,7 +110,7 @@ defineProps<{
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 72px 48px 56px;
+  padding: 86px 48px 66px;
 }
 .sharecard__title {
   font-family: '"Cormorant Garamond"', '"Shippori Mincho B1"', serif;
@@ -119,9 +119,9 @@ defineProps<{
   margin: 0 0 14px;
   text-align: center;
 }
-.sharecard__sub { font-size: 24px; color: var(--ink-soft); letter-spacing: .02em; margin: 0 0 48px; text-align: center; }
+.sharecard__sub { font-size: 24px; color: var(--ink-soft); letter-spacing: .02em; margin: 0 0 60px; text-align: center; }
 
-.sharecard__stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; max-width: 760px; margin: 0 0 56px; }
+.sharecard__stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; max-width: 760px; margin: 0 0 70px; }
 .sharecard__cell {
   display: flex; flex-direction: column; align-items: center; gap: 16px;
   padding: 32px 12px 26px; border-radius: 16px; border: 1px solid var(--gold-line-soft);
@@ -137,11 +137,11 @@ defineProps<{
    左右の紋章名との対応も、元のkinduo__art--l/--rと同じくgrid-column明示で固定する
    (未指定だと自動配置で右側が「×」の中央列に置かれてしまう)。 */
 .sharecard__duo {
-  width: 100%; max-width: 760px; margin: 0 0 40px;
+  width: 100%; max-width: 760px; margin: 0 0 50px;
   display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   column-gap: 12px; row-gap: 20px;
 }
-.sharecard__art { grid-row: 1; width: 100%; height: 520px; min-width: 0; overflow: visible; }
+.sharecard__art { grid-row: 1; width: 100%; height: 670px; min-width: 0; overflow: visible; }
 .sharecard__art--l { grid-column: 1; }
 .sharecard__art--r { grid-column: 3; }
 .sharecard__art img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: top center; }
@@ -152,5 +152,5 @@ defineProps<{
 .sharecard__seal { font-family: '"Cormorant Garamond"', '"Shippori Mincho B1"', serif; font-size: 44px; letter-spacing: .05em; color: var(--gold-deep); }
 .sharecard__x { grid-column: 2; grid-row: 2; align-self: start; margin-top: 6px; font-size: 36px; color: var(--gold); }
 
-.sharecard__brand { margin: 24px 0 0; font-size: 20px; letter-spacing: .28em; color: var(--gold-deep); }
+.sharecard__brand { margin: 30px 0 0; font-size: 20px; letter-spacing: .28em; color: var(--gold-deep); }
 </style>
