@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Gender } from '~/utils/gender'
+import heroFrameSrc from '~/assets/images/optimized/hero-frame.webp'
 
 // SNSシェア用の画像化専用カード。pages/result.vue の .hero と見た目は揃えているが、
 // .hero自身は100vw breakout + svh + 装飾疑似要素で「画面いっぱいに表示される」前提の
@@ -24,6 +25,12 @@ defineProps<{
     <div class="sharecard__bg" aria-hidden="true">
       <div class="sharecard__bg-top" />
       <div class="sharecard__bg-bottom" />
+      <!-- background-imageで敷いている上と同じ画像を指す非表示<img> — pages/result.vueの
+           shareResult()がキャプチャ直前にnode内の<img>全部のdecode()完了を待つが、
+           background-imageはその対象にできないため、読み込み待ちの対象にするためだけに
+           複製している(見た目には出さない、幅高さゼロではなくopacityで隠す — 0サイズだと
+           一部ブラウザで読み込みがスキップされることがあるため)。 -->
+      <img :src="heroFrameSrc" alt="" class="sharecard__bg-preload" />
     </div>
     <div class="sharecard__frame">
       <p class="sharecard__title">あなたの本質と運勢</p>
@@ -92,6 +99,7 @@ defineProps<{
 }
 .sharecard__bg-top { top: 0; background-position: top center; }
 .sharecard__bg-bottom { bottom: 0; background-position: bottom center; }
+.sharecard__bg-preload { position: absolute; width: 2px; height: 2px; opacity: 0; }
 
 .sharecard__frame {
   position: relative;

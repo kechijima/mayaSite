@@ -165,6 +165,22 @@ async function shareResult() {
   sharing.value = true
   try {
     await document.fonts.ready
+    // キャラクター全身像/背景装飾(hero-frame.webp)の<img>・background-imageは、この関数が
+    // 呼ばれた時点(=ボタンを押した瞬間)でまだデコード完了していないことがある — ShareHeroCard
+    // 自体はページ表示直後からマウントされているが、回線が細い実機では読み込みが間に合わない
+    // ケースがあり、その場合html-to-imageは該当箇所を空白のままキャプチャしてしまう
+    // (2026-08-24、シェア画像にキャラクター全身像と背景が入らないとユーザー報告・実機のみ
+    // 再現、ローカル/デスクトップの高速回線では発生しなかった)。img.decode()で全画像の
+    // デコード完了を待ってからキャプチャすることで、読み込みが間に合わないまま撮ってしまう
+    // 事態を防ぐ。background-imageのCSS背景(sharecard__bg-top/bottom)はdecode()の対象に
+    // できないため、代わりに同じ画像を指す非表示の<img>を明示的に読み込み待ちする
+    // (ShareHeroCard側に追加、下記参照)。
+    const images = Array.from(node.querySelectorAll('img'))
+    await Promise.all(
+      images.map((img) =>
+        img.decode ? img.decode().catch(() => {}) : Promise.resolve()
+      )
+    )
     // 背景の装飾フレーム(hero-frame.webp)が加わったことで、可逆圧縮のPNGだと数MB台後半に
     // なってしまう(イラスト全面を再エンコードするため)。共有用途では劣化がほぼ気にならない
     // JPEGにして、ファイルサイズを現実的な範囲に抑えている。
@@ -172,7 +188,14 @@ async function shareResult() {
     // 常にPNGになってしまう(このバージョンのライブラリの既知の実装漏れ、実測で確認済み) —
     // toJpeg()はcanvas.toDataURL('image/jpeg', quality)を正しく使っているためこちらを使い、
     // 返ってきたdata URLをfetchでBlob化する。
-    const dataUrl = await toJpeg(node, { pixelRatio: 2, cacheBust: true, quality: 0.92 })
+    // cacheBust(画像URLにタイムスタンプを付けて毎回再取得させるオプション)は外している —
+    // 全て自前バンドルのsame-origin静的アセットで、キャッシュが古くなる/CORSでopaque
+    // response化するといった、本来cacheBustが対処する状況が起こらない一方、実機の遅い
+    // 回線ではこの強制再取得そのものが遅延・失敗の原因になり得る(上のimg.decode()待ちで
+    // 既にブラウザキャッシュ上に確定している画像を、わざわざ無視してもう一度取りに行って
+    // しまうため)。外すことで、キャッシュ済みの(=decode()で読み込み確認済みの)画像を
+    // そのまま使う。
+    const dataUrl = await toJpeg(node, { pixelRatio: 2, quality: 0.92 })
     const blob = await (await fetch(dataUrl)).blob()
     const file = new File([blob], `maya-kin${result.value.kin}.jpg`, { type: 'image/jpeg' })
     const shareData = {
