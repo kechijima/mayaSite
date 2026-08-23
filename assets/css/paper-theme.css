@@ -680,14 +680,20 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .heroframe { display: none; }
 
 @media (max-width: 640px) {
-  /* .hero の高さは「必ず見えている高さ」に固定する(min-heightではなくheight)。
-     以前はmin-height + padding-bottomで下の飾りぶんの余白を確保していたが、本文の
-     実際の高さ(フォントのレンダリング差・文字サイズ設定など、開発時のヘッドレス計測では
-     再現できない要因)がその見積りを超えると、ボックスごと1画面の高さを超えてしまい、
-     実機で「はみ出す」原因になっていた。
-     heightを固定してoverflow:hiddenを掛けることで、中身がどれだけ大きくなろうと
-     .hero自体は物理的に1画面の高さを超えられない — 見積もりに頼らない構造的な保証。
-     高さはvh→svhの順で上書きし、svhを最終的な正とする(下の.heroのheightルールで詳述)。 */
+  /* .heroの高さ: 2026-08-24時点でmin-height(可変)を採用。
+     経緯 — 元々はmin-height + padding-bottomだったが、本文の実際の高さがvhでの見積りを
+     超えると、ボックスごと1画面の高さを超えて「はみ出す」ことがあったため、一時
+     height固定+overflow:hiddenに切り替え、中身がどれだけ大きくなろうと.hero自体が
+     1画面を超えない構造にしていた。
+     が、この「切って隠す」保証はあくまで.hero自体が画面を超えないことしか保証せず、
+     見積りが外れた場合にシェアボタンや下端の装飾枠がoverflow:hiddenの内側で丸ごと
+     不可視になり、スクロールしても二度と現れない不具合を実機のiPhone SEで2回連続
+     再現した(2026-08-22, 2026-08-24ユーザー報告)。ヘッドレスブラウザでは実機Safari
+     特有の差分(100svhの初回描画時の挙動、Webフォント確定後の実際の行高、等)を再現
+     できず、必要な安全マージンを計算だけで正確に詰め切れなかったため、vh見積りが
+     外れても「見た目が一時的に1画面をわずかに超えてスクロールが必要になる」だけに
+     留め、「ボタンが恒久的に不可視になる」事態だけは構造的に起こらないようにする
+     方針に変更した — 後者(不可視化)は前者(はみ出し)より明確に悪い。 */
   .hero {
     /* .sheet の左右paddingを越えて画面端まで広げるため(幅が親より広くなり得るので
        margin:auto では中央に来ない — .masthead__arch と同じ手法)。 */
@@ -702,9 +708,11 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
          SafariとChromeで枠の伸び方が全然違って見える原因になっていた。
        svhはこの差を吸収するために標準化された値(「ツールバーが最も広く表示された状態」を
        仕様で固定的に定義しており、各ブラウザの重ね方/確保の仕方の違いに依存しない)なので、
-       SafariでもChromeでも同じ考え方の高さになる。 */
-    height: 100vh; height: 100svh;
-    overflow: hidden;
+       SafariでもChromeでも同じ考え方の高さになる。
+       height(固定)ではなくmin-heightにすることで、中身がこの高さに収まらない場合は
+       .hero自体が伸びてページがスクロール可能になる(=切って隠さない)。 */
+    min-height: 100vh; min-height: 100svh;
+    overflow: visible;
     display: flex; flex-direction: column;
     /* 下端の余白。以前はここに「検証用」切替バー(position:fixed、QA用の一時的なUIで
        本番の正式機能ではない)の分の余白(78〜130px)を確保していたが、ユーザー指示により
@@ -770,10 +778,13 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
      その余白は常にキャラの上側だけに出ていた(2026-08-21指摘)。
      ここでは.hero__bodyがその「残りの高さ」を引き受け、中でjustify-content:centerに
      よって.kinduo+.sharebarを縦方向センタリングする — 余白は上下に均等配分される。
-     overflow:hiddenは、.heroと同じ「万一収まらない場合は中身を切ってでも枠は超えない」
-     という構造的保証をこの内側のボックスにも及ぼすための保険(通常のスマホ機種では
-     発動しない)。 */
-  .hero .hero__body { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: center; }
+     min-height:0とoverflow:hiddenは付けない(2026-08-24削除) — これらは中身が
+     割り当て分に収まらない場合に強制的に縮めて切り取るためのものだったが、.hero側の
+     方針変更(上記コメント参照)に合わせてこちら側も「収まらなければ自然な高さのまま
+     .heroごと伸びる」挙動に統一する。付けたままだと.hero側の保護だけが効いても
+     この内側の箱が先にキャラクター/ボタンを切り取ってしまう(2026-08-22に実際に
+     発生・修正した事象)。 */
+  .hero .hero__body { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; }
 
   /* .kinduoはもうflexで引き伸ばされないため、キャラクター画像の高さ上限は
      セルの100%(=引き伸ばされた高さ)ではなく、ビューポート高さ基準のvhで
