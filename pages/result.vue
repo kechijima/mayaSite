@@ -195,6 +195,15 @@ async function shareResult() {
     // 既にブラウザキャッシュ上に確定している画像を、わざわざ無視してもう一度取りに行って
     // しまうため)。外すことで、キャッシュ済みの(=decode()で読み込み確認済みの)画像を
     // そのまま使う。
+    // それでもなお実機Safari/WebKitではキャラクター全身像・背景装飾が空白のまま出力される
+    // ことをWebKitエンジンでの検証で再現(2026-08-24再報告)。html-to-imageはSVGの
+    // foreignObjectにDOMを丸ごと埋め込み、それをcanvasへdrawImageする実装だが、WebKitは
+    // このforeignObject内の<img>/background-imageをdrawImage時にラスタライズしないことが
+    // ある既知の不具合を持つ(html-to-image/html2canvas共通の既知issue、ライブラリ側の
+    // 修正はない)。コミュニティで報告されている回避策が「同じ実行内でキャプチャ関数を
+    // 2回呼ぶと1回目は失敗するが2回目は必ず成功する」という挙動のため、ここでも1回目を
+    // 捨てて2回撮っている。
+    await toJpeg(node, { pixelRatio: 2, quality: 0.92 }).catch(() => {})
     const dataUrl = await toJpeg(node, { pixelRatio: 2, quality: 0.92 })
     const blob = await (await fetch(dataUrl)).blob()
     const file = new File([blob], `maya-kin${result.value.kin}.jpg`, { type: 'image/jpeg' })
