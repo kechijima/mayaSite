@@ -65,7 +65,7 @@ const todayLabel = computed(() => `${today.getFullYear()}年${today.getMonth() +
         </div>
         <button
           type="submit"
-          class="w-full rounded-full py-3.5 text-[14.5px] font-bold tracking-[.03em]"
+          class="!mt-6 w-full rounded-full py-3.5 text-[14.5px] font-bold tracking-[.03em]"
           style="background: var(--gold); color: #241a06;"
         >
           無料で診断する
