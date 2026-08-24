@@ -57,9 +57,9 @@ const year = ref(initYear || DEFAULT_YEAR)
 const month = ref(initMonth || DEFAULT_MONTH)
 const day = ref(initDay || DEFAULT_DAY)
 
-// Oldest-first (1900 → 2050): scrolling up goes into the past, down goes into the future,
-// matching 月/日 which also ascend downward. 2026-08-16以前は新しい年が上の降順だった。
-const years = Array.from({ length: MAX_YEAR - MIN_YEAR + 1 }, (_, i) => String(MIN_YEAR + i))
+// Newest-first (2050 → 1900): scrolling up goes into the future, down goes into the past
+// (2026-08-24のユーザー指示で、月/日とは逆向きのこちらへ再度変更)。
+const years = Array.from({ length: MAX_YEAR - MIN_YEAR + 1 }, (_, i) => String(MAX_YEAR - i))
 const months = Array.from({ length: 12 }, (_, i) => String(i + 1))
 
 const days = computed(() => {
