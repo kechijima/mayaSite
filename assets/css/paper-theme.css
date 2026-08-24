@@ -793,13 +793,25 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
      直接与える — vhはgrid/flexの入れ子状況に左右されず常に確定値になるため、
      「引き伸ばされていない祖先のパーセント高さは不定」という問題を避けられる。
      42vhは実機幅のテスト機種(SE〜16 Pro Max)で見出し・ボタン等を差し引いても
-     余裕を持って収まることを実測確認した値。 */
+     余裕を持って収まることを実測確認した値。
+     2026-08-24、全カットアウトの縦横比をmax基準へ統一(0.6926、
+     scripts/generateSealCutouts.py参照)した後、「キャラクター画像をもう
+     一回り大きく」との要望を受けて再調整。ここで重要な発見: このアート枠は
+     幅(kinduo1列ぶんの列幅)と高さ(vh指定)の両方から制約を受けるcontainな
+     ので、vhをどれだけ増やしても列幅で頭打ちになった時点でキャラの実サイズは
+     一切変わらない(空白が増えるだけ)。実際、統一後の縦横比0.6926では
+     旧92vw幅の列だと高さ制約はわずか28〜34vh相当で頭打ちになっており、
+     42vhは(そしてさらに48vhへの拡大も)大部分が無駄な余白だった。
+     真に大きくするには列幅そのものを広げる必要があるため、max-widthを
+     92vw→97vwに拡大(実質的なテコ入れ)した上で、高さは新しい頭打ち値
+     ちょうど程度(実測)に再設定している — これ以上増やしても見た目は
+     変わらない。 */
   .hero .kinduo {
-    max-width: 92vw; width: 100%;
+    max-width: 97vw; width: 100%;
     margin: 0 auto; padding-bottom: 2vw;
     grid-template-rows: auto auto;
   }
-  .hero .kinduo__art { height: 42vh; aspect-ratio: auto; }
+  .hero .kinduo__art { height: 31vh; aspect-ratio: auto; }
   /* object-position: bottom — 列幅で頭打ちになり42vhより低く描画される場合、余白を
      アート枠の下ではなく上に集める。これでキャラが名前(すぐ下の行)に密着し続ける
      (2026-08-21の「名前だけ孤立して浮く」修正をここでも維持)。 */
@@ -843,7 +855,19 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
      シェアボタンが検証用バー・下端の唐草模様のどちらにも重ならないことを
      確認済み。 */
   .hero .kinduo { padding-bottom: 2.5vw; row-gap: 20px; }
-  .hero .kinduo__art { height: 34vh; }
+  /* 34vh→36vh(2026-08-24)。全カットアウトの縦横比をmax基準へ統一した結果
+     (scripts/generateSealCutouts.py参照)、これまで箱の高さいっぱいに表示
+     されていたキャラクターも含め全員一律で以前より小さく描画されるように
+     なったため、「キャラクター画像をもう一回り大きく」という要望を受けて
+     調整。上の.hero .kinduoのmax-width(92vw→97vw)引き上げと対になっている
+     — このアート枠は幅(列幅)と高さ(vh)の両方から制約を受けるcontainなので、
+     列幅を広げないままvhだけ増やしても列幅で頭打ちになり見た目のサイズは
+     変わらない(375×667でこのブレークポイントの頭打ちは約36vh相当、実測)。
+     ここでは列幅を広げたうえで、高さもその新しい頭打ち値ちょうど程度に
+     再設定している。40vhまで一度試したが、この幅では検証用バー
+     (padding-bottom:170pxの余白)との間隔が数px単位まで詰まったため、
+     安全マージン(約20px)を残して36vhに戻した。 */
+  .hero .kinduo__art { height: 36vh; }
   .hero .sharebar { margin-top: 0.5vh; }
 }
 
