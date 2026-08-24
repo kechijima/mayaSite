@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { toJpeg } from 'html-to-image'
 import { PLAN_META, type MembershipPlan } from '~/composables/useMembership'
-import type { CharacterProfileFields } from '~/composables/useDiagnosisContent'
 import type { PaperVariant } from '~/composables/usePaperTheme'
 import { DEFAULT_GENDER, isGender } from '~/utils/gender'
 import { parseCelebrities } from '~/utils/toneCelebrities'
 import { sealColor } from '~/utils/mayaData'
-import { type ProfileSection, iconFor } from '~/utils/profileSections'
+import { type ProfileSection, iconFor, freeProfileSections, premiumProfileSections } from '~/utils/profileSections'
+import { RELATION_DESCRIPTION } from '~/utils/kinRelations'
 
 const route = useRoute()
 const { plan, rank, setPlan } = useMembership()
@@ -71,33 +71,6 @@ const toneCelebrities = computed(() => parseCelebrities(toneProfile.value?.celeb
 // プロフィールを深掘りする(2026-08-06以前は両方まとめて「あなたについて」という1セクションに
 // していたが、実際には太陽の紋章側のプロフィールしか出せておらず紛らわしかったため分離した)。
 const deepUnlocked = computed(() => rank.value >= 1)
-function freeProfileSections(p: CharacterProfileFields | null): ProfileSection[] {
-  if (!p) return []
-  const sections: (ProfileSection | null)[] = [
-    p.careerPath ? { kind: 'text', label: 'キャリアパス', text: p.careerPath } : null,
-    p.likes?.length ? { kind: 'list', label: 'あなたが喜ぶこと', items: p.likes } : null,
-    p.dislikes?.length ? { kind: 'list', label: 'あなたが嫌がること', items: p.dislikes } : null,
-    p.communicationStrengths?.length ? { kind: 'list', label: 'コミュニケーションの強み', items: p.communicationStrengths } : null,
-    p.communicationChallenges?.length ? { kind: 'list', label: 'コミュニケーションの課題', items: p.communicationChallenges } : null,
-    p.strengthsSummary?.length ? { kind: 'list-then-text', label: 'あなたの性格の強み', items: p.strengthsSummary, text: p.strengthsDetail ?? '' } : null,
-    p.cautionSummary?.length ? { kind: 'list-then-text', label: '注意すべき傾向', items: p.cautionSummary, text: p.cautionDetail ?? '' } : null
-  ]
-  return sections.filter((s): s is ProfileSection => s !== null)
-}
-function premiumProfileSections(p: CharacterProfileFields | null): ProfileSection[] {
-  if (!p) return []
-  const sections: (ProfileSection | null)[] = [
-    p.cautionDetailPremium ? { kind: 'text', label: '', text: p.cautionDetailPremium } : null,
-    p.practicalTips?.length ? { kind: 'list', label: '実践的なヒント', items: p.practicalTips } : null,
-    p.bestEnvironment ? { kind: 'text', label: '人生で一番伸びる環境', text: p.bestEnvironment } : null,
-    p.bestRole ? { kind: 'text', label: '人生で一番向いている役割', text: p.bestRole } : null,
-    p.loveAndPartnership ? { kind: 'text', label: '恋愛・パートナーシップ', text: p.loveAndPartnership } : null,
-    p.careerSuccess ? { kind: 'text', label: '仕事で成功する方法', text: p.careerSuccess } : null,
-    p.luckUpActions?.length ? { kind: 'list', label: '運気が上がる行動', items: p.luckUpActions } : null,
-    p.luckDownHabits ? { kind: 'text', label: '運気が下がるクセ', text: p.luckDownHabits } : null
-  ]
-  return sections.filter((s): s is ProfileSection => s !== null)
-}
 const sunFreeProfileSections = computed(() => freeProfileSections(sunProfile.value))
 const sunPremiumProfileSections = computed(() => premiumProfileSections(sunProfile.value))
 const wavespellFreeProfileSections = computed(() => freeProfileSections(wavespellProfile.value))
@@ -137,14 +110,6 @@ const relations = computed(() => [
   { label: '反対KIN', seal: result.value.relations.antipode },
   { label: '類似KIN', seal: result.value.relations.analog }
 ])
-// KINの関係性カードの説明文は実データに存在しないため、関係性の種類ごとの一般的な意味を
-// 静的コピーとして用意している(デザインモックアップ時に作文したもの)。
-const RELATION_DESCRIPTION: Record<string, string> = {
-  'ガイドKIN': 'あなたを導き、後押ししてくれるアーキタイプ。迷った時や決断が必要な時、頼りになるアドバイスをくれる存在です。困った時は相談してみましょう。',
-  '神秘KIN': '前世からの深い縁で結ばれたアーキタイプ。強く惹かれ合う一方で、お互いに足りない部分を補い合う関係でもあります。頼りすぎないよう気をつけましょう。',
-  '反対KIN': 'あなたと正反対の性質を持つアーキタイプ。得意なことも苦手なこともまるで鏡のように違いますが、だからこそお互いを補い合える関係です。',
-  '類似KIN': '本質がよく似た、最も気の合うアーキタイプ。多くの価値観を共有できるため、一緒にいて自然体でいられる、居心地の良い存在です。'
-}
 
 const displayBirthdate = computed(() => {
   const d = new Date(input.value.birthdate)
@@ -480,7 +445,10 @@ function toggleDemoBar() {
               <span class="relcard__label">{{ r.label }}</span>
               <h3 class="font-display relcard__name">{{ r.seal.name }}</h3>
               <p class="relcard__desc">{{ RELATION_DESCRIPTION[r.label] }}</p>
-              <span class="relcard__cta"><span class="relcard__cta-icon"><svg><use href="#i-search" /></svg></span>詳しく見る</span>
+              <NuxtLink
+                :to="{ path: `/kin/${r.seal.index}`, query: { label: r.label, name: result.name, birth: input.birthdate, gender: result.gender } }"
+                class="relcard__cta"
+              ><span class="relcard__cta-icon"><svg><use href="#i-search" /></svg></span>詳しく見る</NuxtLink>
             </div>
           </div>
         </div>
