@@ -716,8 +716,17 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
        セーフエリアを再現できないため、この不具合はPlaywrightでの確認では検出できなかった。
        viewport-fit=cover + env(safe-area-inset-bottom)がこの種の問題の本来の解決策だが、
        アプリ全体のmeta viewportに影響するため(検証用バー等、他の固定要素にも影響し得る)、
-       今回はこの.hero単体に留まる固定値で対処している。 */
-    padding-bottom: 40px;
+       今回はこの.hero単体に留まる固定値で対処している。
+       40px→150pxへ再度拡大(2026-08-24) — 幅401〜640px(iPhone Pro Max/Plus等、
+       ≤400px側のSE向け特別対応の対象外になる機種)で、キャラクター名(.kinduo__cap)や
+       シェアボタンが装飾枠(.heroframe)下端の唐草模様(不透明部分)に重なって見切れる
+       不具合をユーザー報告・実測のスクリーンショットで確認。装飾枠は画面幅基準
+       (aspect-ratio:1/1、高さ=幅)で伸縮する一方、本文はvh(画面の高さ)基準で
+       伸縮するため、機種のアスペクト比によって装飾枠が本文の直後まで迫ってきてしまう
+       — 40pxではこの唐草模様の不透明領域をクリアできない機種があった。150pxは
+       ≤400px側で既に確保している170pxに近い値で、そちら側で唐草模様との重なりが
+       起きていない実績にならい採用した。 */
+    padding-bottom: 150px;
   }
   .heroframe { display: block; position: absolute; inset: 0; pointer-events: none; z-index: 0; }
   /* 画像(1:2)の上半分と下半分を、それぞれ元の縦横比(1:1)のまま上端・下端に貼る。
