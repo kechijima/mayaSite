@@ -72,15 +72,12 @@ const premiumSections = computed(() => premiumProfileSections(profile.value))
     <IconSprite />
 
     <div class="sheet">
-      <div class="archframe" aria-hidden="true"><img :src="dividerSrc" alt="" width="1536" height="1024" decoding="async" /></div>
-
       <template v-if="seal">
         <section class="section" :data-seal="sealColor(safeSealIndex)">
-          <div class="masthead masthead--plain">
-            <span class="masthead__eyebrow">{{ relationLabel ?? '紋章プロフィール' }}</span>
-            <h1 class="font-display masthead__title">{{ seal.name }}</h1>
-            <p v-if="relationLabel" class="masthead__sub">{{ RELATION_DESCRIPTION[relationLabel] }}</p>
-          </div>
+          <div class="archframe" aria-hidden="true"><img :src="dividerSrc" alt="" width="1536" height="1024" decoding="async" /></div>
+          <div class="section__eyebrow">{{ relationLabel ?? '紋章プロフィール' }}</div>
+          <h1 class="font-display section__title">{{ seal.name }}</h1>
+          <p v-if="relationLabel" class="masthead__sub">{{ RELATION_DESCRIPTION[relationLabel] }}</p>
           <div class="dossier">
             <MayaPortrait :seal-index="safeSealIndex" :gender="gender" />
             <div class="dossier__main">
@@ -134,10 +131,9 @@ const premiumSections = computed(() => premiumProfileSections(profile.value))
 
       <template v-else>
         <section class="section">
-          <div class="masthead masthead--plain">
-            <span class="masthead__eyebrow">紋章プロフィール</span>
-            <h1 class="font-display masthead__title">紋章が見つかりません</h1>
-          </div>
+          <div class="archframe" aria-hidden="true"><img :src="dividerSrc" alt="" width="1536" height="1024" decoding="async" /></div>
+          <div class="section__eyebrow">紋章プロフィール</div>
+          <h1 class="font-display section__title">紋章が見つかりません</h1>
           <p class="text-center" style="color: var(--ink-soft);">指定された紋章が見つかりませんでした。</p>
           <div class="mt-6 flex justify-center">
             <NuxtLink
