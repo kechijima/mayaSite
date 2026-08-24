@@ -818,12 +818,25 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
    .heroのコメント参照)。
    .heroが中身まかせの自然な高さになった(2026-08-24〜)ことで、.hero自体がbottom
    paddingぶんの余白を必ず確保できるようになったため、キャラクター画像の上限を
-   24vh→30vhへ再度拡大(2026-08-24、SE表示のみもう少し大きくしてほしいとの要望)。
-   375×667で実測、170pxの余白のうち約53px(30vh-24vh分)を使う計算になるが、
-   それでも装飾枠の唐草模様に重なるほどの余白不足にはならないことを確認済み。 */
+   24vh→30vhへ拡大した(2026-08-24、SE表示のみもう少し大きくしてほしいとの要望)。
+   さらに「装飾枠(上端アーチ/下端の唐草)の位置は変えずにもっと大きくしたい」との
+   追加要望(2026-08-24)を受け、見出し類(masthead/herostats/numcell/sharebar/kinduo)
+   の余白を切り詰めてキャラクター画像の拡大分をできるだけ相殺し、.hero自体の高さ
+   (=装飾枠が実際に位置する範囲)が動かないようにしている。
+   masthead(タイトル上)のpadding-topは当初10.2vh→7.5vhまで削ったところ、375×667で
+   実機相当の描画を確認したところsubtitle(マヤのツォルキン暦から…)が上端アーチの
+   唐草模様に重なって見切れる新規不具合を作ってしまったため10.2vhへ戻した — 削れる
+   余白には上端アーチ側のクリアランスという制約があり、無制限には削れない。
+   結果としてキャラクター画像は27vhまで(24vhからは+3vh)に留めている。 */
 @media (max-width: 400px) {
   .hero { padding-bottom: 170px; }
-  .hero .kinduo__art { height: 30vh; }
+  .hero .masthead { padding-top: 10.2vh; }
+  .hero .masthead__title { margin-bottom: 2px; }
+  .hero .herostats { margin-bottom: 4px; }
+  .hero .numcell { padding: 2vh 8px 1.6vh; gap: 1.1vh; }
+  .hero .kinduo { padding-bottom: 1vw; }
+  .hero .kinduo__art { height: 27vh; }
+  .hero .sharebar { margin-top: 0; }
 }
 
 
