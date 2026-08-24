@@ -162,20 +162,22 @@ def main():
 
     target_bust_ar = max(bust_slice.width / bust_slice.height for (*_, bust_slice) in entries)
     print(f'target bust aspect ratio: {target_bust_ar:.4f}')
-    # Unlike the bust target (which uses the max — cropping only ever trims excess, never loses
-    # content), the cutout target is a median, not a max. Padding narrow outliers up to the max
-    # (0.69, driven by one or two characters with a sideways-flared accessory like a whip) forces
-    # every OTHER character — including the typical ~0.45-0.65 majority that was already fine —
-    # into the same width-capped rendering, so the whole cast reads visibly smaller with empty
-    # space below (reported 2026-08-21). The median is the natural "typical" ratio for this cast;
-    # targeting it fixes the handful of outlier-narrow characters (padding them up close to
-    # everyone else) while leaving the already-typical majority untouched. The few outlier-WIDE
-    # characters (the whip accessory) stay exactly as before either way, since padding only ever
-    # widens — this narrows the gap for them from >2x down to roughly 1.1-1.2x rather than 1:1,
-    # which is an accepted tradeoff for not shrinking the whole cast to match one outlier.
-    cutout_ars = sorted(full.width / full.height for (_, _, full, _) in entries)
-    target_cutout_ar = cutout_ars[len(cutout_ars) // 2]
-    print(f'target cutout aspect ratio (median of {len(cutout_ars)}): {target_cutout_ar:.4f}')
+    # 2026-08-21〜2026-08-24の経緯: 当初は中央値を目標にしていた(median方式) — 中央値を
+    # 超える外れ値(赤い蛇・青い手など、鞭や剣が横に張り出すごく一部のキャラ)だけを
+    # パディング対象外のまま残し、大多数のキャラの表示サイズを変えない設計だった。
+    # が、赤い蛇・青い手を差し替えて解消した後も「赤い月(男性)が他より小さい」と
+    # 再度報告があり、改めて全40枚を調べたところ、中央値を明確に上回る外れ値が
+    # 実は14体(男性11・女性2)もあることが判明 — median方式は「ごく少数の例外」を
+    # 前提にしていたが、実際には全体の1/3超が該当する規模の問題だった。
+    # 個別に絵を描き直すのは現実的でないため、目標値を中央値ではなく最大値(bustと
+    # 同じ方式)に変更 — これで全40枚が同一の縦横比になり、outlierが原理的に
+    # 存在しなくなる。代償として、これまで箱の高さいっぱいに表示されていた
+    # 中央値付近のキャラ(過半数)も、最大値の外れ値に合わせて一律で少し小さく
+    # 表示されるようになる(目算で ~13%程度、実測はコミットメッセージ参照) — が、
+    # 「一部だけ小さく見える」不具合が全キャラで起こらなくなることを優先した。
+    cutout_ars = [full.width / full.height for (_, _, full, _) in entries]
+    target_cutout_ar = max(cutout_ars)
+    print(f'target cutout aspect ratio (max of {len(cutout_ars)}): {target_cutout_ar:.4f}')
 
     # Pass 2: normalize every bust/cutout to their respective ratios, and write both webp outputs.
     for seal_index, suffix, full, bust_slice in entries:
