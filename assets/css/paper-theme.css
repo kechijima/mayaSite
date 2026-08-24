@@ -834,9 +834,17 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
   .hero .masthead__title { margin-bottom: 2px; }
   .hero .herostats { margin-bottom: 4px; }
   .hero .numcell { padding: 2vh 8px 1.6vh; gap: 1.1vh; }
-  .hero .kinduo { padding-bottom: 1vw; }
-  .hero .kinduo__art { height: 27vh; }
-  .hero .sharebar { margin-top: 0; }
+  /* シェアボタン/アーキタイプ名をもっと下げてキャラクター画像を大きくしたいとの
+     要望(2026-08-24)。padding-bottom:170pxの余白は元々「検証用バーとの
+     クリアランス」用に確保したもので、実際に必要な分(約120px)より多く余って
+     いたため、その余りを使ってキャラクター画像(27vh→34vh)・アート〜名前間の
+     間隔(row-gap 14px→20px)・名前〜シェアボタン間の間隔(padding-bottom
+     1vw→2.5vw、sharebar margin-top 0→0.5vh)を広げた。375×667で実測し、
+     シェアボタンが検証用バー・下端の唐草模様のどちらにも重ならないことを
+     確認済み。 */
+  .hero .kinduo { padding-bottom: 2.5vw; row-gap: 20px; }
+  .hero .kinduo__art { height: 34vh; }
+  .hero .sharebar { margin-top: 0.5vh; }
 }
 
 
