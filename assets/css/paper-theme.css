@@ -814,22 +814,16 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 
 /* 検証用バーは幅400px以下だと折り返って高さ104px(クリアランス120px)になる(実測)。
    .hero .hero__bodyでのセンタリング導入により.sharebarが以前より下寄りに来るため、
-   該当幅だけ.heroの下端余白を追加確保している。
-   この余白の計算どおりの数値(旧: 170px/28vh)でも、実機のiPhone SE(2026-08-22ユーザー報告、
-   スクロールしても出てこない=overflow:hiddenで実際に切れている)ではシェアボタン/下端の
-   装飾枠が欠ける現象が再発した。ヘッドレスブラウザでの計測(Chromiumの100vh、フォールバック
-   フォント)では59px前後の余裕があり再現しない — 実機のみで起きる差分(iOS Safariの
-   100svhが初回描画時にツールバー最小状態の高さを返す既知の不具合、またはWebフォント読み込み
-   後の実際の行高がヘッドレス計測と異なる、等)が原因とみられ、正確な必要値を計算で
-   出し切れないため、キャラクター画像側(28vh→24vh)を縮めて.hero__body内側の
-   overflow:hiddenとの間の余白を広げ、安全マージンを積んで対処する。
-   padding-bottomは170pxのまま据え置き — これ以上増やすと.hero__bodyのflex配分ぶんが
-   削られ、.kinduo+.sharebar自体が.hero__body自身のoverflow:hiddenで内側から欠ける
-   逆効果になることを実測で確認済み(230pxで試したところ、外側の.heroには収まっても
-   .hero__body側で約16px不足し、.sharebarの上下がセンタリングの影響で対称に切れた)。 */
+   該当幅だけ.heroの下端余白を追加確保している(padding-bottom:170px、経緯は上の
+   .heroのコメント参照)。
+   .heroが中身まかせの自然な高さになった(2026-08-24〜)ことで、.hero自体がbottom
+   paddingぶんの余白を必ず確保できるようになったため、キャラクター画像の上限を
+   24vh→30vhへ再度拡大(2026-08-24、SE表示のみもう少し大きくしてほしいとの要望)。
+   375×667で実測、170pxの余白のうち約53px(30vh-24vh分)を使う計算になるが、
+   それでも装飾枠の唐草模様に重なるほどの余白不足にはならないことを確認済み。 */
 @media (max-width: 400px) {
   .hero { padding-bottom: 170px; }
-  .hero .kinduo__art { height: 24vh; }
+  .hero .kinduo__art { height: 30vh; }
 }
 
 
