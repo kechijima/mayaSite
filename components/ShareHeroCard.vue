@@ -128,7 +128,7 @@ defineProps<{
   background: radial-gradient(140% 170% at 30% 0%, var(--paper-panel) 0%, var(--paper-panel-2) 100%);
 }
 .sharecard__label { font-size: 20px; color: var(--ink-faint); letter-spacing: .02em; }
-.sharecard__date { font-size: 26px; font-variant-numeric: tabular-nums; }
+.sharecard__date { font-size: 26px; font-variant-numeric: tabular-nums; color: var(--gold-deep); }
 .sharecard__num { font-family: '"Shippori Mincho B1"', serif; font-variant-numeric: tabular-nums; font-size: 48px; line-height: 1; color: var(--gold-deep); }
 
 /* 固定サイズカードなので、.hero/.kinduoのようにflex/gridの%高さ解決に頼らず、キャラクター
