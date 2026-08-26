@@ -1,13 +1,21 @@
 <script setup lang="ts">
 import { createUserWithEmailAndPassword, updateProfile, type Auth } from 'firebase/auth'
 import { doc, setDoc, serverTimestamp, type Firestore } from 'firebase/firestore'
+import { DEFAULT_GENDER, isGender, type Gender } from '~/utils/gender'
 
 const route = useRoute()
-const name = ref('')
+// 診断結果ページ(pages/result.vue)・紋章詳細ページ(pages/kin/[sealIndex].vue)から
+// 遷移してきた場合、utils/signupLink.tsが付与したname/birth/genderクエリで
+// フォームを入力済みにする(diagnosisContentが正しく変換した値なのでバリデーション不要)。
+const name = ref((route.query.name as string) || '')
 const phone = ref('')
 const email = ref('')
 const password = ref('')
 const passwordConfirm = ref('')
+const birthdate = ref((route.query.birth as string) || '')
+const gender = ref<Gender>(
+  typeof route.query.gender === 'string' && isGender(route.query.gender) ? route.query.gender : DEFAULT_GENDER
+)
 const submitting = ref(false)
 const errorMessage = ref('')
 
@@ -52,6 +60,8 @@ async function submit() {
   try {
     const credential = await createUserWithEmailAndPassword(auth, email.value, password.value)
     await updateProfile(credential.user, { displayName: name.value })
+    // useAuth()のuserにdisplayNameの変更を反映させる(composables/useAuth.tsのrefreshUser参照)。
+    refreshUser()
     // plan は将来の決済導入に備えた予約フィールド。'free'固定で作成させ、書き込みも
     // firestore.rulesでplanフィールドだけ管理者限定にしているため、本人がここを
     // 自己申告で'paid'にすることはできない。
@@ -59,6 +69,8 @@ async function submit() {
       name: name.value,
       phone: phone.value,
       email: email.value,
+      birthdate: birthdate.value,
+      gender: gender.value,
       plan: 'free',
       createdAt: serverTimestamp()
     })
@@ -84,6 +96,14 @@ async function submit() {
           <div>
             <label class="formlabel">お名前</label>
             <input v-model="name" type="text" required autocomplete="name" class="formfield" />
+          </div>
+          <div>
+            <label class="formlabel">生年月日</label>
+            <BirthdateSelect v-model="birthdate" theme="paper" />
+          </div>
+          <div>
+            <label class="formlabel">性別</label>
+            <GenderRadio v-model="gender" />
           </div>
           <div>
             <label class="formlabel">電話番号</label>

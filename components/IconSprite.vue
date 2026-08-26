@@ -29,5 +29,7 @@
     <symbol id="i-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5.5" r="2.5" /><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="18.5" r="2.5" /><path d="M8.2 10.7 15.8 7M8.2 13.3l7.6 3.7" /></symbol>
     <!-- 太陽の紋章「×」ウェイブスペル の掛け合わせ記号。細めの線で、装飾の金線と同じ質感に揃えている。 -->
     <symbol id="i-cross" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M5.5 5.5l13 13M18.5 5.5l-13 13" /></symbol>
+    <!-- ログイン中のユーザー表示(components/SiteHeader.vue)。 -->
+    <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.2" r="3.4" /><path d="M4.8 19.2c1.1-3.6 3.9-5.4 7.2-5.4s6.1 1.8 7.2 5.4" /></symbol>
   </svg>
 </template>
