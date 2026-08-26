@@ -136,9 +136,9 @@
    これらのページにはヘッダーが無い(layouts/default.vue 参照)ので、ヘッダー高さは足さない。 */
 .masthead--plain { padding-top: 48px; }
 
-/* ページ内リンク(トップページのメニュー)の着地位置。固定ヘッダーのぶん下げないと
-   セクションの先頭がヘッダーに隠れる。 */
-:where(#diagnose, #today, #compatibility, #news) { scroll-margin-top: calc(var(--header-h) + 14px); }
+/* ページ内リンク(トップページ/診断結果ページのメニュー)の着地位置。固定ヘッダーのぶん
+   下げないとセクションの先頭がヘッダーに隠れる。 */
+:where(#diagnose, #today, #compatibility, #news, #sun, #wavespell, #tone, #relations, #destiny, #compatibility-cta) { scroll-margin-top: calc(var(--header-h) + 14px); }
 html { scroll-behavior: smooth; }
 
 /* ---------------- 横スクロールの安全策 ---------------- */
@@ -551,7 +551,11 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 /* 最上部では背景を敷かずアーチ装飾を透かし、スクロールすると背景+境界線が出る。
    ただし完全な透過だと、アーチの濃い緑の角に文字が重なって読めなくなるので、
    薄い紙色のグラデーションだけは常に敷いている。 */
-.siteheader { position: fixed; top: 0; left: 0; right: 0; z-index: 70; }
+.siteheader { position: fixed; top: 0; left: 0; right: 0; z-index: 70; transition: opacity .25s ease, transform .25s ease; }
+/* 診断結果ページ用: hide-until-scrolled 指定時、スクロールするまでヘッダー自体を隠す
+   (トップページのような透過表示ではなく完全非表示 — ファーストビューのヒーローに被らないため)。
+   visibility も切っておくことで、隠れている間はキーボード操作でもフォーカスが飛ばない。 */
+.siteheader.is-hidden { opacity: 0; visibility: hidden; transform: translateY(-6px); pointer-events: none; }
 .siteheader__inner {
   position: relative; z-index: 2;
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
@@ -610,7 +614,7 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 
 /* アニメーションを減らす設定の利用者には動きを出さない。 */
 @media (prefers-reduced-motion: reduce) {
-  .siteheader::before, .siteheader__burger-bar, .siteheader__scrim, .sitemenu { transition: none; }
+  .siteheader, .siteheader::before, .siteheader__burger-bar, .siteheader__scrim, .sitemenu { transition: none; }
 }
 
 /* ---------------- 汎用パーツ (マイページ / お申し込み画面) ---------------- */

@@ -7,16 +7,17 @@ import jmbLogoSrc from '~/assets/images/optimized/jmb-logo.webp'
 // ページ最上部では背景を敷かずアーチ装飾を隠さず、スクロールすると背景付きのバーになる。
 // 診断結果ページはスマホで11,000px超あり、読み終えた人に次の導線が必要なため。
 //
-// メニューには未作成のページ(監修者紹介/占術紹介/利用規約)は載せない。診断結果(/result)も
-// 生年月日クエリが要るため載せていない — クエリ無しだと既定値の他人の結果が出てしまう。
-// このヘッダーはトップページでのみ描画される(layouts/default.vue の v-if)。
-// 項目は全てトップページ内のセクションへの移動。
-const links = [
-  { to: '/#diagnose', label: '診断する' },
-  { to: '/#today', label: '今日のアーキタイプ' },
-  { to: '/#compatibility', label: '相性診断' },
-  { to: '/#news', label: 'ニュース' }
-]
+// メニューには未作成のページ(監修者紹介/占術紹介/利用規約)は載せない。
+// links はページごとに layouts/default.vue から渡す(トップページ/診断結果ページ内の
+// セクションへの移動)。to が "#" から始まる項目は<NuxtLink>ではなく素の<a>として描画する
+// — vue-routerのpush/resolveを経由すると診断結果ページのquery(name/birth/gender)を
+// 失いかねないため、同一ページ内のハッシュジャンプはブラウザのネイティブ挙動に任せる。
+defineProps<{
+  links: { to: string; label: string }[]
+  // trueの場合、スクロールするまでヘッダー自体を非表示にする(診断結果ページ用)。
+  // トップページは従来通り、最上部でも透過状態で常時表示する。
+  hideUntilScrolled?: boolean
+}>()
 
 const route = useRoute()
 
@@ -103,7 +104,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <header class="siteheader" :class="{ 'is-scrolled': scrolled, 'is-open': open }">
+  <header
+    class="siteheader"
+    :class="{ 'is-scrolled': scrolled, 'is-open': open, 'is-hidden': hideUntilScrolled && !scrolled }"
+  >
     <div class="siteheader__inner">
       <NuxtLink to="/" class="siteheader__brand" @click="close">
         <img class="siteheader__logo" :src="jmbLogoSrc" width="448" height="448" alt="" decoding="async" />
@@ -112,7 +116,10 @@ onBeforeUnmount(() => {
 
       <!-- PC用の横並びメニュー。スマホではCSSで隠し、下のドロワー側を使う。 -->
       <nav class="siteheader__nav" aria-label="メインメニュー">
-        <NuxtLink v-for="l in links" :key="l.to" :to="l.to" class="siteheader__link">{{ l.label }}</NuxtLink>
+        <template v-for="l in links" :key="l.to">
+          <a v-if="l.to.startsWith('#')" :href="l.to" class="siteheader__link" @click="close">{{ l.label }}</a>
+          <NuxtLink v-else :to="l.to" class="siteheader__link">{{ l.label }}</NuxtLink>
+        </template>
       </nav>
 
       <button
@@ -133,13 +140,10 @@ onBeforeUnmount(() => {
     <div class="siteheader__scrim" aria-hidden="true" @click="close" />
 
     <nav id="site-menu" ref="drawerEl" class="sitemenu" aria-label="メニュー" :inert="!open || undefined">
-      <NuxtLink
-        v-for="l in links"
-        :key="l.to"
-        :to="l.to"
-        class="sitemenu__link"
-        @click="close"
-      >{{ l.label }}</NuxtLink>
+      <template v-for="l in links" :key="l.to">
+        <a v-if="l.to.startsWith('#')" :href="l.to" class="sitemenu__link" @click="close">{{ l.label }}</a>
+        <NuxtLink v-else :to="l.to" class="sitemenu__link" @click="close">{{ l.label }}</NuxtLink>
+      </template>
     </nav>
   </header>
 </template>
