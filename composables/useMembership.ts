@@ -10,7 +10,7 @@ export interface PlanInfo {
 }
 
 export const PLAN_META: PlanInfo[] = [
-  { id: 'paid', name: '有料プラン', price: '¥980', desc: '紋章プロフィールの続きまで、すべて閲覧可能' }
+  { id: 'paid', name: '有料プラン', price: '¥550', desc: '紋章プロフィールの続きまで、すべて閲覧可能' }
 ]
 
 const ALL_PLANS: MembershipPlan[] = ['free', 'paid']
