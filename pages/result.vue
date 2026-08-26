@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { toJpeg } from 'html-to-image'
-import type { PaperVariant } from '~/composables/usePaperTheme'
 import { DEFAULT_GENDER, isGender } from '~/utils/gender'
 import { parseCelebrities } from '~/utils/toneCelebrities'
 import { sealColor } from '~/utils/mayaData'
@@ -10,7 +9,6 @@ import { buildSignupLink } from '~/utils/signupLink'
 
 const route = useRoute()
 const { user, ready } = useAuth()
-const { paper, setPaper } = usePaperTheme()
 // 会員登録/ログイン後にこのページへ戻れるよう、有料エリアの各LockedVeilに渡す遷移先。
 // name/birth/genderなど現在のクエリを保ったまま/signupへ渡し、登録完了後に
 // redirectTarget()経由でこのURLへ戻す(pages/signup.vue・pages/login.vue参照)。name/birth/
@@ -200,24 +198,6 @@ async function shareResult() {
   }
 }
 
-const demoPapers: { id: PaperVariant; label: string }[] = [
-  { id: 'beige', label: 'ベージュ' },
-  { id: 'white', label: '白' }
-]
-
-// 検証用バー自体の表示・非表示。バーを消した状態で見た目を確認したい場合があるため。
-// localStorageに保持するのは、確認のたびにページ遷移/リロードするたびに毎回開き直すのが
-// 面倒なため — paperの永続化(usePaperTheme)と同じ考え方。プラン切り替えは実会員登録/
-// ログインの導入に伴い廃止した(実ログイン/ログアウトがそのままQA手段になる)。
-const DEMO_BAR_KEY = 'maya-demo-bar-hidden'
-const demoBarHidden = ref(false)
-onMounted(() => {
-  if (localStorage.getItem(DEMO_BAR_KEY) === '1') demoBarHidden.value = true
-})
-function toggleDemoBar() {
-  demoBarHidden.value = !demoBarHidden.value
-  localStorage.setItem(DEMO_BAR_KEY, demoBarHidden.value ? '1' : '0')
-}
 </script>
 
 <template>
@@ -502,40 +482,5 @@ function toggleDemoBar() {
         古代4000年の智慧 JMBマヤ暦 無料診断 ｜ {{ !user ? '監修者紹介・占術紹介・利用規約はフッターメニューより' : '会員としてご利用中です' }}
       </p>
     </div>
-
-    <!-- Demo-only toggle: 紙面テーマ(ベージュ/白)は永続化されたグローバル設定
-         (usePaperTheme)なので、/compatibilityもここで選んだ内容をそのまま引き継ぐ。
-         プラン切り替えボタンは実会員登録/ログインの導入に伴い廃止(実ログイン/ログアウト
-         がそのままQA手段になるため)。 -->
-    <!-- backdrop-blur は使わない: position:fixed と組み合わせると、スクロールの毎フレーム
-         「背後のページを読み直してぼかす」処理が走り、スマホでスクロールが引っかかる原因に
-         なる。背景を不透明にすれば見た目はほぼ同じで、その処理自体が不要になる。 -->
-    <div
-      v-if="!demoBarHidden"
-      class="fixed inset-x-4 bottom-4 z-40 flex flex-wrap items-center justify-center gap-2.5 rounded-2xl py-2.5 pl-3.5 pr-6.5 text-xs shadow-lg sm:inset-x-auto sm:right-4 sm:flex-nowrap sm:rounded-full"
-      style="border: 1px solid var(--gold-line); background: var(--paper-panel); color: var(--ink-soft);"
-    >
-      <span class="whitespace-nowrap">検証用：</span>
-      <div class="switch">
-        <button v-for="p in demoPapers" :key="p.id" :aria-pressed="paper === p.id" @click="setPaper(p.id)">{{ p.label }}</button>
-      </div>
-      <button
-        type="button"
-        class="demobar__close"
-        aria-label="検証用バーを隠す"
-        title="検証用バーを隠す"
-        @click="toggleDemoBar"
-      >×</button>
-    </div>
-    <!-- バーを隠している間の再表示ボタン。同じ隅に、目立たない小さな丸ボタンとして常時置く
-         — 隠したまま二度と出せなくなるのを避けるため。 -->
-    <button
-      v-else
-      type="button"
-      class="demobar__reopen"
-      aria-label="検証用バーを表示する"
-      title="検証用バーを表示する"
-      @click="toggleDemoBar"
-    >検証用</button>
   </div>
 </template>
