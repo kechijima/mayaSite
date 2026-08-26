@@ -39,7 +39,7 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
-      title: 'マヤ暦占い',
+      title: 'JMBマヤ暦 無料診断',
       htmlAttrs: { lang: 'ja' },
       meta: [{ name: 'description', content: '古代マヤ暦「ツォルキン」であなたの本質と運勢を読み解く診断サイト' }],
       // assets/css/main.css の @import から移動 — <link>ならHTMLのプリロードスキャナが

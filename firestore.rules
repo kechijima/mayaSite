@@ -4,6 +4,25 @@ service cloud.firestore {
     function isAdmin() {
       return request.auth != null && request.auth.token.admin == true;
     }
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      // 自己登録(pages/signup.vue)はplanを必ず'free'で作成する — 自分で'paid'を
+      // 名乗れないようにするため。createdAt == request.timeはserverTimestamp()の
+      // 送信を強制し、偽装された固定値を弾く(diagnosisHistoryのcreateと同じパターン)。
+      allow create: if isOwner(uid)
+        && request.resource.data.plan == 'free'
+        && request.resource.data.createdAt == request.time;
+      // 本人は氏名・電話番号などのプロフィール項目を編集できるが、planフィールドには
+      // 触れない — 決済導入前に自己申告で有料化できてしまうのを防ぐため。planの変更
+      // (将来、決済確認後や手動での有料化)は管理者のみ。
+      allow update: if isAdmin()
+        || (isOwner(uid) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['plan']));
+      allow delete: if false;
+    }
 
     match /diagnosisContent/{docId} {
       allow read: if true;
@@ -25,7 +44,7 @@ service cloud.firestore {
       allow update, delete: if false;
     }
     match /{document=**} {
-      allow read, write: if false; // deny-by-default; no other collections exist yet
+      allow read, write: if false; // deny-by-default; no other collections beyond the above exist yet
     }
   }
 }

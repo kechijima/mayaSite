@@ -39,7 +39,7 @@ const todayLabel = computed(() => `${today.getFullYear()}年${today.getMonth() +
              見出しの一部ではなく独立した画像として扱う(alt付き)。 -->
         <img class="masthead__logo" :src="jmbLogoSrc" width="448" height="448" alt="JAPAN MAYA BU CERTIFIED" fetchpriority="high" decoding="async" />
         <span class="masthead__eyebrow">Maya Sacred Calendar</span>
-        <h1 class="font-display masthead__title">マヤ暦占い</h1>
+        <h1 class="font-display masthead__title">JMBマヤ暦 無料診断</h1>
         <p class="masthead__sub">古代マヤの神聖暦「ツォルキン」が、あなたの生年月日から本質と運勢を読み解きます。</p>
       </div>
 

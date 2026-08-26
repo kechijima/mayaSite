@@ -13,8 +13,10 @@ import { DEFAULT_GENDER, isGender } from '~/utils/gender'
 // 表示する(有料エリアの扱いもresult.vueに合わせる)。
 
 const route = useRoute()
-const { rank } = useMembership()
-const deepUnlocked = computed(() => rank.value >= 1)
+const { user, ready } = useAuth()
+const deepUnlocked = computed(() => ready.value && !!user.value)
+// 会員登録/ログイン後にこのページへ戻れるよう、LockedVeilに渡す遷移先(pages/result.vueと同じ考え方)。
+const signupRedirectTo = computed(() => `/signup?redirect=${encodeURIComponent(route.fullPath)}`)
 
 const sealIndex = computed(() => {
   const n = Number(route.params.sealIndex)
@@ -115,7 +117,7 @@ const premiumSections = computed(() => premiumProfileSections(profile.value))
           <ProfileBlocks :sections="otherFreeSections" />
 
           <ProfileBlocks v-if="deepUnlocked" :sections="premiumSections" />
-          <LockedVeil v-else-if="premiumSections.length" :remaining-chars="countChars(premiumSections)" />
+          <LockedVeil v-else-if="premiumSections.length" :to="signupRedirectTo" :remaining-chars="countChars(premiumSections)" />
         </section>
 
         <div class="mt-8 flex justify-center">

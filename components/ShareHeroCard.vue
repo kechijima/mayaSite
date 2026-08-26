@@ -65,7 +65,7 @@ defineProps<{
         </div>
       </div>
 
-      <p class="sharecard__brand">マヤ暦占い</p>
+      <p class="sharecard__brand">JMBマヤ暦 無料診断</p>
     </div>
   </div>
 </template>

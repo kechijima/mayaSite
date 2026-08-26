@@ -111,7 +111,7 @@ onBeforeUnmount(() => {
     <div class="siteheader__inner">
       <NuxtLink to="/" class="siteheader__brand" @click="close">
         <img class="siteheader__logo" :src="jmbLogoSrc" width="448" height="448" alt="" decoding="async" />
-        <span class="font-display siteheader__title">マヤ暦占い</span>
+        <span class="font-display siteheader__title">JMBマヤ暦 無料診断</span>
       </NuxtLink>
 
       <!-- PC用の横並びメニュー。スマホではCSSで隠し、下のドロワー側を使う。 -->
