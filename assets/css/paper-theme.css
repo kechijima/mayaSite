@@ -371,7 +371,7 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
    狙いで、参考サイトが blurred-text 画像を敷いているのと同じ考え方。 */
 /* .blockと同じ720pxの中央寄せカラムに揃える — 付けていないと、直前の本文(.block)より
    モザイクの方が横に広くなってしまう(.blockには元々max-width:720pxがある)。 */
-.gated { position: relative; min-height: 210px; max-width: 720px; margin-left: auto; margin-right: auto; }
+.gated { position: relative; min-height: 340px; max-width: 720px; margin-left: auto; margin-right: auto; }
 /* 有料エリアの先頭は「注意すべき傾向」本文の続き(ラベル無しブロック)なので、文章がそこで
    途切れて続くだけ。段落の切れ目ぶん(= 解除後に .block--cont が空ける量)だけ空けて、
    無料部分と地続きに見せる。20pxあった頃はスマホで一段落ぶん以上あいて見えていた。
@@ -384,7 +384,7 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
      ブラー強度と「量感は見せたい」の板挟みで何度も調整していたが、今はLockedVeil.vue側で
      本文を一切DOM化しない固定ダミー文にしたため、その制約が無くなった — 文字の形が
      見える程度まで薄くしてよい。 */
-  max-height: 310px; overflow: hidden; padding: 12px 18px; margin: -12px -18px;
+  max-height: 360px; overflow: hidden; padding: 12px 18px; margin: -12px -18px;
   filter: blur(2px) saturate(.7); opacity: .95;
   user-select: none; pointer-events: none;
   -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 84%, transparent 100%);
@@ -406,6 +406,21 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
   background-image:
     linear-gradient(180deg, color-mix(in srgb, var(--paper) 12%, transparent) 0%, color-mix(in srgb, var(--paper) 22%, transparent) 55%, color-mix(in srgb, var(--paper) 40%, transparent) 100%);
 }
+/* 価格訴求(見出しライン/リード文/価格/ボタン/残り文字数)を縦に並べる。
+   キッカー("ここから先は有料エリアです")だけ左右に線を添えて小見出し風に見せる —
+   参考: 一般的な「─── or ───」区切りと同じ考え方(実際にダッシュ文字は使わず罫線)。 */
+.gated__pitch { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; max-width: 340px; }
+.gated__kicker {
+  display: flex; align-items: center; gap: 10px; width: 100%; margin: 0 0 4px;
+  font-size: 11px; letter-spacing: .14em; color: var(--gold-deep); white-space: nowrap;
+}
+.gated__kicker::before, .gated__kicker::after { content: ""; flex: 1; height: 1px; background: var(--gold-line); }
+.gated__lead { margin: 0; font-size: 13.5px; color: var(--ink-soft); }
+.gated__price { margin: -4px 0 2px; font-size: 15px; color: var(--ink); }
+.gated__price strong { font-size: 19px; font-weight: 700; color: var(--gold-deep); }
+.gated__remaining { display: flex; align-items: center; gap: 6px; margin: 2px 0 0; font-size: 12.5px; letter-spacing: .04em; color: var(--ink-soft); }
+.gated__remaining svg { width: 14px; height: 14px; color: var(--gold); flex: none; }
+
 .gated__cta {
   display: inline-flex; align-items: center; justify-content: center; gap: 10px;
   width: min(100%, 360px); padding: 17px 26px; border-radius: 12px;
@@ -420,8 +435,11 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .gated__cta:hover { transform: translateY(-1px); filter: brightness(1.06); box-shadow: 0 18px 32px -14px rgba(60, 42, 10, .7), inset 0 1px 0 rgba(255, 255, 255, .42); }
 .gated__cta:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: 3px; }
 @media (max-width: 600px) {
-  .gated { min-height: 176px; }
-  .gated__reveal { max-height: 250px; }
+  .gated { min-height: 300px; }
+  .gated__reveal { max-height: 300px; }
+  .gated__kicker { font-size: 10px; }
+  .gated__price { font-size: 14px; }
+  .gated__price strong { font-size: 17px; }
   .gated__cta { padding: 15px 20px; font-size: 15.5px; }
 }
 

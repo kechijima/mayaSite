@@ -43,6 +43,18 @@ export function iconFor(label: string) {
   return SECTION_ICON[label] ?? 'i-scroll'
 }
 
+// LockedVeilの「残り○○文字」表示用。ラベル(見出し文言)はUIチロームであって本文ではないため
+// 数えず、実際に読める本文(text/items)だけを合算する。LockedVeilには本文そのものではなく
+// この数値だけを渡す — 実データを一切DOM化しないという既存の設計(コンポーネント側コメント
+// 参照)を崩さないため。
+export function countChars(sections: ProfileSection[]): number {
+  return sections.reduce((total, s) => {
+    if (s.kind === 'text') return total + s.text.length
+    if (s.kind === 'list') return total + s.items.join('').length
+    return total + s.items.join('').length + s.text.length
+  }, 0)
+}
+
 // 紋章プロフィール(docs/診断結果マスタ.xlsx由来)の深掘り項目。マスタの行構成(1〜14行目=無料、
 // 15行目以降=有料)に合わせて分割している。太陽の紋章・ウェイブスペルに加え、KINの関係性の
 // 詳細ページ(pages/kin/[sealIndex].vue)でも同じcharacter-*ドキュメントを使うため、

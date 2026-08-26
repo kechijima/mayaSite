@@ -5,7 +5,7 @@ import type { PaperVariant } from '~/composables/usePaperTheme'
 import { DEFAULT_GENDER, isGender } from '~/utils/gender'
 import { parseCelebrities } from '~/utils/toneCelebrities'
 import { sealColor } from '~/utils/mayaData'
-import { type ProfileSection, iconFor, freeProfileSections, premiumProfileSections } from '~/utils/profileSections'
+import { type ProfileSection, iconFor, freeProfileSections, premiumProfileSections, countChars } from '~/utils/profileSections'
 import { RELATION_DESCRIPTION } from '~/utils/kinRelations'
 
 const route = useRoute()
@@ -340,7 +340,7 @@ function toggleDemoBar() {
         <!-- 有料項目はまとめて1つのモザイクに入れる(項目ごとに小さなロック箱を並べるより、
              「この分量の続きがある」ことが伝わるため)。参考: kinoshita-reon.jp -->
         <ProfileBlocks v-if="deepUnlocked" :sections="sunPremiumProfileSections" />
-        <LockedVeil v-else-if="sunPremiumProfileSections.length" />
+        <LockedVeil v-else-if="sunPremiumProfileSections.length" :remaining-chars="countChars(sunPremiumProfileSections)" />
       </section>
 
       <!-- ウェイブスペル -->
@@ -383,7 +383,7 @@ function toggleDemoBar() {
         <ProfileBlocks :sections="wavespellOtherFreeProfileSections" />
 
         <ProfileBlocks v-if="deepUnlocked" :sections="wavespellPremiumProfileSections" />
-        <LockedVeil v-else-if="wavespellPremiumProfileSections.length" />
+        <LockedVeil v-else-if="wavespellPremiumProfileSections.length" :remaining-chars="countChars(wavespellPremiumProfileSections)" />
       </section>
 
       <!-- 銀河の音 -->
@@ -422,7 +422,7 @@ function toggleDemoBar() {
       <section v-if="kinText" class="section">
         <SectionDivider :label="`KIN${result.kin}のあなたへ`" eyebrow="紋章や音を超えた、あなたへの言葉" numeric />
         <p class="kinletter">{{ kinLetterFree }}</p>
-        <LockedVeil v-if="kinLetterLocked" class="kinletter-gate" />
+        <LockedVeil v-if="kinLetterLocked" class="kinletter-gate" :remaining-chars="kinLetterRest.length" />
 
         <!-- 同じKINを持つ有名人。有料エリアより後ろに置き、無料/有料を問わず全件表示する。 -->
         <div v-if="kinCelebrities.length" class="block">
