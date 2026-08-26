@@ -604,6 +604,14 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 /* 現在地ハイライトは付けない。メニューが全てページ内リンクになったため、vue-routerの
    現在地判定(ハッシュを見ずパスだけで比較する)では常に全項目が「現在地」になってしまう。 */
 
+/* ログイン中の会員表示(名前+アイコン)+ログアウト。PC横並びメニューの末尾に、区切り線を
+   挟んで付ける。 */
+.siteheader__user { display: flex; align-items: center; gap: 8px; padding-left: 18px; margin-left: 4px; border-left: 1px solid var(--gold-line-soft); }
+.siteheader__usericon { width: 16px; height: 16px; flex: none; color: var(--gold-deep); }
+.siteheader__username { font-size: 13px; color: var(--ink-soft); white-space: nowrap; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+.siteheader__logout { appearance: none; border: 0; background: transparent; padding: 0; font-size: 12px; color: var(--ink-faint); text-decoration: underline; cursor: pointer; white-space: nowrap; transition: color .15s ease; }
+.siteheader__logout:hover { color: var(--gold-deep); }
+
 /* ハンバーガー。開いている間は×に変形する(ドロワーより上に重ねてあるので閉じるボタンを兼ねる)。 */
 .siteheader__burger { appearance: none; border: 0; background: transparent; cursor: pointer; padding: 8px; margin-right: -8px; display: flex; flex-direction: column; justify-content: center; gap: 5px; width: 40px; height: 40px; flex: none; }
 @media (min-width: 900px) { .siteheader__burger { display: none; } }
@@ -629,6 +637,10 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .sitemenu__link { display: block; padding: 15px 22px; font-size: 14.5px; letter-spacing: .04em; color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--gold-line-soft); }
 .sitemenu__link:first-child { border-top: 1px solid var(--gold-line-soft); }
 .sitemenu__link:focus-visible { outline: 2px solid var(--gold); outline-offset: -3px; }
+
+/* ドロワー版のログイン中会員表示+ログアウト。リンク一覧の末尾に続けて置く。 */
+.sitemenu__user { display: flex; align-items: center; gap: 8px; padding: 15px 22px; }
+.sitemenu__logout { appearance: none; border: 0; background: transparent; padding: 0; margin-left: auto; font-size: 12.5px; color: var(--gold-deep); text-decoration: underline; cursor: pointer; }
 
 /* アニメーションを減らす設定の利用者には動きを出さない。 */
 @media (prefers-reduced-motion: reduce) {

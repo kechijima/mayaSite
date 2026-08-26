@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { signOut, type Auth } from 'firebase/auth'
 import jmbLogoSrc from '~/assets/images/optimized/jmb-logo.webp'
 
 // 全ユーザー向けページ共通のヘッダー(layouts/default.vue から差し込む)。/admin/** は
@@ -21,6 +22,12 @@ defineProps<{
 
 const route = useRoute()
 
+// ログイン中の会員表示(名前+アイコン)とログアウト。ready===falseの間(初回セッション
+// 復元待ち)は何も出さない — 一瞬「未ログイン」表示が出てから会員表示に切り替わるチラつきを
+// 避けるため(composables/useAuth.tsのreadyの用途はpages/result.vueと同じ)。
+const { user, ready } = useAuth()
+const displayName = computed(() => user.value?.displayName || user.value?.email || '')
+
 const open = ref(false)
 const scrolled = ref(false)
 
@@ -32,6 +39,15 @@ function close() {
 }
 function toggle() {
   open.value = !open.value
+}
+
+// ログアウト後は useAuth() のuser/readyがリアクティブに更新されるので、result.vueの
+// deepUnlockedも自動で再ロックされる — 明示的なnavigateTo()は不要(admin側のログアウトと
+// 違い、一般ページに「ログイン専用」のページ自体が無いため)。
+async function logout() {
+  close()
+  const { $auth } = useNuxtApp()
+  await signOut($auth as Auth)
 }
 
 // ルート遷移でメニューを閉じる。同じリンクを再度押した場合も閉じたいので、リンク側でも
@@ -120,6 +136,11 @@ onBeforeUnmount(() => {
           <a v-if="l.to.startsWith('#')" :href="l.to" class="siteheader__link" @click="close">{{ l.label }}</a>
           <NuxtLink v-else :to="l.to" class="siteheader__link">{{ l.label }}</NuxtLink>
         </template>
+        <div v-if="ready && user" class="siteheader__user">
+          <svg class="siteheader__usericon" aria-hidden="true"><use href="#i-user" /></svg>
+          <span class="siteheader__username">{{ displayName }}</span>
+          <button type="button" class="siteheader__logout" @click="logout">ログアウト</button>
+        </div>
       </nav>
 
       <button
@@ -144,6 +165,11 @@ onBeforeUnmount(() => {
         <a v-if="l.to.startsWith('#')" :href="l.to" class="sitemenu__link" @click="close">{{ l.label }}</a>
         <NuxtLink v-else :to="l.to" class="sitemenu__link" @click="close">{{ l.label }}</NuxtLink>
       </template>
+      <div v-if="ready && user" class="sitemenu__user">
+        <svg class="siteheader__usericon" aria-hidden="true"><use href="#i-user" /></svg>
+        <span class="siteheader__username">{{ displayName }}</span>
+        <button type="button" class="sitemenu__logout" @click="logout">ログアウト</button>
+      </div>
     </nav>
   </header>
 </template>

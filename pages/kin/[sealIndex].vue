@@ -6,6 +6,7 @@ import { SEALS, sealColor } from '~/utils/mayaData'
 import { iconFor, freeProfileSections, premiumProfileSections, countChars } from '~/utils/profileSections'
 import { RELATION_DESCRIPTION } from '~/utils/kinRelations'
 import { DEFAULT_GENDER, isGender } from '~/utils/gender'
+import { buildSignupLink } from '~/utils/signupLink'
 
 // KINの関係性カード(pages/result.vueのガイド/神秘/反対/類似KIN)の「詳しく見る」遷移先。
 // 各関係性は特定のKIN番号ではなく紋章(sealIndex)そのものなので、太陽の紋章/ウェイブスペルと
@@ -16,7 +17,7 @@ const route = useRoute()
 const { user, ready } = useAuth()
 const deepUnlocked = computed(() => ready.value && !!user.value)
 // 会員登録/ログイン後にこのページへ戻れるよう、LockedVeilに渡す遷移先(pages/result.vueと同じ考え方)。
-const signupRedirectTo = computed(() => `/signup?redirect=${encodeURIComponent(route.fullPath)}`)
+const signupRedirectTo = computed(() => buildSignupLink(route.fullPath, route.query))
 
 const sealIndex = computed(() => {
   const n = Number(route.params.sealIndex)

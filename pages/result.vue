@@ -6,14 +6,16 @@ import { parseCelebrities } from '~/utils/toneCelebrities'
 import { sealColor } from '~/utils/mayaData'
 import { type ProfileSection, iconFor, freeProfileSections, premiumProfileSections, countChars } from '~/utils/profileSections'
 import { RELATION_DESCRIPTION } from '~/utils/kinRelations'
+import { buildSignupLink } from '~/utils/signupLink'
 
 const route = useRoute()
 const { user, ready } = useAuth()
 const { paper, setPaper } = usePaperTheme()
 // 会員登録/ログイン後にこのページへ戻れるよう、有料エリアの各LockedVeilに渡す遷移先。
 // name/birth/genderなど現在のクエリを保ったまま/signupへ渡し、登録完了後に
-// redirectTarget()経由でこのURLへ戻す(pages/signup.vue・pages/login.vue参照)。
-const signupRedirectTo = computed(() => `/signup?redirect=${encodeURIComponent(route.fullPath)}`)
+// redirectTarget()経由でこのURLへ戻す(pages/signup.vue・pages/login.vue参照)。name/birth/
+// genderは会員登録フォームの入力済み初期値としても使われる(utils/signupLink.ts参照)。
+const signupRedirectTo = computed(() => buildSignupLink(route.fullPath, route.query))
 
 const input = computed(() => {
   const genderQuery = route.query.gender as string | undefined
