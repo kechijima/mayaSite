@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { RouteLocationRaw } from 'vue-router'
-
 // 有料エリア。実際の本文は一切描画せず(ブラーを掛けていても本文はDOM上にそのまま残り、
 // 開発者ツールで無料状態のまま読めてしまうため)、常に固定のダミー文でブラー+ピクセル
 // グリッドの「モザイク」を掛けた背景として見せたうえで、中央に購入訴求(価格+ボタン+
@@ -8,7 +6,7 @@ import type { RouteLocationRaw } from 'vue-router'
 // remainingChars だけは呼び出し側から実データの文字数(本文そのものではなく数値のみ)を
 // 受け取る — 数値だけなら本文の閲覧防止という設計意図を損なわない(utils/profileSections.ts
 // の countChars 参照)。0/未指定のときは行ごと出さない。
-withDefaults(defineProps<{ to?: RouteLocationRaw; remainingChars?: number }>(), {
+withDefaults(defineProps<{ to?: string; remainingChars?: number }>(), {
   to: '/checkout'
 })
 </script>
