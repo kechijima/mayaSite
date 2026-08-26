@@ -38,7 +38,7 @@ function confirmCancel() {
       </div>
 
       <div class="mx-auto max-w-[560px]">
-        <p class="notice">これはデモ画面です。実際の解約処理やStripeカスタマーポータルとの連携は行われません。</p>
+        <p class="notice">契約状況・解約の機能は現在準備中です。公開までしばらくお待ちください。</p>
 
         <!-- 解約完了 -->
         <div v-if="cancelStep === 'done'" class="panel mt-6 text-center">
