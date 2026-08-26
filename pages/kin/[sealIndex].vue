@@ -3,7 +3,7 @@ import { doc, getDoc, type Firestore } from 'firebase/firestore'
 import dividerSrc from '~/assets/images/optimized/divider.webp'
 import type { DiagnosisContentDoc } from '~/composables/useDiagnosisContent'
 import { SEALS, sealColor } from '~/utils/mayaData'
-import { iconFor, freeProfileSections, premiumProfileSections } from '~/utils/profileSections'
+import { iconFor, freeProfileSections, premiumProfileSections, countChars } from '~/utils/profileSections'
 import { RELATION_DESCRIPTION } from '~/utils/kinRelations'
 import { DEFAULT_GENDER, isGender } from '~/utils/gender'
 
@@ -115,7 +115,7 @@ const premiumSections = computed(() => premiumProfileSections(profile.value))
           <ProfileBlocks :sections="otherFreeSections" />
 
           <ProfileBlocks v-if="deepUnlocked" :sections="premiumSections" />
-          <LockedVeil v-else-if="premiumSections.length" />
+          <LockedVeil v-else-if="premiumSections.length" :remaining-chars="countChars(premiumSections)" />
         </section>
 
         <div class="mt-8 flex justify-center">
