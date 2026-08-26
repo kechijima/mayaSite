@@ -2,7 +2,7 @@ import { diagnoseBirthdate } from '~/utils/mayaCalc'
 import { buildKinProfileText, type KinProfileText } from '~/utils/kinProfile'
 import { compatibilityRelation, COMPATIBILITY_RELATION_CONTENT, type CompatibilityRelation } from '~/utils/compatibility'
 import { destinyRelation, DESTINY_RELATION_CONTENT, type DestinyRelation } from '~/utils/destinyCompatibility'
-import { SEALS } from '~/utils/mayaData'
+import { SEALS, type Seal } from '~/utils/mayaData'
 import type { Gender } from '~/utils/gender'
 
 export interface PersonInput {
@@ -18,8 +18,6 @@ export interface PersonProfile {
   birthdate: string
   gender: Gender
   kin: number
-  prevKin: number
-  nextKin: number
   mirrorKin: number
   absoluteOppositeKin: number
   sealIndex: number
@@ -28,6 +26,13 @@ export interface PersonProfile {
   sun: KinProfileText['sun']
   wavespell: KinProfileText['wavespell']
   tone: KinProfileText['tone']
+  // KINの関係性(ガイド/反対/神秘/類似KIN) — useDiagnosis.tsのresult.relationsと同じ構成。
+  relations: {
+    guide: Seal & { index: number }
+    antipode: Seal & { index: number }
+    mystic: Seal & { index: number }
+    analog: Seal & { index: number }
+  }
 }
 
 // 太陽の紋章とウェイブスペルは両方とも「その人を表す紋章」なので、自分の太陽/ウェイブスペルと
@@ -81,8 +86,6 @@ function buildProfile(person: PersonInput): PersonProfile {
     birthdate: person.birthdate,
     gender: person.gender,
     kin: birth.kin,
-    prevKin: birth.prevKin,
-    nextKin: birth.nextKin,
     mirrorKin: birth.mirrorKin,
     absoluteOppositeKin: birth.absoluteOppositeKin,
     sealIndex: birth.sealIndex,
@@ -90,7 +93,13 @@ function buildProfile(person: PersonInput): PersonProfile {
     wavespellSealIndex: birth.wavespellSealIndex,
     sun,
     wavespell,
-    tone
+    tone,
+    relations: {
+      guide: { index: birth.guideSealIndex, ...SEALS[birth.guideSealIndex] },
+      antipode: { index: birth.antipodeSealIndex, ...SEALS[birth.antipodeSealIndex] },
+      mystic: { index: birth.mysticSealIndex, ...SEALS[birth.mysticSealIndex] },
+      analog: { index: birth.analogSealIndex, ...SEALS[birth.analogSealIndex] }
+    }
   }
 }
 
