@@ -51,6 +51,7 @@ export default defineNuxtConfig({
       // いなかった。JPフォントはウェイトごとに200超の@font-face(unicode-range分割)が
       // 生成されるため、使わないウェイトを外すだけでCSSのパース量が1/3になる。
       link: [
+        { rel: 'icon', type: 'image/png', href: '/favicon.png' },
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         {
