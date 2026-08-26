@@ -26,7 +26,7 @@ withDefaults(defineProps<{ to?: string; remainingChars?: number }>(), {
       <div class="gated__pitch">
         <p class="gated__kicker">ここから先は有料エリアです</p>
         <p class="gated__lead">この続きを見るには</p>
-        <p class="gated__price">この記事は一冊<strong>￥500円</strong>で読めます</p>
+        <p class="gated__price">この記事は一冊<strong>￥550円</strong>で読めます</p>
         <NuxtLink :to="to" class="gated__cta">
           <svg><use href="#i-lock" /></svg>記事を購入する
         </NuxtLink>
