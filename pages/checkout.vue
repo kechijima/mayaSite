@@ -35,7 +35,7 @@ function pay() {
       </div>
 
       <div class="mx-auto max-w-[440px]">
-        <p class="notice">これはデモ決済画面です。実際の課金は発生しません（Stripe Checkout の実装例）。</p>
+        <p class="notice">お申し込み機能は現在準備中です。公開までしばらくお待ちください。</p>
 
         <div class="panel panel--plan mt-6 flex items-center justify-between">
           <div>
