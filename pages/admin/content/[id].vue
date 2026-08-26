@@ -15,9 +15,9 @@ const notFound = ref(!row.value)
 // KIN別の有名人。Firestoreにはオブジェクトの配列で入っているので、「1行1人・｜区切り」の
 // テキストに直して見せる(変換は utils/kinCelebrities.ts)。
 //
-// 現状は表示のみで、保存対象に含めていない。diagnosisContent は firestore.rules で書き込みを
-// 全面拒否している(管理者認証が未導入のため — CLAUDE.md参照)ので、編集させても必ず失敗する。
-// 書き込みを有効化する際は、この ref を編集可能に戻し、save() の updateDoc に
+// 現状は表示のみで、保存対象に含めていない(このフィールドだけ未実装 — 他のフィールドは
+// admin:trueクレームを持つ管理者なら保存できる。CLAUDE.md「Admin authentication」参照)。
+// 編集を有効化する際は、この ref を編集可能に戻し、save() の updateDoc に
 // `kinCelebrities: parseKinCelebrities(celebritiesText.value)` を足せばよい。
 const celebritiesText = ref('')
 const celebritiesCount = computed(() => celebritiesText.value.split('\n').filter((l) => l.trim()).length)
@@ -106,7 +106,7 @@ async function save() {
     saved.value = true
   } catch (error) {
     saveError.value = (error as { code?: string })?.code === 'permission-denied'
-      ? '現在この項目の保存は無効化されています。'
+      ? '権限がありません。再度ログインしてください。'
       : '保存に失敗しました。時間をおいて再度お試しください。'
   } finally {
     saving.value = false

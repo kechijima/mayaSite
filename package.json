@@ -23,7 +23,9 @@
     "backfill:caution-split": "tsx --env-file=.env scripts/backfillCautionSplit.ts",
     "backfill:caution-split:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/backfillCautionSplit.ts",
     "migrate:bulletFields": "tsx --env-file=.env scripts/migrateBulletFields.ts",
-    "migrate:bulletFields:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/migrateBulletFields.ts"
+    "migrate:bulletFields:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/migrateBulletFields.ts",
+    "admin:create": "tsx --env-file=.env scripts/createAdminUser.ts",
+    "admin:create:emulator": "FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 tsx scripts/createAdminUser.ts"
   },
   "dependencies": {
     "firebase": "^11.3.1",
