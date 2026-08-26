@@ -14,7 +14,7 @@ const year = new Date().getFullYear()
         本サイトに掲載されている文章・画像・イラスト等のコンテンツの著作権は、当サイトまたは正当な権利者に帰属します。<br />
         無断転載・無断複製・無断使用を固くお断りいたします。
       </p>
-      <p class="sitefooter__copy">&copy; {{ year }} マヤ暦占い All Rights Reserved.</p>
+      <p class="sitefooter__copy">&copy; {{ year }} マヤ暦実行委員会 All Rights Reserved.</p>
     </div>
   </footer>
 </template>
