@@ -22,6 +22,10 @@ const input = computed(() => {
 })
 const { result } = useDiagnosis(input)
 
+// 有料化導線(LockedVeil → /checkout): 決済未実装のため申し込み後に連絡先を集めるフォームへ
+// 遷移する。氏名・性別はこの診断結果画面から引き継いで事前入力する。
+const checkoutLink = computed(() => ({ path: '/checkout', query: { name: result.value.name, gender: result.value.gender } }))
+
 const content = useDiagnosisContent({
   sealIndex: computed(() => result.value.sealIndex),
   wavespellSealIndex: computed(() => result.value.wavespellSealIndex),
@@ -340,7 +344,7 @@ function toggleDemoBar() {
         <!-- 有料項目はまとめて1つのモザイクに入れる(項目ごとに小さなロック箱を並べるより、
              「この分量の続きがある」ことが伝わるため)。参考: kinoshita-reon.jp -->
         <ProfileBlocks v-if="deepUnlocked" :sections="sunPremiumProfileSections" />
-        <LockedVeil v-else-if="sunPremiumProfileSections.length" :remaining-chars="countChars(sunPremiumProfileSections)" />
+        <LockedVeil v-else-if="sunPremiumProfileSections.length" :to="checkoutLink" :remaining-chars="countChars(sunPremiumProfileSections)" />
       </section>
 
       <!-- ウェイブスペル -->
@@ -383,7 +387,7 @@ function toggleDemoBar() {
         <ProfileBlocks :sections="wavespellOtherFreeProfileSections" />
 
         <ProfileBlocks v-if="deepUnlocked" :sections="wavespellPremiumProfileSections" />
-        <LockedVeil v-else-if="wavespellPremiumProfileSections.length" :remaining-chars="countChars(wavespellPremiumProfileSections)" />
+        <LockedVeil v-else-if="wavespellPremiumProfileSections.length" :to="checkoutLink" :remaining-chars="countChars(wavespellPremiumProfileSections)" />
       </section>
 
       <!-- 銀河の音 -->
@@ -422,7 +426,7 @@ function toggleDemoBar() {
       <section v-if="kinText" class="section">
         <SectionDivider :label="`KIN${result.kin}のあなたへ`" eyebrow="紋章や音を超えた、あなたへの言葉" numeric />
         <p class="kinletter">{{ kinLetterFree }}</p>
-        <LockedVeil v-if="kinLetterLocked" class="kinletter-gate" :remaining-chars="kinLetterRest.length" />
+        <LockedVeil v-if="kinLetterLocked" class="kinletter-gate" :to="checkoutLink" :remaining-chars="kinLetterRest.length" />
 
         <!-- 同じKINを持つ有名人。有料エリアより後ろに置き、無料/有料を問わず全件表示する。 -->
         <div v-if="kinCelebrities.length" class="block">

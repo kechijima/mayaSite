@@ -1,21 +1,38 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
     match /diagnosisContent/{docId} {
       allow read: if true;
-      // 書き込みは現在すべて無効。管理者認証（admin:trueカスタムクレーム＋
-      // クライアント側判定）は別ブランチで用意済みだが、まだmainにはマージして
-      // いない。サーバーも無い（server/を撤廃済み）ため、bypassする経路も無い。
-      allow write: if false;
+      // /admin/content から直接書き込む(サーバー無し)。admin:trueカスタムクレームを
+      // 持つ認証済みユーザーのみ許可 — middleware/admin-auth.global.ts はUIのガードに
+      // 過ぎず、実際の防御はここ(CLAUDE.md「Admin authentication」参照)。
+      allow write: if isAdmin();
     }
     match /diagnosisHistory/{docId} {
-      allow read: if true;
-      // このアプリには認証が一切ないため(上のdiagnosisContentブロック参照)、
-      // ここでのcreate制限は本当の不正防止にはならない — 型の最低限のガードのみ。
+      // 診断者本人の名前・生年月日・性別を含むため、閲覧は管理画面(/admin/history)の
+      // 管理者のみに限定。送信(create)自体は診断フォームを使う一般利用者による
+      // 未認証アクセスなので、従来通り認証不要のまま。
+      allow read: if isAdmin();
       // createdAt == request.time は serverTimestamp() の送信を強制し、偽装された
       // 固定値を弾く(Firestoreルールの標準パターン)。それ以上の項目別バリデーションは
       // このファイル全体のミニマルな方針に合わせて意図的に省略。
       allow create: if request.resource.data.type in ['single', 'compatibility']
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+    match /contactRequests/{docId} {
+      // 電話番号・メールアドレスを含むため、閲覧は管理画面(/admin/contact-requests)の
+      // 管理者のみに限定。送信(create)自体は/checkoutを使う一般利用者による未認証
+      // アクセスなので、従来通り認証不要のまま。
+      allow read: if isAdmin();
+      allow create: if request.resource.data.name is string && request.resource.data.name.size() > 0
+        && request.resource.data.gender in ['male', 'female']
+        && request.resource.data.phone is string && request.resource.data.phone.size() > 0
+        && request.resource.data.email is string && request.resource.data.email.size() > 0
         && request.resource.data.createdAt == request.time;
       allow update, delete: if false;
     }

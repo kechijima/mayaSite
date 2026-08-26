@@ -1,15 +1,25 @@
 <script setup lang="ts">
+import { signOut, type Auth } from 'firebase/auth'
+
 const route = useRoute()
+const { user } = useAdminAuth()
 
 const navItems = [
   { to: '/admin', label: 'ダッシュボード', icon: 'grid' },
   { to: '/admin/content', label: '診断コンテンツ管理', icon: 'doc' },
   { to: '/admin/users', label: 'ユーザー管理', icon: 'users' },
-  { to: '/admin/history', label: '診断履歴', icon: 'history' }
+  { to: '/admin/history', label: '診断履歴', icon: 'history' },
+  { to: '/admin/contact-requests', label: '有料プラン申し込み', icon: 'mail' }
 ]
 
 function isActive(to: string) {
   return to === '/admin' ? route.path === '/admin' : route.path.startsWith(to)
+}
+
+async function logout() {
+  const { $auth } = useNuxtApp()
+  await signOut($auth as Auth)
+  await navigateTo('/admin/login')
 }
 </script>
 
@@ -37,16 +47,26 @@ function isActive(to: string) {
         <svg v-else-if="item.icon === 'users'" width="16" height="16" viewBox="0 0 24 24" fill="none" class="flex-none">
           <circle cx="9" cy="8" r="3.2" stroke="currentColor" stroke-width="2" /><path d="M3.5 20c0-3.6 2.9-6 5.5-6s5.5 2.4 5.5 6" stroke="currentColor" stroke-width="2" /><circle cx="17.5" cy="9" r="2.4" stroke="currentColor" stroke-width="2" /><path d="M15.5 20c.2-2.6 1.8-4.5 4-5" stroke="currentColor" stroke-width="2" />
         </svg>
-        <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" class="flex-none">
+        <svg v-else-if="item.icon === 'history'" width="16" height="16" viewBox="0 0 24 24" fill="none" class="flex-none">
           <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2" /><path d="M12 7.5V12l3.2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" class="flex-none">
+          <path d="M3.5 6.5h17v11h-17z" stroke="currentColor" stroke-width="2" /><path d="M4 7l8 6 8-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
         {{ item.label }}
       </NuxtLink>
 
       <div class="flex-1"></div>
       <div class="border-t border-[#dde1de] px-3 py-2.5 text-xs text-[#8b968e] dark:border-[#2a3a32] dark:text-[#748177]">
-        <b class="block text-[13px] text-[#132019] dark:text-[#edf2ef]">佐藤 恵美</b>
+        <b class="block truncate text-[13px] text-[#132019] dark:text-[#edf2ef]">{{ user?.email }}</b>
         管理者アカウント
+        <button
+          type="button"
+          class="mt-2 block text-[11.5px] font-semibold text-brass-700 hover:underline dark:text-gold-300"
+          @click="logout"
+        >
+          ログアウト
+        </button>
       </div>
     </aside>
 
