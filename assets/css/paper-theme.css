@@ -5,29 +5,10 @@
    registered globally in nuxt.config.ts has no effect on /, /checkout, or /admin/**, which never
    use these classes.
 
-   Variant switching: usePaperTheme() toggles `data-paper="white"` on <html> (beige is the
-   unqualified default, matching the block below). */
+   White base only — the beige/white A/B toggle (usePaperTheme) has been removed; white was
+   selected as the confirmed design. */
 
 :root {
-  --paper: #f2e8d3;
-  --paper-panel: #faf4e6;
-  --paper-panel-2: #eee2c8;
-  --ink: #2b2013;
-  --ink-soft: #6e5c42;
-  --ink-faint: #93815f;
-  --gold: #a97c2f;
-  --gold-deep: #7c5a1e;
-  --gold-line: rgba(169, 124, 47, .38);
-  --gold-line-soft: rgba(169, 124, 47, .2);
-  --shadow: 0 18px 40px -20px rgba(60, 42, 10, .35);
-  --seal-red: #be402d;
-  --seal-white: #8a8368;
-  --seal-blue: #1c517f;
-  --seal-yellow: #c99a1f;
-  --header-h: 56px;
-}
-@media (min-width: 768px) { :root { --header-h: 64px; } }
-:root[data-paper="white"] {
   --paper: #fbfaf6;
   --paper-panel: #ffffff;
   --paper-panel-2: #f3f0e8;
@@ -39,7 +20,13 @@
   --gold-line: rgba(161, 117, 31, .32);
   --gold-line-soft: rgba(161, 117, 31, .16);
   --shadow: 0 18px 40px -22px rgba(40, 30, 10, .22);
+  --seal-red: #be402d;
+  --seal-white: #8a8368;
+  --seal-blue: #1c517f;
+  --seal-yellow: #c99a1f;
+  --header-h: 56px;
 }
+@media (min-width: 768px) { :root { --header-h: 64px; } }
 
 .paper-page {
   background: var(--paper);
@@ -68,35 +55,6 @@
 /* /result: header bar removed, so the sheet itself no longer needs top/bottom breathing room —
    left/right padding (set by .sheet above, per breakpoint) is untouched. */
 .sheet--flush { padding-top: 0; padding-bottom: 0; }
-
-/* ---------------- demo/QA toggle bars (plan switcher, paper-theme switcher) ---------------- */
-.switch { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--paper-panel-2); border: 1px solid var(--gold-line-soft); gap: 2px; }
-.switch button { appearance: none; border: 0; cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 13px; border-radius: 999px; color: var(--ink-soft); background: transparent; transition: background .15s ease, color .15s ease; }
-.switch button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-.switch button[aria-pressed="true"] { background: var(--gold); color: #241a06; }
-
-/* 検証用バーの開閉。閉じるボタンはバー本体の右端、開き直すボタンは同じ角に置く
-   小さな丸タブ(常時表示)。 */
-/* flexの通常フローに置くと、幅が狭い時に折り返して✕だけが浮いた行になっていた
-   (実機DevToolsでの確認時に発覚)。position:absoluteで常にバーの右上角に固定し、
-   折り返しの影響を受けないようにする。コンテナ側の右paddingを広げて(pr-8)、
-   スイッチ類とこのボタンが重ならないようにしている。 */
-.demobar__close {
-  position: absolute; top: 6px; right: 6px;
-  appearance: none; border: 0; cursor: pointer; background: transparent; color: var(--ink-faint);
-  font-size: 15px; line-height: 1; padding: 4px; border-radius: 999px;
-}
-.demobar__close:hover { color: var(--ink); }
-.demobar__close:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-.demobar__reopen {
-  position: fixed; right: 16px; bottom: 16px; z-index: 40; appearance: none; cursor: pointer;
-  border: 1px solid var(--gold-line-soft); background: color-mix(in srgb, var(--paper-panel) 85%, transparent);
-  color: var(--ink-faint); font-size: 11px; letter-spacing: .04em; padding: 6px 12px; border-radius: 999px;
-  box-shadow: var(--shadow);
-}
-.demobar__reopen:hover { color: var(--ink-soft); border-color: var(--gold-line); }
-.demobar__reopen:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-
 
 /* ---------------- masthead ---------------- */
 .masthead { text-align: center; padding: clamp(64px, 15vw, 128px) 0 4px; position: relative; }

@@ -43,22 +43,29 @@ const displayGender = computed(() => genderLabel(props.profile.gender))
       </div>
     </div>
 
-    <!-- 運命数字: メダル表示ではなくリストで、同じ/前/次/鏡の向こうの自分/絶対反対の5つのKINを全て記載する。 -->
+    <!-- 運命数字: 見出し無しのリスト。KINの関係性(ガイド/反対/神秘/類似KIN)はアーキタイプ名で、
+         鏡の向こうの自分/絶対反対KINは番号で示す — 前者と後者は別グループなので<ul>を分けて
+         間を空けている(space-y-*はul単位でしかmargin-topを制御できないため)。 -->
     <div class="mt-3 pt-3">
-      <div class="text-center text-[10px] tracking-[.08em]" style="color: var(--ink-faint);">運命数字</div>
-      <ul class="mx-auto mt-1.5 w-full max-w-[220px] space-y-1 text-[12.5px]" style="color: var(--ink-soft);">
+      <ul class="mx-auto w-full max-w-[220px] space-y-1 text-[12.5px]" style="color: var(--ink-soft);">
         <li class="flex items-center justify-between">
-          <span>同じKIN</span>
-          <span class="font-semibold" style="color: var(--ink);">{{ profile.kin }}</span>
+          <span>ガイドKIN</span>
+          <span class="font-semibold" style="color: var(--ink);">{{ profile.relations.guide.name }}</span>
         </li>
         <li class="flex items-center justify-between">
-          <span>前のKIN</span>
-          <span class="font-semibold" style="color: var(--ink);">{{ profile.prevKin }}</span>
+          <span>反対KIN</span>
+          <span class="font-semibold" style="color: var(--ink);">{{ profile.relations.antipode.name }}</span>
         </li>
         <li class="flex items-center justify-between">
-          <span>次のKIN</span>
-          <span class="font-semibold" style="color: var(--ink);">{{ profile.nextKin }}</span>
+          <span>神秘KIN</span>
+          <span class="font-semibold" style="color: var(--ink);">{{ profile.relations.mystic.name }}</span>
         </li>
+        <li class="flex items-center justify-between">
+          <span>類似KIN</span>
+          <span class="font-semibold" style="color: var(--ink);">{{ profile.relations.analog.name }}</span>
+        </li>
+      </ul>
+      <ul class="mx-auto mt-3 w-full max-w-[220px] space-y-1 text-[12.5px]" style="color: var(--ink-soft);">
         <li class="flex items-center justify-between">
           <span>鏡の向こうの自分KIN</span>
           <span class="font-semibold" style="color: var(--ink);">{{ profile.mirrorKin }}</span>
