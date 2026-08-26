@@ -399,12 +399,12 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .gated__reveal .checklist { margin-bottom: 12px; }
 /* 下に向かって濃くなる紙色のスクリムのみ(格子状のピクセルグリッド線は不要とのことで削除)。
    本文は今は固定ダミー文(実データではない)なので判読性を気にする必要がなく、
-   「もう少し濃くしたい」という要望に沿って18/30/50%まで上げた
-   (14/32/62%→6/16/38%→3/8/20%→12/22/40%→18/30/50%)。 */
+   「もっと濃くしていい」という要望に沿って34/54/78%まで上げた
+   (14/32/62%→6/16/38%→3/8/20%→12/22/40%→18/30/50%→34/54/78%)。 */
 .gated__mosaic {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 0 16px;
   background-image:
-    linear-gradient(180deg, color-mix(in srgb, var(--paper) 18%, transparent) 0%, color-mix(in srgb, var(--paper) 30%, transparent) 55%, color-mix(in srgb, var(--paper) 50%, transparent) 100%);
+    linear-gradient(180deg, color-mix(in srgb, var(--paper) 34%, transparent) 0%, color-mix(in srgb, var(--paper) 54%, transparent) 55%, color-mix(in srgb, var(--paper) 78%, transparent) 100%);
 }
 /* 価格訴求(見出しライン/リード文/価格/ボタン/残り文字数)を縦に並べる。
    キッカー("ここから先は有料エリアです")だけ左右に線を添えて小見出し風に見せる —
