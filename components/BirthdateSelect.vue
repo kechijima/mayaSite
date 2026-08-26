@@ -27,12 +27,15 @@ const MAX_YEAR = 2050
 
 // 元号は年単位の簡易換算(改元月日は無視し、その年の大半を占める元号を採用する一般的な方式)。
 // 対象範囲(1900〜2050年)は明治〜令和のみで収まる。
+// 2026-08-26: option文字列が狭いselect幅を超えると、端末によってはドロップダウン内で折り返され
+// てしまうため、末尾の「年」を省略して短縮(「昭和51年」→「昭和51」)。ただし元年だけは「元」単独
+// だと年数として読めなくなるため「元年」のまま残す(西暦側の「年」も同様に省略 — テンプレート参照)。
 function wareki(year: number): string {
-  if (year >= 2019) return `令和${year === 2019 ? '元' : year - 2018}年`
-  if (year >= 1989) return `平成${year === 1989 ? '元' : year - 1988}年`
-  if (year >= 1926) return `昭和${year === 1926 ? '元' : year - 1925}年`
-  if (year >= 1912) return `大正${year === 1912 ? '元' : year - 1911}年`
-  return `明治${year === 1868 ? '元' : year - 1867}年`
+  if (year >= 2019) return year === 2019 ? '令和元年' : `令和${year - 2018}`
+  if (year >= 1989) return year === 1989 ? '平成元年' : `平成${year - 1988}`
+  if (year >= 1926) return year === 1926 ? '昭和元年' : `昭和${year - 1925}`
+  if (year >= 1912) return year === 1912 ? '大正元年' : `大正${year - 1911}`
+  return year === 1868 ? '明治元年' : `明治${year - 1867}`
 }
 // 既定値は utils/birthdate.ts と共有 — pages/compatibility.vue が「既定値のままか＝未入力か」を
 // 判定するのに同じ値を必要とするため、こちらで直書きしない。
@@ -86,7 +89,7 @@ watch(
   <div class="flex gap-2">
     <select v-model="year" required :class="selectClass" :style="selectStyle">
       <option value="" disabled :class="optionClass">年</option>
-      <option v-for="y in years" :key="y" :value="y" :class="optionClass">{{ y }}年（{{ wareki(Number(y)) }}）</option>
+      <option v-for="y in years" :key="y" :value="y" :class="optionClass">{{ y }}（{{ wareki(Number(y)) }}）</option>
     </select>
     <select v-model="month" required :class="selectClass" :style="selectStyle">
       <option value="" disabled :class="optionClass">月</option>
