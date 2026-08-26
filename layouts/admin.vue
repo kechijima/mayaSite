@@ -8,8 +8,7 @@ const navItems = [
   { to: '/admin', label: 'ダッシュボード', icon: 'grid' },
   { to: '/admin/content', label: '診断コンテンツ管理', icon: 'doc' },
   { to: '/admin/users', label: 'ユーザー管理', icon: 'users' },
-  { to: '/admin/history', label: '診断履歴', icon: 'history' },
-  { to: '/admin/contact-requests', label: '有料プラン申し込み', icon: 'mail' }
+  { to: '/admin/history', label: '診断履歴', icon: 'history' }
 ]
 
 function isActive(to: string) {
@@ -47,11 +46,8 @@ async function logout() {
         <svg v-else-if="item.icon === 'users'" width="16" height="16" viewBox="0 0 24 24" fill="none" class="flex-none">
           <circle cx="9" cy="8" r="3.2" stroke="currentColor" stroke-width="2" /><path d="M3.5 20c0-3.6 2.9-6 5.5-6s5.5 2.4 5.5 6" stroke="currentColor" stroke-width="2" /><circle cx="17.5" cy="9" r="2.4" stroke="currentColor" stroke-width="2" /><path d="M15.5 20c.2-2.6 1.8-4.5 4-5" stroke="currentColor" stroke-width="2" />
         </svg>
-        <svg v-else-if="item.icon === 'history'" width="16" height="16" viewBox="0 0 24 24" fill="none" class="flex-none">
-          <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2" /><path d="M12 7.5V12l3.2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-        </svg>
         <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" class="flex-none">
-          <path d="M3.5 6.5h17v11h-17z" stroke="currentColor" stroke-width="2" /><path d="M4 7l8 6 8-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2" /><path d="M12 7.5V12l3.2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
         </svg>
         {{ item.label }}
       </NuxtLink>

@@ -24,18 +24,6 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time;
       allow update, delete: if false;
     }
-    match /contactRequests/{docId} {
-      // 電話番号・メールアドレスを含むため、閲覧は管理画面(/admin/contact-requests)の
-      // 管理者のみに限定。送信(create)自体は/checkoutを使う一般利用者による未認証
-      // アクセスなので、従来通り認証不要のまま。
-      allow read: if isAdmin();
-      allow create: if request.resource.data.name is string && request.resource.data.name.size() > 0
-        && request.resource.data.gender in ['male', 'female']
-        && request.resource.data.phone is string && request.resource.data.phone.size() > 0
-        && request.resource.data.email is string && request.resource.data.email.size() > 0
-        && request.resource.data.createdAt == request.time;
-      allow update, delete: if false;
-    }
     match /{document=**} {
       allow read, write: if false; // deny-by-default; no other collections exist yet
     }

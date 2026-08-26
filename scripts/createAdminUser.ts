@@ -1,7 +1,7 @@
 // One-off tool to create (or promote) a Firebase Auth user with the
 // `admin: true` custom claim required by middleware/admin-auth.global.ts
 // (the client-side route guard for /admin/**) and firestore.rules
-// (diagnosisContent writes; diagnosisHistory/contactRequests reads).
+// (diagnosisContent writes; diagnosisHistory reads).
 // Run via: npm run admin:create -- --email=you@example.com --password=xxxx           (real project; requires FIREBASE_SERVICE_ACCOUNT_KEY in .env)
 //      or: npm run admin:create:emulator -- --email=you@example.com --password=xxxx  (local Auth emulator; no credentials needed)
 // Add --reset-password to overwrite an existing user's password (not done by default).
