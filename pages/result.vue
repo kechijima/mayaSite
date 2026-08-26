@@ -299,7 +299,7 @@ function toggleDemoBar() {
       </div>
 
       <!-- 太陽の紋章 -->
-      <section class="section" :data-seal="sealColor(result.sealIndex)">
+      <section id="sun" class="section" :data-seal="sealColor(result.sealIndex)">
         <SectionDivider label="太陽の紋章" eyebrow="顕在意識 — 行動を司るアーキタイプ" />
         <div class="dossier">
           <MayaPortrait :seal-index="result.sealIndex" :gender="result.gender" />
@@ -344,7 +344,7 @@ function toggleDemoBar() {
       </section>
 
       <!-- ウェイブスペル -->
-      <section class="section" :data-seal="sealColor(result.wavespellSealIndex)">
+      <section id="wavespell" class="section" :data-seal="sealColor(result.wavespellSealIndex)">
         <SectionDivider label="ウェイブスペル" eyebrow="潜在意識 — 可能性を担うアーキタイプ" />
         <div class="dossier">
           <MayaPortrait :seal-index="result.wavespellSealIndex" :gender="result.gender" />
@@ -387,7 +387,7 @@ function toggleDemoBar() {
       </section>
 
       <!-- 銀河の音 -->
-      <section class="section">
+      <section id="tone" class="section">
         <SectionDivider label="銀河の音" eyebrow="260日の周期が示すリズム" />
         <div class="tonecard">
           <div class="tonecard__left">
@@ -436,7 +436,7 @@ function toggleDemoBar() {
       </section>
 
       <!-- KINの関係性: 無料 -->
-      <section class="section">
+      <section id="relations" class="section">
         <SectionDivider label="KINの関係性" eyebrow="周囲の紋章とのつながり" />
         <div class="relwrap">
           <div v-for="r in relations" :key="r.label" class="relcard" :class="`relcard--${sealColor(r.seal.index)}`">
@@ -455,7 +455,7 @@ function toggleDemoBar() {
       </section>
 
       <!-- 運命数字: 無料、番号のみ -->
-      <section class="section">
+      <section id="destiny" class="section">
         <SectionDivider label="運命数字" eyebrow="同じ周期を巡るKIN番号" />
         <div class="numrow">
           <div class="numcell">
@@ -482,7 +482,7 @@ function toggleDemoBar() {
       </section>
 
       <!-- 相性診断への導線: 無料機能、ゲート無し -->
-      <section class="section">
+      <section id="compatibility-cta" class="section">
         <div class="mx-auto max-w-[560px] rounded-xl p-6 text-center" style="border: 1px solid var(--gold-line-soft); background: var(--paper-panel); box-shadow: var(--shadow);">
           <div class="mb-2 font-display text-[17px]" style="color: var(--gold-deep);">身近な人との相性を無料で診断</div>
           <p class="mb-4 text-[13px]" style="color: var(--ink-soft);">パートナーや友人の生年月日を入れるだけで、紋章の組み合わせから相性を読み解きます。</p>
