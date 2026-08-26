@@ -28,7 +28,7 @@ withDefaults(defineProps<{ to?: string; remainingChars?: number }>(), {
         <p class="gated__lead">この続きを見るには</p>
         <p class="gated__price">この記事は一冊<strong>￥550円</strong>で読めます</p>
         <NuxtLink :to="to" class="gated__cta">
-          <svg><use href="#i-lock" /></svg>記事を購入する
+          <svg><use href="#i-lock" /></svg>続きを購入する
         </NuxtLink>
         <p v-if="remainingChars" class="gated__remaining">
           <svg><use href="#i-scroll" /></svg>残り{{ remainingChars.toLocaleString() }}文字
