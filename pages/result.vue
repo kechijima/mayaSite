@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { toJpeg } from 'html-to-image'
-import { PLAN_META, type MembershipPlan } from '~/composables/useMembership'
 import type { PaperVariant } from '~/composables/usePaperTheme'
 import { DEFAULT_GENDER, isGender } from '~/utils/gender'
 import { parseCelebrities } from '~/utils/toneCelebrities'
@@ -9,8 +8,12 @@ import { type ProfileSection, iconFor, freeProfileSections, premiumProfileSectio
 import { RELATION_DESCRIPTION } from '~/utils/kinRelations'
 
 const route = useRoute()
-const { plan, rank, setPlan } = useMembership()
+const { user, ready } = useAuth()
 const { paper, setPaper } = usePaperTheme()
+// 会員登録/ログイン後にこのページへ戻れるよう、有料エリアの各LockedVeilに渡す遷移先。
+// name/birth/genderなど現在のクエリを保ったまま/signupへ渡し、登録完了後に
+// redirectTarget()経由でこのURLへ戻す(pages/signup.vue・pages/login.vue参照)。
+const signupRedirectTo = computed(() => `/signup?redirect=${encodeURIComponent(route.fullPath)}`)
 
 const input = computed(() => {
   const genderQuery = route.query.gender as string | undefined
@@ -70,7 +73,7 @@ const toneCelebrities = computed(() => parseCelebrities(toneProfile.value?.celeb
 // 太陽の紋章・ウェイブスペルは別人格(別キャラクター)なので、それぞれ自分のセクション内で自分の
 // プロフィールを深掘りする(2026-08-06以前は両方まとめて「あなたについて」という1セクションに
 // していたが、実際には太陽の紋章側のプロフィールしか出せておらず紛らわしかったため分離した)。
-const deepUnlocked = computed(() => rank.value >= 1)
+const deepUnlocked = computed(() => ready.value && !!user.value)
 const sunFreeProfileSections = computed(() => freeProfileSections(sunProfile.value))
 const sunPremiumProfileSections = computed(() => premiumProfileSections(sunProfile.value))
 const wavespellFreeProfileSections = computed(() => freeProfileSections(wavespellProfile.value))
@@ -174,7 +177,7 @@ async function shareResult() {
     const file = new File([blob], `maya-kin${result.value.kin}.jpg`, { type: 'image/jpeg' })
     const shareData = {
       files: [file],
-      title: 'マヤ暦占い',
+      title: 'JMBマヤ暦 無料診断',
       text: `私のKINは${result.value.kin}、太陽の紋章は${result.value.sun.seal.name}でした。`
     }
     if (navigator.canShare?.(shareData)) {
@@ -195,10 +198,6 @@ async function shareResult() {
   }
 }
 
-const demoPlans: { id: MembershipPlan; label: string }[] = [
-  { id: 'free', label: '無料' },
-  { id: 'paid', label: '有料' }
-]
 const demoPapers: { id: PaperVariant; label: string }[] = [
   { id: 'beige', label: 'ベージュ' },
   { id: 'white', label: '白' }
@@ -206,7 +205,8 @@ const demoPapers: { id: PaperVariant; label: string }[] = [
 
 // 検証用バー自体の表示・非表示。バーを消した状態で見た目を確認したい場合があるため。
 // localStorageに保持するのは、確認のたびにページ遷移/リロードするたびに毎回開き直すのが
-// 面倒なため — plan/paperの永続化(useMembership/usePaperTheme)と同じ考え方。
+// 面倒なため — paperの永続化(usePaperTheme)と同じ考え方。プラン切り替えは実会員登録/
+// ログインの導入に伴い廃止した(実ログイン/ログアウトがそのままQA手段になる)。
 const DEMO_BAR_KEY = 'maya-demo-bar-hidden'
 const demoBarHidden = ref(false)
 onMounted(() => {
@@ -340,7 +340,7 @@ function toggleDemoBar() {
         <!-- 有料項目はまとめて1つのモザイクに入れる(項目ごとに小さなロック箱を並べるより、
              「この分量の続きがある」ことが伝わるため)。参考: kinoshita-reon.jp -->
         <ProfileBlocks v-if="deepUnlocked" :sections="sunPremiumProfileSections" />
-        <LockedVeil v-else-if="sunPremiumProfileSections.length" :remaining-chars="countChars(sunPremiumProfileSections)" />
+        <LockedVeil v-else-if="sunPremiumProfileSections.length" :to="signupRedirectTo" :remaining-chars="countChars(sunPremiumProfileSections)" />
       </section>
 
       <!-- ウェイブスペル -->
@@ -383,7 +383,7 @@ function toggleDemoBar() {
         <ProfileBlocks :sections="wavespellOtherFreeProfileSections" />
 
         <ProfileBlocks v-if="deepUnlocked" :sections="wavespellPremiumProfileSections" />
-        <LockedVeil v-else-if="wavespellPremiumProfileSections.length" :remaining-chars="countChars(wavespellPremiumProfileSections)" />
+        <LockedVeil v-else-if="wavespellPremiumProfileSections.length" :to="signupRedirectTo" :remaining-chars="countChars(wavespellPremiumProfileSections)" />
       </section>
 
       <!-- 銀河の音 -->
@@ -422,7 +422,7 @@ function toggleDemoBar() {
       <section v-if="kinText" class="section">
         <SectionDivider :label="`KIN${result.kin}のあなたへ`" eyebrow="紋章や音を超えた、あなたへの言葉" numeric />
         <p class="kinletter">{{ kinLetterFree }}</p>
-        <LockedVeil v-if="kinLetterLocked" class="kinletter-gate" :remaining-chars="kinLetterRest.length" />
+        <LockedVeil v-if="kinLetterLocked" class="kinletter-gate" :to="signupRedirectTo" :remaining-chars="kinLetterRest.length" />
 
         <!-- 同じKINを持つ有名人。有料エリアより後ろに置き、無料/有料を問わず全件表示する。 -->
         <div v-if="kinCelebrities.length" class="block">
@@ -497,14 +497,14 @@ function toggleDemoBar() {
       </section>
 
       <p class="foot">
-        古代4000年の智慧 マヤ暦占い ｜ {{ plan === 'free' ? '監修者紹介・占術紹介・利用規約はフッターメニューより' : `${PLAN_META[0].name}会員としてご利用中です` }}
+        古代4000年の智慧 JMBマヤ暦 無料診断 ｜ {{ !user ? '監修者紹介・占術紹介・利用規約はフッターメニューより' : '会員としてご利用中です' }}
       </p>
     </div>
 
-    <!-- Demo-only toggles: no real auth/payment is wired up, this simulates it — same convention
-         as the plan switcher. Paper theme is a persisted global preference (usePaperTheme), so
-         /compatibility inherits whatever's chosen here with no switcher of its own, mirroring how
-         it already silently inherits `plan`/`rank` today. -->
+    <!-- Demo-only toggle: 紙面テーマ(ベージュ/白)は永続化されたグローバル設定
+         (usePaperTheme)なので、/compatibilityもここで選んだ内容をそのまま引き継ぐ。
+         プラン切り替えボタンは実会員登録/ログインの導入に伴い廃止(実ログイン/ログアウト
+         がそのままQA手段になるため)。 -->
     <!-- backdrop-blur は使わない: position:fixed と組み合わせると、スクロールの毎フレーム
          「背後のページを読み直してぼかす」処理が走り、スマホでスクロールが引っかかる原因に
          なる。背景を不透明にすれば見た目はほぼ同じで、その処理自体が不要になる。 -->
@@ -514,9 +514,6 @@ function toggleDemoBar() {
       style="border: 1px solid var(--gold-line); background: var(--paper-panel); color: var(--ink-soft);"
     >
       <span class="whitespace-nowrap">検証用：</span>
-      <div class="switch">
-        <button v-for="d in demoPlans" :key="d.id" :aria-pressed="plan === d.id" @click="setPlan(d.id)">{{ d.label }}</button>
-      </div>
       <div class="switch">
         <button v-for="p in demoPapers" :key="p.id" :aria-pressed="paper === p.id" @click="setPaper(p.id)">{{ p.label }}</button>
       </div>
