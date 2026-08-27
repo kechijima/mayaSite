@@ -68,11 +68,11 @@ const displayGender = computed(() => genderLabel(props.profile.gender))
       <ul class="mx-auto mt-3 w-full max-w-[220px] space-y-1 text-[12.5px]" style="color: var(--ink-soft);">
         <li class="flex items-center justify-between">
           <span>鏡の向こうの自分KIN</span>
-          <span class="font-semibold" style="color: var(--ink);">KIN{{ profile.mirrorKin }}</span>
+          <span class="font-semibold" style="color: var(--ink);">KIN {{ profile.mirrorKin }}</span>
         </li>
         <li class="flex items-center justify-between">
           <span>絶対反対KIN</span>
-          <span class="font-semibold" style="color: var(--ink);">KIN{{ profile.absoluteOppositeKin }}</span>
+          <span class="font-semibold" style="color: var(--ink);">KIN {{ profile.absoluteOppositeKin }}</span>
         </li>
       </ul>
     </div>
