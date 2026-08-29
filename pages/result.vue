@@ -2,6 +2,7 @@
 import { toJpeg } from 'html-to-image'
 import { DEFAULT_GENDER, isGender } from '~/utils/gender'
 import { parseCelebrities } from '~/utils/toneCelebrities'
+import { formatCelebrityBirth } from '~/utils/kinCelebrities'
 import { sealColor } from '~/utils/mayaData'
 import { type ProfileSection, iconFor, freeProfileSections, premiumProfileSections, countChars } from '~/utils/profileSections'
 import { RELATION_DESCRIPTION } from '~/utils/kinRelations'
@@ -44,11 +45,6 @@ const kinText = computed(() => content.kinText.value)
 // KIN別の有名人(docs/芸能人マスタ.xlsx由来)。本文は125文字で切って以降を有料にしているが、
 // この一覧はユーザー指定により有料エリアの「後ろ」に無料で全件出す。
 const kinCelebrities = computed(() => content.kinCelebrities.value)
-function formatCelebrityBirth(birthdate: string) {
-  // マスタに生年月日が無い2件は空文字で入っているので、その場合は日付を出さない。
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthdate)
-  return m ? `${Number(m[1])}年${Number(m[2])}月${Number(m[3])}日` : ''
-}
 
 // 銀河の音プロフィール(docs/銀河の音診断結果マスタ.xlsx由来)の深掘り項目。紋章プロフィールと違い
 // 無料/有料の区切りがマスタ側に無いため、全項目を常時無料で表示する。3項目とも純粋な箇条書き。
@@ -112,6 +108,14 @@ const relations = computed(() => [
   { label: '神秘KIN', seal: result.value.relations.mystic },
   { label: '反対KIN', seal: result.value.relations.antipode },
   { label: '類似KIN', seal: result.value.relations.analog }
+])
+
+const destinyNumbers = computed(() => [
+  { label: '同じKIN', kin: result.value.destinyNumbers.sameNumberKin },
+  { label: '前のKIN', kin: result.value.destinyNumbers.prevKin },
+  { label: '次のKIN', kin: result.value.destinyNumbers.nextKin },
+  { label: '鏡の向こうの自分KIN', kin: result.value.destinyNumbers.mirrorKin },
+  { label: '絶対反対KIN', kin: result.value.destinyNumbers.absoluteOppositeKin }
 ])
 
 const displayBirthdate = computed(() => {
@@ -440,25 +444,14 @@ async function shareResult() {
       <section id="destiny" class="section">
         <SectionDivider label="運命数字" eyebrow="同じ周期を巡るKIN番号" />
         <div class="numrow">
-          <div class="numcell">
-            <GoldMedal :value="result.destinyNumbers.sameNumberKin" :size="68" :num-font-size="20" />
-            <span class="numcell__label">同じKIN</span>
-          </div>
-          <div class="numcell">
-            <GoldMedal :value="result.destinyNumbers.prevKin" :size="68" :num-font-size="20" />
-            <span class="numcell__label">前のKIN</span>
-          </div>
-          <div class="numcell">
-            <GoldMedal :value="result.destinyNumbers.nextKin" :size="68" :num-font-size="20" />
-            <span class="numcell__label">次のKIN</span>
-          </div>
-          <div class="numcell">
-            <GoldMedal :value="result.destinyNumbers.mirrorKin" :size="68" :num-font-size="20" />
-            <span class="numcell__label">鏡の向こうの自分KIN</span>
-          </div>
-          <div class="numcell">
-            <GoldMedal :value="result.destinyNumbers.absoluteOppositeKin" :size="68" :num-font-size="20" />
-            <span class="numcell__label">絶対反対KIN</span>
+          <div v-for="d in destinyNumbers" :key="d.label" class="numcell">
+            <NuxtLink
+              :to="{ path: `/kin/${d.kin}/detail`, query: { name: result.name, birth: input.birthdate, gender: result.gender } }"
+              class="numcell__link"
+            >
+              <GoldMedal :value="d.kin" :size="68" :num-font-size="20" />
+              <span class="numcell__label">{{ d.label }}</span>
+            </NuxtLink>
           </div>
         </div>
       </section>
