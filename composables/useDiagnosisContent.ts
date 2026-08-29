@@ -71,7 +71,7 @@ export interface DiagnosisContentDoc extends CharacterProfileFields, ToneProfile
   kinCelebrities?: KinCelebrity[] // kin-* のみ
 }
 
-async function fetchPublishedDoc(firestore: Firestore, id: string): Promise<DiagnosisContentDoc | null> {
+export async function fetchPublishedDoc(firestore: Firestore, id: string): Promise<DiagnosisContentDoc | null> {
   const snap = await getDoc(doc(firestore, 'diagnosisContent', id))
   if (!snap.exists()) return null
   const data = snap.data() as DiagnosisContentDoc

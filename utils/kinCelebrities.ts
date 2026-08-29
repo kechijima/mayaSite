@@ -38,6 +38,15 @@ export function normalizeBirthdate(value: string): string {
 }
 
 /**
+ * 有名人カードの生年月日表示用。マスタに生年月日が無い2件は空文字で入っているので、
+ * その場合は日付を出さない(呼び出し側で空文字を判定してレイアウトを出し分ける)。
+ */
+export function formatCelebrityBirth(birthdate: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthdate)
+  return m ? `${Number(m[1])}年${Number(m[2])}月${Number(m[3])}日` : ''
+}
+
+/**
  * 編集用テキスト → 配列。空行と、名前が空の行は捨てる。
  *
  * 2026-08-17時点では未使用 — 管理画面は表示のみで、書き込みは firestore.rules で全面拒否

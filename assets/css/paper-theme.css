@@ -497,6 +497,12 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .numcell { position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 22px 8px 18px; border-radius: 12px; border: 1px solid var(--gold-line-soft); background: radial-gradient(140% 170% at 30% 0%, var(--paper-panel) 0%, var(--paper-panel-2) 100%); box-shadow: var(--shadow); }
 .numcell::after { content: ""; position: absolute; inset: 4px; border: 1px solid var(--gold-line-soft); border-radius: 8px; pointer-events: none; }
 .numcell__label { position: relative; font-size: 11px; color: var(--ink-faint); letter-spacing: .02em; text-align: center; line-height: 1.4; }
+/* 運命数字セクションの各KIN番号は/kin/{kin}/detailへのリンクになっている。.numcell自体は
+   .heroの生年月日/KIN/銀河の音カードとも共有しているため、クリック演出は.numrow配下だけに
+   スコープし、.hero側には影響させない。 */
+.numcell__link { position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; text-decoration: none; color: inherit; }
+.numrow .numcell:hover,
+.numrow .numcell:focus-within { box-shadow: var(--shadow), 0 0 0 1px var(--gold-line); transform: translateY(-2px); transition: box-shadow .15s, transform .15s; }
 /* 診断結果ページのトップ(.hero)の生年月日/KIN/銀河の音カードは、SNSシェア画像
    (ShareHeroCard、.sharecard__cell)のよりフラットなデザイン(影なし・二重枠なし)に
    合わせる。.numcellはトップページ「今日のアーキタイプ」・運命数字セクションでも
