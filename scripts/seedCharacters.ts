@@ -16,6 +16,7 @@
 import { cert, getApps, initializeApp } from 'firebase-admin/app'
 import { getFirestore, FieldValue } from 'firebase-admin/firestore'
 import { CHARACTER_SEED } from './characters.data'
+import { PREMIUM_CHARACTER_FIELDS, countPremiumChars } from '../utils/premiumContent'
 
 const projectId = process.env.NUXT_PUBLIC_FIREBASE_PROJECT_ID || 'mayachannel-34fd5'
 
@@ -35,6 +36,7 @@ const db = getFirestore(app)
 
 async function main() {
   const collectionRef = db.collection('diagnosisContent')
+  const premiumCollectionRef = db.collection('diagnosisContentPremium')
   const batch = db.batch()
   let written = 0
   let skipped = 0
@@ -47,6 +49,15 @@ async function main() {
       continue
     }
     const { index, ...fields } = character
+    // 有料項目は diagnosisContentPremium 側へ振り分ける。無料側に残すと
+    // allow read: if true でそのまま公開されてしまうため(utils/premiumContent.ts参照)。
+    const freeFields: Record<string, unknown> = {}
+    const premiumFields: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(fields)) {
+      if ((PREMIUM_CHARACTER_FIELDS as readonly string[]).includes(key)) premiumFields[key] = value
+      else freeFields[key] = value
+    }
+
     batch.set(
       ref,
       {
@@ -56,9 +67,17 @@ async function main() {
         freeText: fields.overview,
         premiumText: '',
         status: '公開',
-        ...fields,
+        ...freeFields,
+        // ロック中の「残り○○文字」表示用。有料本文を読めない利用者でも数を出せるように、
+        // 無料側に数値だけを持たせる。
+        premiumCharCount: countPremiumChars(fields),
         updatedAt: FieldValue.serverTimestamp()
       },
+      { merge: true }
+    )
+    batch.set(
+      premiumCollectionRef.doc(`character-${index}`),
+      { type: 'character', index, ...premiumFields, updatedAt: FieldValue.serverTimestamp() },
       { merge: true }
     )
     written++

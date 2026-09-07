@@ -13,6 +13,7 @@
 import { cert, getApps, initializeApp } from 'firebase-admin/app'
 import { getFirestore, FieldValue } from 'firebase-admin/firestore'
 import { KIN_SEED } from './kins.data'
+import { splitKinText } from '../utils/premiumContent'
 
 const projectId = process.env.NUXT_PUBLIC_FIREBASE_PROJECT_ID || 'mayachannel-34fd5'
 
@@ -32,6 +33,7 @@ const db = getFirestore(app)
 
 async function main() {
   const collectionRef = db.collection('diagnosisContent')
+  const premiumCollectionRef = db.collection('diagnosisContentPremium')
   let written = 0
   let skipped = 0
 
@@ -48,13 +50,26 @@ async function main() {
         skipped++
         continue
       }
+      // 本文は1本の続き文章なので、フィールド単位ではなく文字数で無料/有料に切る。
+      // 冒頭125文字を無料側に、残りを diagnosisContentPremium の restText へ
+      // (utils/premiumContent.ts参照)。
+      const { freeText, restText } = splitKinText(kin.freeText)
       batch.set(ref, {
         type: 'kin',
         index: kin.index,
         name: `KIN${kin.index}`,
-        freeText: kin.freeText,
+        freeText,
         premiumText: '',
         status: '公開',
+        hasMore: restText.length > 0,
+        premiumCharCount: restText.trimStart().length,
+        updatedAt: FieldValue.serverTimestamp()
+      })
+      // 続きが無いKINでも作る — 無いと移行スクリプト側で「未移行」と誤判定されるため。
+      batch.set(premiumCollectionRef.doc(`kin-${kin.index}`), {
+        type: 'kin',
+        index: kin.index,
+        restText,
         updatedAt: FieldValue.serverTimestamp()
       })
       written++

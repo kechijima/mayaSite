@@ -1,4 +1,5 @@
 import { SEALS, TONES } from '~/utils/mayaData'
+import { isPremiumCharacterField } from '~/utils/premiumContent'
 
 export type ContentType = 'character' | 'tone' | 'kin'
 
@@ -8,6 +9,11 @@ export type ContentType = 'character' | 'tone' | 'kin'
 // tier はマスタの行位置に対応(1〜14行目=free、15行目以降=premium — 詳細は
 // scripts/characters.data.ts の2026-08-05コメント参照)。cautionDetailPremium は元々1つの
 // セルだった注意すべき傾向(詳細)の後半(15行目)を分離したもの。
+// 2026-09-07: tier === 'premium' の項目は diagnosisContent ではなく
+// diagnosisContentPremium ドキュメントに保存される。どの項目が有料かの正は
+// utils/premiumContent.ts の PREMIUM_CHARACTER_FIELDS 側にあり、こちらの tier は
+// 編集フォームの並び順・見出しのためにラベル等と一緒に持っているだけ。両者は
+// 必ず一致していなければならないので、下部で開発時に突き合わせている。
 export const CHARACTER_PROFILE_FIELDS = [
   { key: 'archetype', label: 'タイプ名', kind: 'text', tier: 'free' },
   { key: 'catchphrase', label: 'キャッチコピー', kind: 'text', tier: 'free' },
@@ -30,6 +36,19 @@ export const CHARACTER_PROFILE_FIELDS = [
   { key: 'luckUpActions', label: '運気が上がる行動', kind: 'list', tier: 'premium' },
   { key: 'luckDownHabits', label: '運気が下がるクセ', kind: 'textarea', tier: 'premium' }
 ] as const satisfies { key: string; label: string; kind: 'text' | 'textarea' | 'list'; tier: 'free' | 'premium' }[]
+
+// tier と PREMIUM_CHARACTER_FIELDS の突き合わせ。片方だけ直したときに
+// 「編集フォームでは有料項目なのに保存先は無料コレクション(= 全公開)」という
+// 不整合が静かに生まれるのを防ぐ。開発時のみ。
+if (import.meta.dev) {
+  for (const field of CHARACTER_PROFILE_FIELDS) {
+    if ((field.tier === 'premium') !== isPremiumCharacterField(field.key)) {
+      console.error(
+        `[diagnosisContentAdmin] ${field.key} の tier が utils/premiumContent.ts の PREMIUM_CHARACTER_FIELDS と食い違っています`
+      )
+    }
+  }
+}
 
 export type CharacterProfileKey = (typeof CHARACTER_PROFILE_FIELDS)[number]['key']
 

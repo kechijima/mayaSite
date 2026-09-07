@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { doc, getDoc, type Firestore } from 'firebase/firestore'
 import dividerSrc from '~/assets/images/optimized/divider.webp'
-import type { DiagnosisContentDoc } from '~/composables/useDiagnosisContent'
+import { fetchPremiumDoc, type DiagnosisContentDoc } from '~/composables/useDiagnosisContent'
 import { SEALS, sealColor } from '~/utils/mayaData'
-import { iconFor, freeProfileSections, premiumProfileSections, countChars } from '~/utils/profileSections'
+import { iconFor, freeProfileSections, premiumProfileSections } from '~/utils/profileSections'
 import { RELATION_DESCRIPTION } from '~/utils/kinRelations'
 import { DEFAULT_GENDER, isGender } from '~/utils/gender'
-import { buildSignupLink } from '~/utils/signupLink'
 
 // KINの関係性カード(pages/result.vueのガイド/神秘/反対/類似KIN)の「詳しく見る」遷移先。
 // 各関係性は特定のKIN番号ではなく紋章(sealIndex)そのものなので、太陽の紋章/ウェイブスペルと
@@ -14,10 +13,15 @@ import { buildSignupLink } from '~/utils/signupLink'
 // 表示する(有料エリアの扱いもresult.vueに合わせる)。
 
 const route = useRoute()
-const { user, ready } = useAuth()
-const deepUnlocked = computed(() => ready.value && !!user.value)
-// 会員登録/ログイン後にこのページへ戻れるよう、LockedVeilに渡す遷移先(pages/result.vueと同じ考え方)。
-const signupRedirectTo = computed(() => buildSignupLink(route.fullPath, route.query))
+// 有料エリアの解放条件は composables/useEntitlement.ts に集約している(pages/result.vueと同じ)。
+// ログインだけでは解放されず、チームに所属していることが条件。entitlementSettled は
+// 認証復元とusersドキュメント取得の両方が終わったかを表し、LockedVeilはこれが立つまで
+// 出さない — 所属済みの会員に読み込み中の一瞬だけ購入訴求が見えるのを避けるため。
+const { entitled: deepUnlocked, settled: entitlementSettled } = useEntitlement()
+// 有料エリアの各LockedVeilに渡す遷移先。未ログインなら/signup(登録フォームに紹介コード欄が
+// ある)、ログイン済みなら/account(後追い入力欄)へ — ログイン済みの人を/signupへ送ると
+// 「既にログイン済み」と判定されて即座に戻され、行き止まりになるため(composables/useUnlockLink.ts)。
+const signupRedirectTo = useUnlockLink()
 
 const sealIndex = computed(() => {
   const n = Number(route.params.sealIndex)
@@ -56,18 +60,27 @@ const { data: profile } = useAsyncData(
     const snap = await getDoc(doc(firestore, 'diagnosisContent', `character-${sealIndex.value}`))
     if (!snap.exists()) return null
     const data = snap.data() as DiagnosisContentDoc
-    return data.status === '公開' ? data : null
+    if (data.status !== '公開') return null
+    // 有料項目は別コレクション。権限がある時だけ取りに行く(pages/result.vueと同じ方針)。
+    const premium = deepUnlocked.value
+      ? await fetchPremiumDoc(firestore, `character-${sealIndex.value}`)
+      : null
+    return { free: data, premium }
   },
-  { server: false, lazy: true, watch: [sealIndex] }
+  { server: false, lazy: true, watch: [sealIndex, deepUnlocked] }
 )
 
 // Firestoreに未公開/未セットの場合は、太陽の紋章/ウェイブスペルと同じくSEALSのessenceに
 // フォールバックする(useDiagnosis.tsのsun.text相当)。
-const profileText = computed(() => profile.value?.freeText || seal.value?.essence || '')
-const freeSections = computed(() => freeProfileSections(profile.value))
+const free = computed(() => profile.value?.free ?? null)
+const profileText = computed(() => free.value?.freeText || seal.value?.essence || '')
+const freeSections = computed(() => freeProfileSections(free.value))
 const personalityStrength = computed(() => freeSections.value.find((s) => s.label === 'あなたの性格の強み') ?? null)
 const otherFreeSections = computed(() => freeSections.value.filter((s) => s.label !== 'あなたの性格の強み'))
-const premiumSections = computed(() => premiumProfileSections(profile.value))
+const premiumSections = computed(() => premiumProfileSections(profile.value?.premium ?? null))
+// ロック時の「残り○○文字」。本文が手元に無いので数えられず、無料側ドキュメントに
+// 移行スクリプトが書き込んだ premiumCharCount を使う(utils/premiumContent.ts参照)。
+const premiumChars = computed(() => free.value?.premiumCharCount ?? 0)
 </script>
 
 <template>
@@ -86,15 +99,15 @@ const premiumSections = computed(() => premiumProfileSections(profile.value))
             <div class="dossier__main">
               <div class="dossier__headrow">
                 <h3 class="font-display dossier__name">{{ seal.name }}</h3>
-                <span v-if="profile?.archetype" class="dossier__badge">{{ profile.archetype }}</span>
+                <span v-if="free?.archetype" class="dossier__badge">{{ free.archetype }}</span>
               </div>
-              <p v-if="profile?.catchphrase" class="dossier__catch">{{ profile.catchphrase }}</p>
+              <p v-if="free?.catchphrase" class="dossier__catch">{{ free.catchphrase }}</p>
 
               <div class="dossier__blocks">
-                <div v-if="profile?.traits?.length" class="block">
+                <div v-if="free?.traits?.length" class="block">
                   <div class="block__head"><svg><use :href="`#${iconFor('あなたはこんな人です')}`" /></svg><h3>あなたはこんな人です</h3></div>
                   <ul class="checklist">
-                    <li v-for="(t, i) in profile.traits" :key="i"><svg><use href="#i-check" /></svg>{{ t }}</li>
+                    <li v-for="(t, i) in free.traits" :key="i"><svg><use href="#i-check" /></svg>{{ t }}</li>
                   </ul>
                 </div>
               </div>
@@ -118,7 +131,7 @@ const premiumSections = computed(() => premiumProfileSections(profile.value))
           <ProfileBlocks :sections="otherFreeSections" />
 
           <ProfileBlocks v-if="deepUnlocked" :sections="premiumSections" />
-          <LockedVeil v-else-if="premiumSections.length" :to="signupRedirectTo" :remaining-chars="countChars(premiumSections)" />
+          <LockedVeil v-else-if="entitlementSettled && premiumChars" :to="signupRedirectTo" :remaining-chars="premiumChars" />
         </section>
 
         <div class="mt-8 flex justify-center">

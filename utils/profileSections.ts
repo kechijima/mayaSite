@@ -1,7 +1,7 @@
 // 診断結果ページの「ブロック」(あなたはこんな人です / キャリアパス / 実践的なヒント …)の
 // 共通型とアイコン割り当て。pages/result.vue と components/ProfileBlocks.vue の両方から使う。
 
-import type { CharacterProfileFields } from '~/composables/useDiagnosisContent'
+import type { CharacterProfileFields, CharacterPremiumFields } from '~/composables/useDiagnosisContent'
 
 // 2026-08-10: 純粋な箇条書きのフィールドはFirestore側もstring[]に変更した
 // (scripts/migrateBulletFields.ts参照)。混在フィールド(bestEnvironment/bestRole/
@@ -47,6 +47,10 @@ export function iconFor(label: string) {
 // 数えず、実際に読める本文(text/items)だけを合算する。LockedVeilには本文そのものではなく
 // この数値だけを渡す — 実データを一切DOM化しないという既存の設計(コンポーネント側コメント
 // 参照)を崩さないため。
+//
+// 有料項目の分離後、ロックされている側の文字数はこの関数では数えられない(本文自体を
+// 取得できないため)。ロック時は無料側ドキュメントの premiumCharCount を使うこと —
+// この関数は権限があって本文が手元にある場合にのみ使える。
 export function countChars(sections: ProfileSection[]): number {
   return sections.reduce((total, s) => {
     if (s.kind === 'text') return total + s.text.length
@@ -73,10 +77,14 @@ export function freeProfileSections(p: CharacterProfileFields | null): ProfileSe
   return sections.filter((s): s is ProfileSection => s !== null)
 }
 
+// 有料項目。2026-09-07以降、これらは diagnosisContent ではなく diagnosisContentPremium
+// ドキュメントに入っている(Firestoreのルールがフィールド単位の制御をできないため、
+// コレクションを分けないと有料本文を保護できない — utils/premiumContent.ts 参照)。
+// 引数の型が CharacterProfileFields ではなく CharacterPremiumFields なのはそのため。
 // cautionDetailPremiumは元々マスタの同一セル(row14+15)を1つのフィールドとして結合していた
 // ものを分割した経緯があり、「注意すべき傾向」の続きとしてpremium側に表示する — 詳細は
 // scripts/characters.data.ts の2026-08-05コメント参照。
-export function premiumProfileSections(p: CharacterProfileFields | null): ProfileSection[] {
+export function premiumProfileSections(p: CharacterPremiumFields | null): ProfileSection[] {
   if (!p) return []
   const sections: (ProfileSection | null)[] = [
     p.cautionDetailPremium ? { kind: 'text', label: '', text: p.cautionDetailPremium } : null,

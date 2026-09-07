@@ -4,17 +4,15 @@ import { DEFAULT_GENDER, isGender } from '~/utils/gender'
 import { parseCelebrities } from '~/utils/toneCelebrities'
 import { formatCelebrityBirth } from '~/utils/kinCelebrities'
 import { sealColor } from '~/utils/mayaData'
-import { type ProfileSection, iconFor, freeProfileSections, premiumProfileSections, countChars } from '~/utils/profileSections'
+import { type ProfileSection, iconFor, freeProfileSections, premiumProfileSections } from '~/utils/profileSections'
 import { RELATION_DESCRIPTION } from '~/utils/kinRelations'
-import { buildSignupLink } from '~/utils/signupLink'
 
 const route = useRoute()
-const { user, ready } = useAuth()
-// 会員登録/ログイン後にこのページへ戻れるよう、有料エリアの各LockedVeilに渡す遷移先。
-// name/birth/genderなど現在のクエリを保ったまま/signupへ渡し、登録完了後に
-// redirectTarget()経由でこのURLへ戻す(pages/signup.vue・pages/login.vue参照)。name/birth/
-// genderは会員登録フォームの入力済み初期値としても使われる(utils/signupLink.ts参照)。
-const signupRedirectTo = computed(() => buildSignupLink(route.fullPath, route.query))
+const { user } = useAuth()
+// 有料エリアの各LockedVeilに渡す遷移先。未ログインなら/signup(登録フォームに紹介コード欄が
+// ある)、ログイン済みなら/account(後追い入力欄)へ — ログイン済みの人を/signupへ送ると
+// 「既にログイン済み」と判定されて即座に戻され、行き止まりになるため(composables/useUnlockLink.ts)。
+const signupRedirectTo = useUnlockLink()
 
 const input = computed(() => {
   const genderQuery = route.query.gender as string | undefined
@@ -69,11 +67,24 @@ const toneCelebrities = computed(() => parseCelebrities(toneProfile.value?.celeb
 // 太陽の紋章・ウェイブスペルは別人格(別キャラクター)なので、それぞれ自分のセクション内で自分の
 // プロフィールを深掘りする(2026-08-06以前は両方まとめて「あなたについて」という1セクションに
 // していたが、実際には太陽の紋章側のプロフィールしか出せておらず紛らわしかったため分離した)。
-const deepUnlocked = computed(() => ready.value && !!user.value)
+// 有料エリアの解放条件は composables/useEntitlement.ts に集約している。ログイン
+// しているだけでは解放されず、チームに所属していること(紹介コードを入力したか、
+// 管理者がチームに追加したか)が条件 — 決済導入時はそこを1行変えるだけで
+// 「決済した人のみ」に切り替わる。
+// entitlementSettled は認証復元とusersドキュメント取得の両方が終わったかを表す。
+// 有料ブロックもLockedVeilもこれが立つまで出さない — 立てずにLockedVeilを出すと、
+// 所属済みの会員にも読み込み中の一瞬だけ購入訴求が見えてしまうため。
+const { entitled: deepUnlocked, settled: entitlementSettled } = useEntitlement()
 const sunFreeProfileSections = computed(() => freeProfileSections(sunProfile.value))
-const sunPremiumProfileSections = computed(() => premiumProfileSections(sunProfile.value))
 const wavespellFreeProfileSections = computed(() => freeProfileSections(wavespellProfile.value))
-const wavespellPremiumProfileSections = computed(() => premiumProfileSections(wavespellProfile.value))
+// 有料項目は diagnosisContentPremium 側のドキュメントから組み立てる。権限が無ければ
+// content.sunPremium は null のままなので、ここは空配列になる。
+const sunPremiumProfileSections = computed(() => premiumProfileSections(content.sunPremium.value))
+const wavespellPremiumProfileSections = computed(() => premiumProfileSections(content.wavespellPremium.value))
+// ロック時の「残り○○文字」。本文が手元に無いので数えられず、無料側ドキュメントに
+// 移行スクリプトが書き込んだ premiumCharCount を使う(utils/premiumContent.ts参照)。
+const sunPremiumChars = computed(() => content.sunPremiumCharCount.value)
+const wavespellPremiumChars = computed(() => content.wavespellPremiumCharCount.value)
 
 // あなたの性格の強みは、あなたはこんな人ですと並べてアーキタイプ画像の右側に配置する
 // (モックアップ準拠)。それ以外の無料項目は、画像の下の全幅エリアに続けて表示する。
@@ -90,14 +101,21 @@ const wavespellOtherFreeProfileSections = computed(() => excludingLabel(wavespel
 
 // KIN番号のあなたへ: 冒頭125文字だけ無料で読ませ、残りは有料エリア(モザイク+「続きを見る」)
 // に送る。サロゲートペアの途中で切らないよう[...str]で文字単位に分解してから切っている。
-const KIN_LETTER_FREE_CHARS = 125
-const kinLetterChars = computed(() => [...(kinText.value ?? '')])
-const kinLetterRest = computed(() => kinLetterChars.value.slice(KIN_LETTER_FREE_CHARS).join('').trimStart())
-const kinLetterLocked = computed(() => !deepUnlocked.value && kinLetterRest.value.length > 0)
+// 有料項目の分離後、kinText には既に冒頭125文字までしか入っていない(残りは
+// diagnosisContentPremium の restText)。表示側で切る必要はもう無く、続きがあるかは
+// 無料側の hasMore、続きの本文は権限がある時だけ届く kinRestText で判断する。
+const kinHasMore = computed(() => content.kinHasMore.value)
+const kinLetterLocked = computed(() => kinHasMore.value && !content.kinRestText.value)
+const kinPremiumChars = computed(() => content.kinPremiumCharCount.value)
+const kinLetterFull = computed(() => {
+  if (!kinText.value) return ''
+  // 権限があれば分割前の原文をそのまま復元する(splitKinTextはtrimしていない)。
+  return content.kinRestText.value ? `${kinText.value}${content.kinRestText.value}` : kinText.value
+})
 const kinLetterFree = computed(() => {
-  if (!kinLetterLocked.value) return kinText.value ?? ''
+  if (!kinLetterLocked.value) return kinLetterFull.value
   // 続きがあるときは参考サイトと同じく三点リーダで「まだ続く」ことを示す。
-  return `${kinLetterChars.value.slice(0, KIN_LETTER_FREE_CHARS).join('').trimEnd()}…`
+  return `${kinText.value!.trimEnd()}…`
 })
 
 // KINの関係性(ガイド/神秘/反対/類似KIN)・運命数字(同じ番号/連番/鏡の向こうの自分/絶対反対KIN)。
@@ -326,7 +344,7 @@ async function shareResult() {
         <!-- 有料項目はまとめて1つのモザイクに入れる(項目ごとに小さなロック箱を並べるより、
              「この分量の続きがある」ことが伝わるため)。参考: kinoshita-reon.jp -->
         <ProfileBlocks v-if="deepUnlocked" :sections="sunPremiumProfileSections" />
-        <LockedVeil v-else-if="sunPremiumProfileSections.length" :to="signupRedirectTo" :remaining-chars="countChars(sunPremiumProfileSections)" />
+        <LockedVeil v-else-if="entitlementSettled && sunPremiumChars" :to="signupRedirectTo" :remaining-chars="sunPremiumChars" />
       </section>
 
       <!-- ウェイブスペル -->
@@ -369,7 +387,7 @@ async function shareResult() {
         <ProfileBlocks :sections="wavespellOtherFreeProfileSections" />
 
         <ProfileBlocks v-if="deepUnlocked" :sections="wavespellPremiumProfileSections" />
-        <LockedVeil v-else-if="wavespellPremiumProfileSections.length" :to="signupRedirectTo" :remaining-chars="countChars(wavespellPremiumProfileSections)" />
+        <LockedVeil v-else-if="entitlementSettled && wavespellPremiumChars" :to="signupRedirectTo" :remaining-chars="wavespellPremiumChars" />
       </section>
 
       <!-- 銀河の音 -->
@@ -404,11 +422,11 @@ async function shareResult() {
 
       <!-- KIN番号のあなたへ: docs/KIN番号診断結果マスタ.xlsx由来、個別要素(紋章/音)ではなくKIN
            全体への語りかけなので、内訳を読んだ後・関係性データの前に置く。冒頭125文字が無料、
-           残りは有料エリア(KIN_LETTER_FREE_CHARS参照)。 -->
+           残りはdiagnosisContentPremiumのrestTextにあり、権限がある時だけ取得される。 -->
       <section v-if="kinText" class="section">
         <SectionDivider :label="`KIN${result.kin}のあなたへ`" eyebrow="紋章や音を超えた、あなたへの言葉" numeric />
         <p class="kinletter">{{ kinLetterFree }}</p>
-        <LockedVeil v-if="kinLetterLocked" class="kinletter-gate" :to="signupRedirectTo" :remaining-chars="kinLetterRest.length" />
+        <LockedVeil v-if="entitlementSettled && kinLetterLocked" class="kinletter-gate" :to="signupRedirectTo" :remaining-chars="kinPremiumChars" />
 
         <!-- 同じKINを持つ有名人。有料エリアより後ろに置き、無料/有料を問わず全件表示する。 -->
         <div v-if="kinCelebrities.length" class="block">
