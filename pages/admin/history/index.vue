@@ -75,10 +75,10 @@ function closeDetail() {
     </div>
 
     <div class="rounded-xl border border-slate-200 bg-white p-5.5 dark:border-slate-800 dark:bg-slate-900">
-      <div class="overflow-x-auto">
+      <div class="max-h-[70vh] overflow-auto">
         <table class="w-full text-[13px]">
-          <thead>
-            <tr class="border-b border-slate-200 text-left text-[11px] uppercase tracking-wide text-slate-400 dark:border-slate-800">
+          <thead class="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-white [&_th]:pt-2.5 [&_th]:shadow-[inset_0_-1px_0_#e2e8f0] dark:[&_th]:bg-slate-900 dark:[&_th]:shadow-[inset_0_-1px_0_#1e293b]">
+            <tr class="text-left text-[11px] uppercase tracking-wide text-slate-400">
               <th class="pb-2.5 pr-3">種別</th><th class="pb-2.5 pr-3">名前</th><th class="pb-2.5 pr-3">生年月日</th><th class="pb-2.5 pr-3">性別</th><th class="pb-2.5 pr-3">太陽の紋章</th><th class="pb-2.5 pr-3">診断日時</th><th class="pb-2.5"></th>
             </tr>
           </thead>

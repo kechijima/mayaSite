@@ -6,7 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 "マヤ暦占い" (Maya Calendar Fortune-Telling) — a Nuxt 3 site that calculates a visitor's KIN from their birthdate and reveals an increasingly deep reading behind a paywall. Requirements are documented in Japanese at [docs/要件定義.md](docs/要件定義.md); `docs/参考画像.png` and [mockup/maya-mockup.html](mockup/maya-mockup.html) are visual references for the target design (a static HTML mockup covering the free/paid views and the admin console — not wired to the app, but the source of truth for styling intent).
 
-**Current state: the KIN diagnosis + its CMS content are real and Firestore-backed; `/admin/**` requires a real Firebase Auth admin login; general end-user signup/login is real; payment is still a prototype.** General visitors can create a real Firebase Auth account via [pages/signup.vue](pages/signup.vue)/log in via [pages/login.vue](pages/login.vue) (see "General-user authentication" below) — being signed in, on its own, unlocks the paid-area sections on [pages/result.vue](pages/result.vue)/[pages/kin/[sealIndex].vue](pages/kin/%5BsealIndex%5D.vue), no payment involved yet. [composables/useMembership.ts](composables/useMembership.ts) (the old `localStorage`-only `free`/`paid` flag) is untouched and still powers only [pages/checkout.vue](pages/checkout.vue)/[pages/account.vue](pages/account.vue), which remain fake-`setTimeout` prototypes disconnected from real auth — don't conflate the two. 太陽の紋章/ウェイブスペル/銀河の音 body text is genuinely stored in and served from Firestore (see "Diagnosis content (Firestore)" below), and [pages/admin/content/[id].vue](pages/admin/content/%5Bid%5D.vue) writes for real directly to Firestore from the client. デイサイン/トレセーナ/古代マヤ暦全書 and [pages/admin/index.vue](pages/admin/index.vue)/[pages/admin/users.vue](pages/admin/users.vue) are still static mocks. `/admin/**` requires a Firebase Auth session carrying an `admin: true` custom claim, enforced by both a client-side route guard and [firestore.rules](firestore.rules) itself — see "Admin authentication" below for how it works and how to bootstrap an admin account. Real Stripe/payment integration and a paid-vs-registered-only distinction are still explicitly out of scope — see "General-user authentication" below for exactly what groundwork is (and isn't) already in place for that.
+**Current state: the KIN diagnosis, its CMS content, signup/login, the referral-code paywall and the admin console are all real and Firestore-backed. Payment (Stripe) is the only thing still not implemented.**
+
+The paid area is unlocked by **belonging to a team**, not by being signed in and not by paying — an admin creates a team, which issues one referral code, and a member who enters that code joins the team and gains access. See "Referral codes and the paid-area gate" below; the decision is centralised in [composables/useEntitlement.ts](composables/useEntitlement.ts) so that introducing payment later is a one-line change there plus one in [firestore.rules](firestore.rules).
+
+Real and Firestore-backed: the diagnosis, 相性診断 ([pages/compatibility.vue](pages/compatibility.vue)), the per-seal and per-KIN detail pages ([pages/kin/[sealIndex].vue](pages/kin/%5BsealIndex%5D.vue), [pages/kin/[kin]/detail.vue](pages/kin/%5Bkin%5D/detail.vue)), the CMS ([pages/admin/content/**](pages/admin/content)), 診断履歴 ([pages/admin/history/index.vue](pages/admin/history/index.vue)), チーム管理 ([pages/admin/teams/**](pages/admin/teams)), ユーザー管理 ([pages/admin/users.vue](pages/admin/users.vue)) and 紹介コード入力 ([pages/account.vue](pages/account.vue)).
+
+Still mocks: [pages/admin/index.vue](pages/admin/index.vue) (dashboard stats, hardcoded `ref()` arrays) and [pages/checkout.vue](pages/checkout.vue) (plan selection, `setTimeout` prototype). [composables/useMembership.ts](composables/useMembership.ts) — the old `localStorage`-only `free`/`paid` flag — now powers **only** `/checkout` and is unrelated to the real gate in `useEntitlement`; don't conflate the two. `/checkout` is currently not linked from anywhere in the UI (its only entry point was removed from `/account` on 2026-09-07).
+
+デイサイン/トレセーナ/古代マヤ暦全書 are not displayed anywhere in the current UI. `/admin/**` requires a Firebase Auth session carrying an `admin: true` custom claim, enforced by both a client-side route guard and [firestore.rules](firestore.rules) itself — see "Admin authentication" below.
 
 **The app is a fully static SPA (`ssr: false`) with no server at all** — deployed to Firebase Hosting's free "Spark" plan, not Cloud Functions (which require the paid "Blaze" plan). There is no `server/` directory; every read/write goes directly from the browser to Firestore/Firebase Auth, authorized by Firestore Security Rules and Firebase Auth custom claims rather than any backend code. See "Deployment" below.
 
@@ -24,18 +32,42 @@ npm run seed:characters:emulator   # seed the diagnosisContent collection into t
 npm run seed:characters            # seed the REAL Firestore project instead — requires FIREBASE_SERVICE_ACCOUNT_KEY in .env
 npm run admin:create:emulator -- --email=you@example.com --password=xxxx   # create/promote an admin login in the emulator (no credentials needed) — see "Admin authentication"
 npm run admin:create -- --email=you@example.com --password=xxxx            # same, against the REAL project — requires FIREBASE_SERVICE_ACCOUNT_KEY in .env
+
+npm run verify:rules:emulator      # firestore.rules の検証(22項目)。エミュレータ起動中に実行する — 下記参照
+npm run migrate:premium:emulator   # 有料項目を diagnosisContentPremium へ切り出す移行。--dry-run で件数だけ確認できる
+npm run migrate:premium            # 同上、REAL project に対して。リリース時に一度だけ実行する(冪等)
 ```
 
-No test runner, linter, or formatter is configured in this repo yet.
+No linter or formatter is configured in this repo. The only automated check is
+`npm run verify:rules:emulator` ([scripts/verifyReferralRules.ts](scripts/verifyReferralRules.ts)) — it drives the raw
+Firebase SDKs against the emulator and asserts what [firestore.rules](firestore.rules) does and doesn't allow.
+**Run it after touching `firestore.rules`.** This app has no server, so those rules are the only
+thing standing between a visitor and the paid content / other people's PII; a mistake there is
+invisible in the UI. Start the emulators in another shell first (`npm run dev` or `npm run emulators`).
+
+Two historical migration scripts, [scripts/migrateBulletFields.ts](scripts/migrateBulletFields.ts) and
+[scripts/backfillCautionSplit.ts](scripts/backfillCautionSplit.ts), now **refuse to run**. They were written when the
+premium fields still lived in `diagnosisContent`, and running them today would write those fields
+back into the world-readable collection — silently re-publishing the paid content. They're kept
+only as a record of what those migrations did.
 
 ### `npm run dev` is a one-command orchestrator, not just `nuxt dev`
 
-It's [scripts/dev.mjs](scripts/dev.mjs), which: starts the Firebase emulators (Firestore/Auth/Hosting) unless one's already reachable at `127.0.0.1:8080` (in which case it reuses that one and won't touch its lifecycle) → waits for Firestore to respond → runs the seed script (idempotent, skips docs that already exist, so this is safe on every start) → starts `nuxt dev`. On Ctrl-C (SIGINT/SIGTERM) it stops whatever it itself started — including the Nuxt dev server, which is *always* its own to stop — and waits for the emulator's own `--export-on-exit` to actually finish (so `.firebase-emulator-data/` stays current) before exiting; a reused, externally-started emulator is left running. Each spawned child (`npm run emulators` / `npm run seed:content:emulator` / `npm run dev:nuxt` — same scripts as above, not duplicated commands) runs `detached: true` in its own process group specifically so this shutdown can reliably signal every descendant (npm → firebase-tools → java, or npm → nuxt) with one `process.kill(-pid, 'SIGINT')`, regardless of how many wrapper layers are in between — plain `child.kill()` only reaches the immediate child, which isn't enough here.
+It's [scripts/dev.mjs](scripts/dev.mjs), which: starts the Firebase emulators (Firestore/Auth/Hosting) unless one's already reachable at `127.0.0.1:8080` (in which case it reuses that one and won't touch its lifecycle) → waits for Firestore to respond → runs the four seed scripts in order — `seed:characters` / `seed:tones` / `seed:kins` / `seed:celebrities`, all idempotent and skipping docs that are already seeded, so this is safe on every start → starts `nuxt dev`. On Ctrl-C (SIGINT/SIGTERM) it stops whatever it itself started — including the Nuxt dev server, which is *always* its own to stop — and waits for the emulator's own `--export-on-exit` to actually finish (so `.firebase-emulator-data/` stays current) before exiting; a reused, externally-started emulator is left running. Each spawned child (`npm run emulators` / the `seed:*:emulator` scripts / `npm run dev:nuxt` — same scripts as above, not duplicated commands) runs `detached: true` in its own process group specifically so this shutdown can reliably signal every descendant (npm → firebase-tools → java, or npm → nuxt) with one `process.kill(-pid, 'SIGINT')`, regardless of how many wrapper layers are in between — plain `child.kill()` only reaches the immediate child, which isn't enough here.
 
 Requires a JRE on PATH (the Firestore emulator is Java-based) — `brew install openjdk` if missing; it's keg-only, so either symlink it or export `PATH="/opt/homebrew/opt/openjdk/bin:$PATH"` before running `npm run dev`/`npm run emulators`. `scripts/dev.mjs` checks for this upfront (only when it's the one starting the emulator) and fails fast with that exact instruction if Java is missing, rather than surfacing firebase-tools' own less obvious error.
 
 - [plugins/firebase.client.ts](plugins/firebase.client.ts) calls `connectFirestoreEmulator(firestore, '127.0.0.1', 8080)` and `connectAuthEmulator(auth, 'http://127.0.0.1:9099')` whenever `import.meta.dev` is true — the client SDK never talks to the real project during `npm run dev`. The seed scripts similarly default to their `:emulator` targets via the `FIRESTORE_EMULATOR_HOST` / `FIREBASE_AUTH_EMULATOR_HOST` env vars set in their respective `npm run *:emulator` script definitions — no real service account is needed locally; `FIREBASE_SERVICE_ACCOUNT_KEY` is only required for the non-`:emulator` variants (real project / production).
 - Port 5000 (Hosting emulator default) collides with macOS AirPlay Receiver, hence `firebase.json`'s `emulators.hosting.port` is set to `5050` instead.
+- **Only Firestore is persisted across restarts, not Auth.** `.firebase-emulator-data/` contains a
+  `firestore_export` but no `auth_export`, so every emulator restart loses all local accounts —
+  re-run `npm run admin:create:emulator` and re-register any test members. Firestore data (seeded
+  content, teams, users docs) survives. Note this also means a `users/{uid}` document can outlive
+  the Auth account it belonged to locally.
+- `npm run dev` imports `.firebase-emulator-data/`, and the seed scripts **skip documents that
+  already exist**. So if that snapshot predates the premium split, seeding will not fix it — run
+  `npm run migrate:premium:emulator` once after starting, or the paid sections silently render
+  empty (`premiumCharCount` missing ⇒ LockedVeil not shown at all).
 
 ## Architecture
 
@@ -46,38 +78,203 @@ Requires a JRE on PATH (the Firestore emulator is Java-based) — `brew install 
 - `mayaData.ts` holds the static *structural* tables: `SEALS` (20 day-signs with name/english/keyword/essence) and `TONES` (13 tones), plus `sealColor()` mapping a seal index to its 4-color cycle (red/white/blue/yellow) used for glyph styling. `SEALS[i].essence`/`TONES[i].keyword` are also the seed source for Firestore content (see below) — treat them as the canonical names/keywords, but not as the editable body copy anymore.
 - `useDiagnosis(input)` combines a birth KIN and today's KIN into the reading sections shown on the result page: `sun` (太陽の紋章, birth seal), `wavespell` (ウェイブスペル, potential), `tone` (銀河の音, birth tone), `daysign` (デイサイン, hidden pattern — `occultSealIndex`), and `tresena` (トレセーナ, current 13-day cycle based on *today's* date, not birthdate). Each of `sun`/`wavespell`/`tone` carries a hardcoded `.text` template string that now serves only as the **fallback** shown before/without Firestore content — see below.
 
+### Other reading pages
+- **相性診断** ([pages/compatibility.vue](pages/compatibility.vue), [composables/useCompatibility.ts](composables/useCompatibility.ts)) — free, no gate.
+  Self plus up to `MAX_OTHER_PEOPLE` (6) others; six slots are rendered up front rather than behind an
+  "add" button. Untouched slots are excluded by "name entered **or** birthdate moved off the default",
+  because `BirthdateSelect` always fills a default and so can never be empty — the known cost is that
+  an anonymous person born exactly on `DEFAULT_BIRTHDATE` must type at least one character.
+  Compatibility itself is derived from seal indices only ([utils/compatibility.ts](utils/compatibility.ts),
+  [utils/destinyCompatibility.ts](utils/destinyCompatibility.ts)); it is a convention for this site, not a Dreamspell calculation.
+- **`/kin/[sealIndex]`** — the "詳しく見る" target from result.vue's KINの関係性 cards. A relation is a
+  *seal*, not a KIN number, so this reads the same `character-{sealIndex}` document as 太陽の紋章 does
+  and reuses the same free/paid layout. `?label=` is only honoured when it matches a known relation name.
+- **`/kin/[kin]/detail`** — the 運命数字 target. An arbitrary KIN 1–260, reading `kin-{n}` with the same
+  125-character split as result.vue's own KIN letter.
+Both carry `name`/`birth`/`gender` through in the query so 診断結果へ戻る lands on the same reading.
+
 ### Diagnosis content (Firestore)
-太陽の紋章/ウェイブスペル/銀河の音 body text lives in Firestore, collection `diagnosisContent`, one doc per fixed slot with a deterministic ID: `sun-{0..19}`, `wavespell-{0..19}`, `tone-{0..12}` (matching `sealIndex`/`wavespellSealIndex`/`toneIndex`). Fields: `type`, `index`, `name`, `freeText` (the displayed body — `premiumText` is unused, kept only for schema parity), `status` (`'公開' | '下書き'`), `updatedAt`. デイサイン/トレセーナ/古代マヤ暦全書 are **not** in this collection — they don't fit the flat freeText/premiumText shape (daysign/tresena are derived indices into the same SEALS/TONES rather than independent content; 古代マヤ暦全書 is a bespoke multi-card structure) and would need their own schema if ever CMS-ified.
+Body text lives in **two** collections. `diagnosisContent` is world-readable; `diagnosisContentPremium`
+is readable only by an entitled member or an admin. Both use the same deterministic doc IDs:
 
-- [composables/useDiagnosisContent.ts](composables/useDiagnosisContent.ts) fetches the 3 relevant docs client-side only (`useAsyncData(..., { server: false, lazy: true })`, via the client Firestore SDK) given the already-computed indices. A missing doc, or one with `status !== '公開'`, resolves to `null` — callers must fall back to `useDiagnosis`'s hardcoded `.text` (see `pages/result.vue`'s `sunText`/`wavespellText`/`toneText` computeds) so the page is never blank.
-- Admin editing happens in [pages/admin/content/index.vue](pages/admin/content/index.vue) (list, reads the whole collection client-side) and [pages/admin/content/[id].vue](pages/admin/content/%5Bid%5D.vue) (per-doc edit form): saves write directly to Firestore via the client SDK's `updateDoc()` (no server route — there is no server at all in this app), and **succeed for a signed-in user carrying the `admin: true` custom claim** — [firestore.rules](firestore.rules) is what actually enforces this (see "Admin authentication" below), the route guard is only a UI convenience. `updateDoc` is used deliberately over `setDoc(...,{merge:true})` so a bad/missing doc ID fails loudly (`not-found`) instead of silently creating a malformed doc. There is no "create new content" concept — all slots are fixed and pre-enumerated from `SEALS`/`TONES`; `type`/`index`/`name` are never editable.
-- [scripts/seedContent.ts](scripts/seedContent.ts) (`npm run seed:content`) populates the initial 53 docs — `sun-*` from `SEALS[i].essence` verbatim (`status: '公開'`, already-shipped copy), `wavespell-*`/`tone-*` from placeholder text authored in that script (`status: '下書き'`, meant to be reviewed/rewritten via the admin UI before publishing). It always skips docs that already exist — there is no overwrite flag, by design, so it can never clobber admin edits made via `/admin/content`, even if re-run.
+| ID | Source master | Free side (`diagnosisContent`) | Paid side (`diagnosisContentPremium`) |
+|---|---|---|---|
+| `character-{0..19}` | docs/診断結果マスタ.xlsx | archetype, catchphrase, traits, careerPath, likes, dislikes, communicationStrengths/Challenges, strengthsSummary/Detail, cautionSummary/Detail | cautionDetailPremium, practicalTips, bestEnvironment, bestRole, loveAndPartnership, careerSuccess, luckUpActions, luckDownHabits |
+| `tone-{0..12}` | docs/銀河の音診断結果マスタ.xlsx | all fields (title, basicSpecs, strengths, cautions, celebrities) | — none, all free |
+| `kin-{1..260}` | docs/KIN番号診断結果マスタ.xlsx + 芸能人マスタ.xlsx | freeText (first 125 chars), hasMore, premiumCharCount, kinCelebrities | restText (char 126 onward) |
 
-### Paid-area gating (real auth, no payment yet)
-The deep-dive sections of 太陽の紋章/ウェイブスペル and the KIN letter beyond its first 125 characters (all on [pages/result.vue](pages/result.vue)), plus the equivalent deep-dive on [pages/kin/[sealIndex].vue](pages/kin/%5BsealIndex%5D.vue), are gated behind [components/LockedVeil.vue](components/LockedVeil.vue) (CSS blur + upsell overlay pointing at `/signup`). The gate itself (`deepUnlocked` in both pages) is simply `ready.value && !!user.value` from [composables/useAuth.ts](composables/useAuth.ts) — **any signed-in Firebase Auth user unlocks these sections, regardless of payment**, since there's no payment step yet. `LockedVeil`'s `to` prop is built by [utils/signupLink.ts](utils/signupLink.ts)'s `buildSignupLink(route.fullPath, route.query)` from both pages — besides `redirect` (so registering or logging in returns the visitor to the exact page/query they came from), it also forwards `name`/`birth`/`gender` as their own top-level query params (not nested inside `redirect`, which would need double-encoding and previously broke — see `pages/signup.vue`'s prefill below) so the visitor's already-entered diagnosis info pre-fills the signup form.
+Common fields on the free side: `type`, `index`, `name`, `freeText`, `status` (`'公開' | '下書き'`),
+`updatedAt`. `premiumText` is a leftover from the original schema and is unused.
 
-[composables/useMembership.ts](composables/useMembership.ts) (the old `free`/`paid`/`localStorage` flag, `MembershipPlan`/`PLAN_RANK`/`PLAN_META`) is **not** used for this gating anymore — it's untouched but now only read by [pages/checkout.vue](pages/checkout.vue)/[pages/account.vue](pages/account.vue), which remain fake `setTimeout` prototypes. The "検証用" (verification-only) plan-switcher bar that used to live at the bottom of `pages/result.vue` has been removed for this reason (a real sign-in/sign-out is now the QA affordance); the paper-theme (ベージュ/白) switcher next to it is unrelated and still there.
+**Why two collections.** Firestore rules cannot filter fields — a rule either exposes a document or
+it doesn't. While the paid fields sat in the same document as the free ones under `allow read: if true`,
+**anyone could read the entire paid reading straight out of the SDK without logging in**, which is
+what shipped until 2026-09-07. [components/LockedVeil.vue](components/LockedVeil.vue) never renders the real text into
+the DOM, but that alone was only cosmetic. Splitting the collections is what actually protects it.
+See [utils/premiumContent.ts](utils/premiumContent.ts) for the field list and the 125-character boundary — that file is
+the single source of truth, shared by the pages, the admin form and the migration script, and it
+deliberately has no `~/` imports so `scripts/` can import it under tsx.
 
-デイサイン/トレセーナ/古代マヤ暦全書 are **not** gated (or even displayed) anywhere in the current UI — an earlier multi-tier design (`light`/`standard`/`premium` rank thresholds) was simplified away; don't re-introduce rank-based gating for these without checking the code first.
+- `kin-*` is one flowing paragraph rather than discrete fields, so it is split **physically** at 125
+  characters ([utils/premiumContent.ts](utils/premiumContent.ts) `splitKinText`). The free side keeps `hasMore` and
+  `premiumCharCount` because a visitor without access cannot see the paid document at all and so
+  cannot work out whether there is more to read or how much (LockedVeil's 「残り○○文字」).
+  `character-*` keeps `premiumCharCount` for the same reason.
+- [composables/useDiagnosisContent.ts](composables/useDiagnosisContent.ts) fetches the free docs always and the premium ones
+  **only when `useEntitlement().entitled` is true** — fetching them unconditionally would just
+  produce guaranteed `permission-denied` failures. `fetchPremiumDoc()` still swallows that error
+  defensively, since entitlement can change between the check and the read. A missing or
+  `status !== '公開'` free doc resolves to `null` and callers fall back to `useDiagnosis`'s hardcoded
+  `.text` so the page is never blank.
+- Admin editing is [pages/admin/content/index.vue](pages/admin/content/index.vue) (list) and [pages/admin/content/[id].vue](pages/admin/content/%5Bid%5D.vue)
+  (per-doc form). The form still shows free and paid fields together; on save it splits them and
+  writes **both documents in one `writeBatch`**. For `kin-*` it recombines free+rest into one
+  textarea on load and re-splits on save, so the split is invisible to the editor. There is no
+  "create new content" concept — slots are fixed and enumerated from `SEALS`/`TONES`.
+  [utils/diagnosisContentAdmin.ts](utils/diagnosisContentAdmin.ts) carries a dev-only check that its `tier` metadata agrees with
+  `PREMIUM_CHARACTER_FIELDS`; if the two drift, a paid field silently gets saved into the public
+  collection.
+- Seeding: `seed:characters` / `seed:tones` / `seed:kins` / `seed:celebrities` write to the right
+  collection already. `scripts/splitPremiumContent.ts` (`npm run migrate:premium`) is for data that
+  predates the split; it is idempotent (skips IDs that already have a premium doc) and supports
+  `--dry-run`.
+
+### Referral codes and the paid-area gate
+The paid sections of [pages/result.vue](pages/result.vue), [pages/kin/[sealIndex].vue](pages/kin/%5BsealIndex%5D.vue) and
+[pages/kin/[kin]/detail.vue](pages/kin/%5Bkin%5D/detail.vue) are unlocked by **team membership**. There is no payment yet;
+being signed in is not enough.
+
+**Data model.** One team, one code.
+
+```
+referralTeams/{teamId}          admin only. { name, code, note, createdAt, updatedAt }
+referralCodes/{code}            get: anyone, list: admin. { teamId, teamName, status }
+users/{uid}                     + teamId, teamName, entitlement, entitlementSource,
+                                  referralCodeId, referralRedeemedAt
+```
+
+**The code string is the document ID of `referralCodes`.** This is the whole design. Firestore rules
+control `get` (fetch by ID) and `list` (query) separately, so opening `get` alone means someone who
+already knows a code can validate it, while nobody can enumerate the collection. Storing the code as
+a *field* and querying `where('code','==',x)` would require `list`, which would expose every code at
+once. It also lets the rules re-check the code server-side via `get()` when a user writes their own
+`users` document — the client-side check in [composables/useReferralCodeInput.ts](composables/useReferralCodeInput.ts) is only for the
+error message.
+
+Format is `{teamId 3 chars}{random 6}`, no hyphen, e.g. `K7M3QP9XR`, generated in
+[utils/referralCode.ts](utils/referralCode.ts) from a 31-character alphabet with `O 0 I 1 L` removed. There is no server, so
+**there is no rate limit on code guessing** — the random part is the only defence. Don't shorten it
+and don't replace it with something memorable.
+
+**What the rules enforce** (all covered by `npm run verify:rules:emulator`):
+- `teamId` *and* `teamName` must match the code document, so a member holding one valid code can't
+  claim membership of a different team.
+- A member already in a team cannot redeem another code (no switching teams).
+- A member **not** currently in a team can redeem — including one an admin removed. Removal is
+  therefore un-enrolment, not a ban: someone who knows the code can rejoin. To actually shut a team
+  out, disable its code. (This was originally "once only, ever"; relaxed 2026-09-07 on request.)
+- `plan` is still admin-only, as before.
+- Conditions read `resource.data.get('teamId', null)`, not `resource.data.teamId`. Members created
+  before this feature have **no** permission fields at all, and a direct reference to a missing field
+  is an evaluation error that fails the whole clause — which is exactly how every pre-existing
+  production member was locked out on 2026-09-07. Keep using `get(key, default)` here.
+
+**Who can see a code.** Only admins. `referralTeams` (which holds the admin note) is admin-only, and
+`referralCodes` carries only what `/signup` needs to show. The one exception is
+`users/{uid}.referralCodeId`, which the owner can read — but that is a code they typed themselves.
+A member an admin added to a team never learns the code (`referralCodeId` stays `null`,
+`entitlementSource` is `'admin'`).
+
+**The gate itself** is [composables/useEntitlement.ts](composables/useEntitlement.ts). Pages don't compute it. It exposes
+`entitled` and `settled`; `settled` covers the auth restore *and* the `users` document fetch, and
+pages must wait for it before rendering **either** the unlocked content or LockedVeil, or an entitled
+member sees the upsell flash by. Note the opposite rule for truncating body text: that must default
+to "truncate" while undecided, otherwise the full text flashes.
+
+**Introducing payment** means changing `entitled` to read `plan === 'paid'` and `isEntitled()` in
+[firestore.rules](firestore.rules) to match, then deploying both. That's the whole switch.
+
+**Where members enter a code**: [pages/signup.vue](pages/signup.vue) (optional field during registration) and
+[pages/account.vue](pages/account.vue) (afterwards). Both share [composables/useReferralCodeInput.ts](composables/useReferralCodeInput.ts).
+[composables/useUnlockLink.ts](composables/useUnlockLink.ts) decides where LockedVeil's CTA points: `/signup` when signed out,
+`/account` when signed in. Sending a signed-in visitor to `/signup` is a dead end — that page
+bounces an authenticated user straight back — which is what it did until 2026-09-07. After a
+successful redemption `/account` always navigates somewhere: the `redirect` it was given, or a
+`/result` URL rebuilt from the member's own birthdate. Landing on the unlocked page *is* the success
+message.
+
+### Admin: teams
+[pages/admin/teams/index.vue](pages/admin/teams/index.vue) creates teams (name only — `teamId` and code are generated) and
+lists them with member counts; [pages/admin/teams/[teamId].vue](pages/admin/teams/%5BteamId%5D.vue) handles the code's
+active/disabled state, the team name and note, and adding/removing members by email. Writes live in
+[utils/referralTeamAdmin.ts](utils/referralTeamAdmin.ts).
+
+- Creating a team writes `referralTeams` + `referralCodes` in one batch; half-created state would
+  mean either an unusable code or a team nobody can join.
+- Renaming updates the name in **three** places — the team, the code document and every member's
+  `users.teamName`. `teamName` is denormalised onto members because `referralTeams` is admin-only and
+  an admin-added member doesn't know the code either, so there is otherwise no path for them to see
+  their own team's name on `/account`.
+- Member queries are `where('teamId','==',x)` with **no `orderBy`**, sorted client-side, capped at
+  `MEMBER_LIST_LIMIT` (500). Adding `orderBy` would require creating a composite index by hand
+  before the feature works at all.
+- Disabling a code stops new registrations only; existing members keep access.
 
 ### General-user authentication (signup/login)
 General visitors can self-register via [pages/signup.vue](pages/signup.vue) (name/phone/email/password/birthdate/gender → `createUserWithEmailAndPassword` + `updateProfile` for the display name + a `users/{uid}` Firestore doc) or sign in via [pages/login.vue](pages/login.vue) (`signInWithEmailAndPassword`) — both client-side only, on the same shared `$auth` instance as admin login ([plugins/firebase.client.ts](plugins/firebase.client.ts)), and both self-service with **no custom claims involved**, so this can never grant `/admin/**` access. Birthdate/gender reuse the diagnosis form's own inputs (`components/BirthdateSelect.vue` `theme="paper"` / `components/GenderRadio.vue`) and, when arriving from a `LockedVeil` redirect, pre-fill from the `name`/`birth`/`gender` query params described above — otherwise they start blank/default.
 
-- **State**: [composables/useAuth.ts](composables/useAuth.ts) is a module-level singleton `onAuthStateChanged` subscription (same pattern as [composables/useAdminAuth.ts](composables/useAdminAuth.ts)), exposing `user` and a `ready` flag that flips true once Firebase's initial async session restore has fired — this lets `pages/result.vue`/`pages/kin/[sealIndex].vue` avoid a flash of locked content for an already-signed-in returning visitor without each having to separately `await` [utils/authReady.ts](utils/authReady.ts).
+- **State**: [composables/useAuth.ts](composables/useAuth.ts) is a module-level singleton `onAuthStateChanged` subscription (same pattern as [composables/useAdminAuth.ts](composables/useAdminAuth.ts)), exposing `user` and a `ready` flag that flips true once Firebase's initial async session restore has fired — [composables/useEntitlement.ts](composables/useEntitlement.ts) builds on it (its `settled` also waits for the `users` document) so pages never have to `await` [utils/authReady.ts](utils/authReady.ts) themselves.
 - **Redirect-back**: both pages read/validate `route.query.redirect` the same way [pages/admin/login.vue](pages/admin/login.vue) does (must start with `/`, must not start with `//`), default to `/` if absent, and each links to the other while forwarding that same `redirect` query — this is how a visitor bounced here from a `LockedVeil` on `/result` or `/kin/{n}` gets returned to that exact page after signing up or logging in. Both pages also auto-`navigateTo(redirectTarget())` immediately if `useAuth()` already reports a signed-in user (e.g. a stale bookmark to `/signup` while already logged in).
-- **Firestore**: a `users/{uid}` doc (`name`, `phone`, `email`, `birthdate`, `gender`, `plan`, `createdAt`) is created at signup time. [firestore.rules](firestore.rules) lets the owner (`request.auth.uid == uid`) read/edit their own doc and lets `isAdmin()` read any of them (so a future `/admin/users` could list real users — that page is still the static mock described below, this isn't wired up), but **only an admin can change the `plan` field** — self-registration always creates it as `'free'`, and the owner's own `update` rule explicitly excludes `plan` via `request.resource.data.diff(resource.data).affectedKeys()`. This is deliberate groundwork for real payment: nothing reads `plan` yet (today's gating is auth-only, see above), but when Stripe/payment is added, the field already exists and can't be self-granted by a user pretending to have paid — only flipped by an admin (e.g. after manual payment confirmation) or a future automated flow, without a schema migration.
-- **What's still missing for real payment**: an automated way to set `plan: 'paid'` (Stripe checkout + some way to verify it — this app is a serverless SPA on Firebase Hosting's free plan, no Cloud Functions, see "Deployment" below, so a webhook-based flow needs more thought), the `deepUnlocked` checks actually reading `plan` instead of just auth state, and a "registered but not paid" UI state prompting upgrade instead of showing unlocked content.
-- **Display/logout**: [components/SiteHeader.vue](components/SiteHeader.vue) (rendered only on `/` and `/result`, see "Two visual worlds" below) shows the signed-in visitor's name (`user.displayName`, set at signup, falling back to `user.email`) + a `#i-user` icon and a ログアウト button once `useAuth()` reports `ready && user` — both in the desktop `.siteheader__nav` and the mobile `.sitemenu` drawer, since `.siteheader__nav` is CSS-hidden below 900px. Logging out just calls `signOut()`; unlike admin's logout (which redirects to `/admin/login`, since `/admin/**` requires a session) there's no dedicated logged-in-only general page to navigate away from — `useAuth()`'s reactive `user` alone flips `deepUnlocked` back to locked on `/result`/`/kin/{n}`.
+- **Firestore**: a `users/{uid}` doc is created at signup with `name`, `phone`, `email`, `birthdate`,
+  `gender`, `plan`, `createdAt` plus the six permission fields (`teamId`, `teamName`, `entitlement`,
+  `entitlementSource`, `referralCodeId`, `referralRedeemedAt`). **Write all six explicitly, as `null`
+  when unset** — see [composables/useReferralCodeInput.ts](composables/useReferralCodeInput.ts)'s `unaffiliatedFields()`. The owner can
+  read and edit their own doc, `isAdmin()` can read any; the owner's `update` rule excludes `plan`
+  and the permission fields except via the code-redemption branch (see "Referral codes" above).
+- **What's still missing for real payment**: an automated way to set `plan: 'paid'`. Stripe Checkout
+  needs somewhere to receive the webhook, and this app is a serverless SPA on the free Spark plan
+  with no Cloud Functions (see "Deployment"), so that flow still needs designing. Everything on the
+  reading side is ready — flipping `useEntitlement`'s `entitled` and `firestore.rules`'s
+  `isEntitled()` to `plan === 'paid'` is the entire switch, and `plan` already cannot be self-granted.
+- **Display/logout**: [components/SiteHeader.vue](components/SiteHeader.vue) (rendered only on `/` and `/result`, see "Two visual worlds" below) shows the signed-in visitor's name (`user.displayName`, set at signup, falling back to `user.email`) + a `#i-user` icon and a ログアウト button once `useAuth()` reports `ready && user` — both in the desktop `.siteheader__nav` and the mobile `.sitemenu` drawer, since `.siteheader__nav` is CSS-hidden below 900px. Logging out just calls `signOut()`; unlike admin's logout (which redirects to `/admin/login`, since `/admin/**` requires a session) there's no dedicated logged-in-only general page to navigate away from — `useAuth()`'s reactive `user` feeds `useEntitlement()`, which re-locks `/result`/`/kin/{n}` on its own.
 
 ### Two visual worlds
 The app deliberately uses two unrelated design systems, matching the mockup:
-- **Public/user pages** (`/`, `/result`, `/checkout`, `/account`, `/signup`, `/login`, `/compatibility`, `/kin/[sealIndex]`; `layouts/default.vue`) share the "paper" (羊皮紙) theme — `paper-page`/`sheet`/`masthead`/`panel`/`formlabel`/`formfield`/`btn-gold` etc. in [assets/css/paper-theme.css](assets/css/paper-theme.css), serif `font-display`/`font-body` (Cormorant Garamond / Shippori Mincho B1). `/checkout`/`/account` were migrated onto this shared theme from an earlier one-off slate/brass style (see the `2026-08-17` comments in those files); the raw `bg-ink-950`/`gold-*` Tailwind utilities in [tailwind.config.ts](tailwind.config.ts) predate that unification and aren't the current styling mechanism for these pages — check the mockup before assuming either naming scheme is still authoritative.
+- **Public/user pages** (`/`, `/result`, `/checkout`, `/account`, `/signup`, `/login`, `/compatibility`, `/kin/[sealIndex]`, `/kin/[kin]/detail`; `layouts/default.vue`) share the "paper" (羊皮紙) theme — `paper-page`/`sheet`/`masthead`/`panel`/`formlabel`/`formfield`/`btn-gold` etc. in [assets/css/paper-theme.css](assets/css/paper-theme.css), serif `font-display`/`font-body` (Cormorant Garamond / Shippori Mincho B1). `/checkout`/`/account` were migrated onto this shared theme from an earlier one-off slate/brass style (see the `2026-08-17` comments in those files); the raw `bg-ink-950`/`gold-*` Tailwind utilities in [tailwind.config.ts](tailwind.config.ts) predate that unification and aren't the current styling mechanism for these pages — check the mockup before assuming either naming scheme is still authoritative.
 - **Admin pages** (`/admin/**`, `layouts/admin.vue`) use a neutral, theme-aware (light/dark via `media`) console style with `brass-700` accents, sans-serif body text, and a fixed sidebar. Admin pages set `definePageMeta({ layout: 'admin' })` individually.
 
 Tailwind `darkMode` is `'media'` (follows OS preference), not a manual toggle.
 
-### Admin pages: content/history are real, index.vue/users.vue are still mockups
-[pages/admin/content/index.vue](pages/admin/content/index.vue)+[[id].vue](pages/admin/content/%5Bid%5D.vue) (see above) and [pages/admin/history/index.vue](pages/admin/history/index.vue) (`diagnosisHistory` — every diagnosis/compatibility submission, logged fire-and-forget from the public site) are real, Firestore-backed, cursor-paginated where relevant. [pages/admin/index.vue](pages/admin/index.vue) (dashboard stats) and [pages/admin/users.vue](pages/admin/users.vue) (user list/status overrides) still use hardcoded local `ref()` arrays — no data fetching, edits are lost on reload. All of `/admin/**` (these included) requires a real admin login — see "Admin authentication" below.
+[components/LoadingOverlay.vue](components/LoadingOverlay.vue) spans both worlds and is mounted in all three layouts. It is
+driven by [composables/useGlobalLoading.ts](composables/useGlobalLoading.ts), whose `withLoading()` wraps any Firebase call the
+visitor is actively waiting on — signup, login, logout, code lookup and redemption, and every admin
+write. Page-load reads are deliberately **not** wrapped: the free content renders first, so covering
+the screen there would only make the site feel slower; those keep their inline 読み込み中… text.
+
+Two things about that component are load-bearing:
+- It is **always rendered** and toggled with a class, not `v-if` + `<Transition>`. With a transition,
+  a fast round-trip made enter and leave race, leaving the element stuck at `leave-active` — invisible
+  at `opacity: 0` but still `position: fixed; inset: 0`, swallowing every click on the page. When
+  inactive it sets both `pointer-events: none` and `visibility: hidden` so a stuck state can't block
+  input again.
+- `withLoading` counts rather than toggling a boolean (so concurrent calls don't uncover each other)
+  and force-clears after 20s. Firestore retries writes indefinitely while offline, so an `await` can
+  simply never return; an uncoverable screen is worse than a lost spinner.
+
+### Admin pages: only the dashboard is still a mockup
+Real and Firestore-backed: [pages/admin/content/**](pages/admin/content) (see above),
+[pages/admin/history/index.vue](pages/admin/history/index.vue) (`diagnosisHistory` — every diagnosis/compatibility submission,
+logged fire-and-forget from the public site; cursor-paginated),
+[pages/admin/teams/**](pages/admin/teams) (see "Admin: teams") and [pages/admin/users.vue](pages/admin/users.vue).
+
+`/admin/users` lists real members with their team, how they joined and whether they can read the paid
+area. It deliberately **dropped** three columns the mockup had: 最終ログイン (Firebase Auth's
+`lastSignInTime` for another user is Admin-SDK-only, unreachable from a serverless client),
+支払い方法 (no payment yet) and ステータス(有効/解約済) (no such concept). It is read-only —
+granting and revoking access happens in チーム管理, so there is one place to look.
+
+[pages/admin/index.vue](pages/admin/index.vue) (dashboard stats) is still hardcoded `ref()` arrays; edits are lost on
+reload. All of `/admin/**` requires a real admin login — see "Admin authentication" below.
 
 ### Admin authentication
 `/admin/**` requires a Firebase Auth session carrying the `admin: true` custom claim. There is no server anywhere in this app — everything happens client-side, following Firebase's own recommended pattern for custom-claims-based RBAC (Security Rules as the actual enforcement layer, not a hidden/CSS-only check):
@@ -94,3 +291,17 @@ Firebase web config is read from `NUXT_PUBLIC_FIREBASE_*` env vars in [nuxt.conf
 
 ### Deployment
 [nuxt.config.ts](nuxt.config.ts) sets `ssr: false` — a fully static SPA, no server, no Cloud Functions. `npm run generate` (which sets `NITRO_PRESET=static` — deliberately not baked into `nuxt.config.ts` itself, since that specific preset breaks `nuxt dev` with a `No entry found in rollupOptions.input` crash; see the comment in `nuxt.config.ts`) produces `.output/public` only (every route is the same empty shell; vue-router resolves paths entirely client-side after hydration) and makes the build fail loudly if a `server/api/**` route is ever reintroduced, rather than silently building something `nuxt dev` runs but the static output can't serve. [firebase.json](firebase.json)'s `hosting.rewrites` sends every path (`**`) to `/index.html` (a standard SPA catch-all, not a function target) and declares the `firestore` block; deploying needs `firebase deploy` (include `--only firestore:rules` after any `firestore.rules` change — it's not redeployed automatically just because the app is). This exists specifically to stay on Firebase Hosting's free "Spark" plan — Cloud Functions (the previous deployment target, via `nitro.preset: 'firebase'`) require the paid "Blaze" plan even to enable the necessary APIs, confirmed by an actual failed `firebase deploy` (`Error: ...must be on the Blaze (pay-as-you-go) plan`).
+
+**Order matters when rules and data change together.** Deploy the rules *first*, then migrate, then
+the app:
+
+```bash
+npx firebase deploy --only firestore:rules
+npm run migrate:premium            # 移行が必要なときだけ。--dry-run で件数を先に確認できる
+npm run generate && npx firebase deploy --only hosting
+```
+
+Migrating first would move documents into a collection that has no rule yet, and the catch-all
+`match /{document=**} { allow read, write: if false }` would make them unreadable to everyone —
+admins included — until the rules land. Between the migration and the app deploy the live site
+degrades gracefully (paid sections just don't render); it never leaks.

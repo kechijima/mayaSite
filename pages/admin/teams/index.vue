@@ -142,10 +142,10 @@ function statusLabel(status: TeamRow['status']) {
       <p v-else-if="!rows.length" class="py-4 text-center text-sm text-slate-500 dark:text-slate-400">
         まだチームがありません。上のフォームから作成してください。
       </p>
-      <div v-else class="overflow-x-auto">
+      <div v-else class="max-h-[70vh] overflow-auto">
         <table class="w-full text-[13px]">
-          <thead>
-            <tr class="border-b border-slate-200 text-left text-[11px] uppercase tracking-wide text-slate-400 dark:border-slate-800">
+          <thead class="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-white [&_th]:pt-2.5 [&_th]:shadow-[inset_0_-1px_0_#e2e8f0] dark:[&_th]:bg-slate-900 dark:[&_th]:shadow-[inset_0_-1px_0_#1e293b]">
+            <tr class="text-left text-[11px] uppercase tracking-wide text-slate-400">
               <th class="pb-2.5 pr-3">チーム名</th>
               <th class="pb-2.5 pr-3">コード</th>
               <th class="pb-2.5 pr-3">状態</th>
