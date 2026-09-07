@@ -16,6 +16,17 @@ import { cert, getApps, initializeApp } from 'firebase-admin/app'
 import { getFirestore, FieldValue } from 'firebase-admin/firestore'
 import { CHARACTER_SEED } from './characters.data'
 
+// 2026-09-07: 実行停止。有料項目は diagnosisContentPremium へ分離済み
+// (utils/premiumContent.ts / scripts/splitPremiumContent.ts)。このスクリプトは分離前の
+// スキーマ — 有料項目が diagnosisContent に同居していた頃 — を前提に一度だけ実行された
+// 履歴的な移行で、いま実行すると有料項目を無料コレクション(allow read: if true)へ
+// 書き戻し、有料本文を全公開に戻してしまう。過去にどんな変換をしたかの記録として
+// ファイルは残すが、実行はここで止める。
+console.error(
+  'このスクリプトは実行済みの履歴的な移行です。有料項目の分離後に実行すると有料本文を再公開してしまうため、実行を停止しました。'
+)
+process.exit(1)
+
 const projectId = process.env.NUXT_PUBLIC_FIREBASE_PROJECT_ID || 'mayachannel-34fd5'
 
 let app

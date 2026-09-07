@@ -1,144 +1,216 @@
 <script setup lang="ts">
+import { collection, getDocs, type Firestore, type Timestamp } from 'firebase/firestore'
+import { diagnoseBirthdate } from '~/utils/mayaCalc'
+import { SEALS } from '~/utils/mayaData'
+import { genderLabel, isGender } from '~/utils/gender'
+
 definePageMeta({ layout: 'admin' })
 
+// 2026-09-07: ハードコードのモックから、Firestoreのusersコレクションを読む実データへ移行。
+// モックにあった「最終ログイン」「支払い方法」「ステータス(有効/解約済)」の3列は削除した:
+//   最終ログイン … Firebase Authの他ユーザーの最終ログイン日時はAdmin SDK専用で、
+//                  サーバーが無いこの構成ではクライアントから取得できない
+//   支払い方法   … 決済が未実装で対応するデータが存在しない
+//   ステータス   … 「解約」に相当する概念がまだ無い
+// 閲覧権限の変更(チームへの追加・除外)は /admin/teams/[teamId] 側で行う。ここは一覧・確認用。
+
+interface UserDoc {
+  name?: string
+  email?: string
+  phone?: string
+  birthdate?: string
+  gender?: string
+  teamId?: string | null
+  teamName?: string | null
+  entitlement?: 'none' | 'code'
+  entitlementSource?: 'code' | 'admin' | null
+  plan?: string
+  createdAt?: Timestamp
+}
+
 interface UserRow {
+  uid: string
   name: string
   email: string
-  plan: string
-  joined: string
-  lastLogin: string
-  status: string
+  phone: string
   birthdate: string
-  kin: number
+  gender: string
+  kin: number | null
   seal: string
-  paymentMethod: string
+  teamName: string
+  source: string
+  entitled: boolean
+  joined: string
+  joinedAt: number
 }
 
-const plans = ['無料', '有料']
-const statuses = ['有効', '解約済']
+const rows = ref<UserRow[]>([])
+const loading = ref(true)
+const loadError = ref('')
+const keyword = ref('')
+const entitlementFilter = ref<'all' | 'entitled' | 'locked'>('all')
 
-const users = ref<UserRow[]>([
-  { name: '高橋 直子', email: 'naoko.t@example.com', plan: '有料', joined: '2026-07-13', lastLogin: '2026-07-14 08:12', status: '有効', birthdate: '1988-03-02', kin: 214, seal: '青い夜', paymentMethod: 'Visa •••• 4242' },
-  { name: '渡辺 蓮', email: 'ren.w@example.com', plan: '無料', joined: '2026-07-13', lastLogin: '2026-07-13 21:40', status: '有効', birthdate: '1995-11-20', kin: 87, seal: '白い犬', paymentMethod: '—' },
-  { name: '中村 美咲', email: 'misaki.n@example.com', plan: '有料', joined: '2026-07-12', lastLogin: '2026-07-14 07:02', status: '有効', birthdate: '1990-06-08', kin: 156, seal: '黄色い星', paymentMethod: 'Mastercard •••• 9981' },
-  { name: '小林 健太', email: 'kenta.k@example.com', plan: '無料', joined: '2026-07-12', lastLogin: '2026-07-12 12:55', status: '有効', birthdate: '2000-01-30', kin: 42, seal: '赤い蛇', paymentMethod: '—' },
-  { name: '山本 さくら', email: 'sakura.y@example.com', plan: '有料', joined: '2026-07-11', lastLogin: '2026-07-11 19:23', status: '解約済', birthdate: '1993-09-14', kin: 199, seal: '青い鷲', paymentMethod: 'Visa •••• 0071' }
-])
-
-const selectedUser = ref<UserRow | null>(null)
-const draftPlan = ref('')
-const draftStatus = ref('')
-
-function openDetail(user: UserRow) {
-  selectedUser.value = user
-  draftPlan.value = user.plan
-  draftStatus.value = user.status
+function formatDate(ts?: Timestamp) {
+  const d = ts?.toDate()
+  if (!d) return '—'
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-function closeDetail() {
-  selectedUser.value = null
+function buildRow(uid: string, data: UserDoc): UserRow {
+  // KIN・太陽の紋章は保存せず生年月日から都度算出する(診断本体と同じ計算式を使うため、
+  // 保存しておくと計算式を直した時に古い値が残ってしまう)。
+  let kin: number | null = null
+  let seal = '—'
+  if (data.birthdate) {
+    try {
+      const { birth } = diagnoseBirthdate(data.birthdate)
+      kin = birth.kin
+      seal = SEALS[birth.sealIndex]?.name ?? '—'
+    } catch {
+      kin = null
+    }
+  }
+  return {
+    uid,
+    name: data.name ?? '',
+    email: data.email ?? '',
+    phone: data.phone ?? '',
+    birthdate: data.birthdate ?? '',
+    gender: data.gender && isGender(data.gender) ? genderLabel(data.gender) : '—',
+    kin,
+    seal,
+    teamName: data.teamId ? (data.teamName || data.teamId) : '',
+    source: data.entitlementSource === 'admin' ? '管理者追加' : data.entitlementSource === 'code' ? 'コード入力' : '—',
+    entitled: data.entitlement === 'code',
+    joined: formatDate(data.createdAt),
+    joinedAt: data.createdAt?.toMillis() ?? 0
+  }
 }
 
-function applyChanges() {
-  if (!selectedUser.value) return
-  selectedUser.value.plan = draftPlan.value
-  selectedUser.value.status = draftStatus.value
-  closeDetail()
-}
+onMounted(async () => {
+  try {
+    const { $firestore } = useNuxtApp()
+    const snap = await getDocs(collection($firestore as Firestore, 'users'))
+    rows.value = snap.docs
+      .map((d) => buildRow(d.id, d.data() as UserDoc))
+      .sort((a, b) => b.joinedAt - a.joinedAt)
+  } catch {
+    loadError.value = 'ユーザーの読み込みに失敗しました。時間をおいて再度お試しください。'
+  } finally {
+    loading.value = false
+  }
+})
 
-function planChip(plan: string) {
-  return plan === '無料'
-    ? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
-    : 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400'
-}
-function statusChip(status: string) {
-  return status === '有効'
-    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
-    : 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400'
-}
+// Firestoreは部分一致検索ができないため、取得済みデータに対するクライアント側の絞り込み。
+const filtered = computed(() => {
+  const kw = keyword.value.trim().toLowerCase()
+  return rows.value.filter((r) => {
+    if (entitlementFilter.value === 'entitled' && !r.entitled) return false
+    if (entitlementFilter.value === 'locked' && r.entitled) return false
+    if (!kw) return true
+    return r.name.toLowerCase().includes(kw) || r.email.toLowerCase().includes(kw) || r.teamName.toLowerCase().includes(kw)
+  })
+})
+
+const selected = ref<UserRow | null>(null)
 </script>
 
 <template>
   <div>
     <div class="mb-6">
       <h1 class="text-xl font-bold">ユーザー管理</h1>
-      <span class="text-xs text-slate-500 dark:text-slate-400">会員ステータスの確認・手動変更ができます</span>
+      <span class="text-xs text-slate-500 dark:text-slate-400">
+        登録会員の一覧です。閲覧権限の付与・除外は<NuxtLink to="/admin/teams" class="font-semibold text-brass-700 hover:underline dark:text-gold-300">チーム管理</NuxtLink>から行います。
+      </span>
     </div>
 
     <div class="mb-4 flex flex-wrap gap-2.5">
-      <input type="text" placeholder="名前・メールアドレスで検索" class="min-w-[200px] flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900" />
-      <select class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900">
-        <option>すべてのプラン</option><option v-for="p in plans" :key="p">{{ p }}</option>
-      </select>
-      <select class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900">
-        <option>すべてのステータス</option><option v-for="s in statuses" :key="s">{{ s }}</option>
+      <input
+        v-model="keyword"
+        type="text"
+        placeholder="氏名・メールアドレス・チーム名で検索"
+        class="min-w-[240px] flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900"
+      />
+      <select v-model="entitlementFilter" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900">
+        <option value="all">すべての会員</option>
+        <option value="entitled">閲覧できる会員</option>
+        <option value="locked">閲覧できない会員</option>
       </select>
     </div>
 
+    <div v-if="loadError" class="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-2.5 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+      {{ loadError }}
+    </div>
+
     <div class="rounded-xl border border-slate-200 bg-white p-5.5 dark:border-slate-800 dark:bg-slate-900">
-      <div class="overflow-x-auto">
+      <p v-if="loading" class="py-4 text-center text-sm text-slate-500 dark:text-slate-400">読み込み中…</p>
+      <p v-else-if="!filtered.length" class="py-4 text-center text-sm text-slate-500 dark:text-slate-400">
+        {{ rows.length ? '条件に一致する会員はいません。' : 'まだ登録会員がいません。' }}
+      </p>
+      <div v-else class="overflow-x-auto">
         <table class="w-full text-[13px]">
           <thead>
             <tr class="border-b border-slate-200 text-left text-[11px] uppercase tracking-wide text-slate-400 dark:border-slate-800">
-              <th class="pb-2.5 pr-3">名前</th><th class="pb-2.5 pr-3">メール</th><th class="pb-2.5 pr-3">プラン</th><th class="pb-2.5 pr-3">登録日</th><th class="pb-2.5 pr-3">最終ログイン</th><th class="pb-2.5 pr-3">ステータス</th><th class="pb-2.5"></th>
+              <th class="pb-2.5 pr-3">名前</th>
+              <th class="pb-2.5 pr-3">メール</th>
+              <th class="pb-2.5 pr-3">所属チーム</th>
+              <th class="pb-2.5 pr-3">所属経路</th>
+              <th class="pb-2.5 pr-3">登録日</th>
+              <th class="pb-2.5 pr-3">有料エリア</th>
+              <th class="pb-2.5"></th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="u in users" :key="u.email" class="border-b border-slate-100 last:border-0 dark:border-slate-800/60">
-              <td class="py-2.5 pr-3">{{ u.name }}</td>
+            <tr v-for="u in filtered" :key="u.uid" class="border-b border-slate-100 last:border-0 dark:border-slate-800/60">
+              <td class="py-2.5 pr-3">{{ u.name || '—' }}</td>
               <td class="py-2.5 pr-3 text-slate-500 dark:text-slate-400">{{ u.email }}</td>
-              <td class="py-2.5 pr-3"><span class="rounded-full px-2.5 py-0.5 text-[11.5px] font-bold" :class="planChip(u.plan)">{{ u.plan }}</span></td>
+              <td class="py-2.5 pr-3">{{ u.teamName || '—' }}</td>
+              <td class="py-2.5 pr-3 text-slate-500 dark:text-slate-400">{{ u.source }}</td>
               <td class="py-2.5 pr-3 tabular-nums text-slate-500 dark:text-slate-400">{{ u.joined }}</td>
-              <td class="py-2.5 pr-3 tabular-nums text-slate-500 dark:text-slate-400">{{ u.lastLogin }}</td>
-              <td class="py-2.5 pr-3"><span class="rounded-full px-2.5 py-0.5 text-[11.5px] font-bold" :class="statusChip(u.status)">{{ u.status }}</span></td>
-              <td class="py-2.5"><button class="text-xs font-semibold text-brass-700 hover:underline dark:text-gold-300" @click="openDetail(u)">詳細</button></td>
+              <td class="py-2.5 pr-3">
+                <span
+                  class="rounded-full px-2.5 py-0.5 text-[11.5px] font-bold"
+                  :class="u.entitled ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'"
+                >{{ u.entitled ? '閲覧可' : 'ロック' }}</span>
+              </td>
+              <td class="py-2.5">
+                <button class="text-xs font-semibold text-brass-700 hover:underline dark:text-gold-300" @click="selected = u">詳細</button>
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- Detail / manual override modal -->
-    <div v-if="selectedUser" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" @click.self="closeDetail">
+    <div v-if="selected" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" @click.self="selected = null">
       <div class="w-full max-w-[480px] rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
         <div class="mb-5 flex items-start justify-between">
           <div>
-            <h2 class="text-base font-bold">{{ selectedUser.name }}</h2>
-            <span class="text-xs text-slate-500 dark:text-slate-400">{{ selectedUser.email }}</span>
+            <h2 class="text-base font-bold">{{ selected.name || '（氏名未登録）' }}</h2>
+            <span class="text-xs text-slate-500 dark:text-slate-400">{{ selected.email }}</span>
           </div>
-          <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label="閉じる" @click="closeDetail">✕</button>
+          <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label="閉じる" @click="selected = null">✕</button>
         </div>
 
         <dl class="mb-5 grid grid-cols-2 gap-y-3 text-[13px]">
-          <div><dt class="text-slate-400">生年月日</dt><dd class="font-semibold">{{ selectedUser.birthdate }}</dd></div>
-          <div><dt class="text-slate-400">KIN番号</dt><dd class="font-semibold tabular-nums">KIN {{ selectedUser.kin }}</dd></div>
-          <div><dt class="text-slate-400">太陽の紋章</dt><dd class="font-semibold">{{ selectedUser.seal }}</dd></div>
-          <div><dt class="text-slate-400">支払い方法</dt><dd class="font-semibold">{{ selectedUser.paymentMethod }}</dd></div>
-          <div><dt class="text-slate-400">登録日</dt><dd class="font-semibold tabular-nums">{{ selectedUser.joined }}</dd></div>
-          <div><dt class="text-slate-400">最終ログイン</dt><dd class="font-semibold tabular-nums">{{ selectedUser.lastLogin }}</dd></div>
+          <div><dt class="text-slate-400">生年月日</dt><dd class="font-semibold">{{ selected.birthdate || '—' }}</dd></div>
+          <div><dt class="text-slate-400">性別</dt><dd class="font-semibold">{{ selected.gender }}</dd></div>
+          <div><dt class="text-slate-400">KIN番号</dt><dd class="font-semibold tabular-nums">{{ selected.kin ? `KIN ${selected.kin}` : '—' }}</dd></div>
+          <div><dt class="text-slate-400">太陽の紋章</dt><dd class="font-semibold">{{ selected.seal }}</dd></div>
+          <div><dt class="text-slate-400">電話番号</dt><dd class="font-semibold">{{ selected.phone || '—' }}</dd></div>
+          <div><dt class="text-slate-400">登録日</dt><dd class="font-semibold tabular-nums">{{ selected.joined }}</dd></div>
+          <div><dt class="text-slate-400">所属チーム</dt><dd class="font-semibold">{{ selected.teamName || '—' }}</dd></div>
+          <div><dt class="text-slate-400">所属経路</dt><dd class="font-semibold">{{ selected.source }}</dd></div>
         </dl>
 
-        <div class="mb-5 space-y-3 rounded-lg border border-slate-200 p-4 dark:border-slate-800">
-          <p class="text-xs font-bold text-slate-500 dark:text-slate-400">会員ステータス手動変更（カスタマーサポート用）</p>
-          <div class="flex gap-3">
-            <div class="flex-1">
-              <label class="mb-1 block text-xs text-slate-500 dark:text-slate-400">プラン</label>
-              <select v-model="draftPlan" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
-                <option v-for="p in plans" :key="p">{{ p }}</option>
-              </select>
-            </div>
-            <div class="flex-1">
-              <label class="mb-1 block text-xs text-slate-500 dark:text-slate-400">ステータス</label>
-              <select v-model="draftStatus" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
-                <option v-for="s in statuses" :key="s">{{ s }}</option>
-              </select>
-            </div>
-          </div>
-        </div>
+        <p class="rounded-lg border border-slate-200 p-3.5 text-[12px] leading-[1.8] text-slate-500 dark:border-slate-800 dark:text-slate-400">
+          有料エリアの閲覧可否はチームへの所属で決まります。付与・除外は
+          <NuxtLink to="/admin/teams" class="font-semibold text-brass-700 hover:underline dark:text-gold-300">チーム管理</NuxtLink>
+          から行ってください。
+        </p>
 
-        <div class="flex justify-end gap-2">
-          <button class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold dark:border-slate-700" @click="closeDetail">閉じる</button>
-          <button class="rounded-lg bg-brass-700 px-4 py-2 text-sm font-bold text-white" @click="applyChanges">変更を適用</button>
+        <div class="mt-5 flex justify-end">
+          <button class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold dark:border-slate-700" @click="selected = null">閉じる</button>
         </div>
       </div>
     </div>

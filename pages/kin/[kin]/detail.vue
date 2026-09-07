@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { type Firestore } from 'firebase/firestore'
 import dividerSrc from '~/assets/images/optimized/divider.webp'
-import { fetchPublishedDoc } from '~/composables/useDiagnosisContent'
+import { fetchPublishedDoc, fetchPremiumDoc } from '~/composables/useDiagnosisContent'
 import { kinInfo } from '~/utils/mayaCalc'
 import { sealColor } from '~/utils/mayaData'
 import { formatCelebrityBirth } from '~/utils/kinCelebrities'
-import { buildSignupLink } from '~/utils/signupLink'
 
 // result.vueの「運命数字」セクション(同じKIN/前のKIN/次のKIN/鏡の向こうの自分KIN/絶対反対KIN)
 // から遷移してくる、任意のKIN番号(1-260)単体の解説ページ。中身はresult.vue自身の
@@ -14,9 +13,15 @@ import { buildSignupLink } from '~/utils/signupLink'
 // 再現する。
 
 const route = useRoute()
-const { user, ready } = useAuth()
-const deepUnlocked = computed(() => ready.value && !!user.value)
-const signupRedirectTo = computed(() => buildSignupLink(route.fullPath, route.query))
+// 有料エリアの解放条件は composables/useEntitlement.ts に集約している(pages/result.vueと同じ)。
+// ログインだけでは解放されず、チームに所属していることが条件。entitlementSettled は
+// 認証復元とusersドキュメント取得の両方が終わったかを表し、LockedVeilはこれが立つまで
+// 出さない — 所属済みの会員に読み込み中の一瞬だけ購入訴求が見えるのを避けるため。
+const { entitled: deepUnlocked, settled: entitlementSettled } = useEntitlement()
+// 有料エリアの各LockedVeilに渡す遷移先。未ログインなら/signup(登録フォームに紹介コード欄が
+// ある)、ログイン済みなら/account(後追い入力欄)へ — ログイン済みの人を/signupへ送ると
+// 「既にログイン済み」と判定されて即座に戻され、行き止まりになるため(composables/useUnlockLink.ts)。
+const signupRedirectTo = useUnlockLink()
 
 const targetKin = computed(() => {
   const n = Number(route.params.kin)
@@ -38,25 +43,34 @@ const { data: kinDoc, pending } = useAsyncData(
   'kin-number-detail',
   async () => {
     if (targetKin.value === null) return null
-    return fetchPublishedDoc($firestore as Firestore, `kin-${targetKin.value}`)
+    const firestore = $firestore as Firestore
+    const free = await fetchPublishedDoc(firestore, `kin-${targetKin.value}`)
+    if (!free) return null
+    // 有料側は権限がある時だけ取りに行く(pages/result.vue・useDiagnosisContentと同じ方針)。
+    const premium = deepUnlocked.value
+      ? await fetchPremiumDoc(firestore, `kin-${targetKin.value}`)
+      : null
+    return { free, restText: premium?.restText || null }
   },
-  { server: false, lazy: true, watch: [targetKin] }
+  { server: false, lazy: true, watch: [targetKin, deepUnlocked] }
 )
 
-// result.vueと同じ切り方: 冒頭125文字だけ無料で読ませ、残りは有料エリア(LockedVeil)に送る。
-// サロゲートペアの途中で切らないよう[...str]で文字単位に分解してから切る。
-const KIN_LETTER_FREE_CHARS = 125
-const kinText = computed(() => kinDoc.value?.freeText || null)
-const kinLetterChars = computed(() => [...(kinText.value ?? '')])
-const kinLetterRest = computed(() => kinLetterChars.value.slice(KIN_LETTER_FREE_CHARS).join('').trimStart())
-const kinLetterLocked = computed(() => !deepUnlocked.value && kinLetterRest.value.length > 0)
+// result.vueと同じ扱い。有料項目の分離後、freeText には既に冒頭125文字までしか
+// 入っておらず(残りは diagnosisContentPremium の restText)、表示側で切る必要はない。
+// 続きの有無は無料側の hasMore、続きの本文は権限がある時だけ届く restText で判断する。
+const kinText = computed(() => kinDoc.value?.free.freeText || null)
+const kinRestText = computed(() => kinDoc.value?.restText || null)
+const kinPremiumChars = computed(() => kinDoc.value?.free.premiumCharCount ?? 0)
+const kinLetterLocked = computed(() => !!kinDoc.value?.free.hasMore && !kinRestText.value)
 const kinLetterFree = computed(() => {
-  if (!kinLetterLocked.value) return kinText.value ?? ''
-  return `${kinLetterChars.value.slice(0, KIN_LETTER_FREE_CHARS).join('').trimEnd()}…`
+  if (!kinText.value) return ''
+  // 権限があれば分割前の原文をそのまま復元する(splitKinTextはtrimしていない)。
+  if (!kinLetterLocked.value) return kinRestText.value ? `${kinText.value}${kinRestText.value}` : kinText.value
+  return `${kinText.value.trimEnd()}…`
 })
 
 // 有名人一覧は本文の有料/無料を問わず常時無料(result.vueと同じ扱い)。
-const kinCelebrities = computed(() => kinDoc.value?.kinCelebrities ?? [])
+const kinCelebrities = computed(() => kinDoc.value?.free.kinCelebrities ?? [])
 </script>
 
 <template>
@@ -72,7 +86,7 @@ const kinCelebrities = computed(() => kinDoc.value?.kinCelebrities ?? [])
 
           <p v-if="kinLetterFree" class="kinletter">{{ kinLetterFree }}</p>
           <p v-else-if="!pending" class="kinletter">このKINの解説文は現在準備中です。</p>
-          <LockedVeil v-if="kinLetterLocked" class="kinletter-gate" :to="signupRedirectTo" :remaining-chars="kinLetterRest.length" />
+          <LockedVeil v-if="entitlementSettled && kinLetterLocked" class="kinletter-gate" :to="signupRedirectTo" :remaining-chars="kinPremiumChars" />
 
           <div v-if="kinCelebrities.length" class="block">
             <div class="block__head"><svg><use href="#i-trophy" /></svg><h3>同じKINを持つ有名人</h3></div>

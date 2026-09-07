@@ -1,14 +1,13 @@
 import { doc, getDoc, type Firestore } from 'firebase/firestore'
 import type { KinCelebrity } from '~/utils/kinCelebrities'
 
-// The 19 deep-dive fields sourced from docs/診断結果マスタ.xlsx, present only on `character-*`
-// docs (tone docs have their own, smaller field set — see ToneProfileFields below). All optional
-// since older/unseeded character docs won't have them yet — every consumer must fall back
-// gracefully. Free/paid split follows the master's own row layout (1〜14行目=無料, 15行目以降=
-// 有料— see scripts/characters.data.ts's header comment): careerPath through cautionDetail are
-// free; cautionDetailPremium (row 15, the back half of a single source cell split at its row
-// boundary) through luckDownHabits are gated — see pages/result.vue's freeProfileSections /
-// premiumProfileSections.
+// docs/診断結果マスタ.xlsx 由来の深掘り項目のうち、`character-*` の**無料**項目
+// (マスタ1〜14行目)。すべてoptionalなのは、古い/未シードのドキュメントにまだ無い場合が
+// あるため — 呼び出し側は必ずフォールバックすること。
+// 有料項目(マスタ15行目以降)はこのインターフェースには含まれない。別コレクション
+// diagnosisContentPremium に分離され、CharacterPremiumFields として型付けされている
+// (下記および utils/premiumContent.ts 参照) — Firestoreのルールがフィールド単位の
+// 制御をできない以上、コレクションを分けなければ有料本文を守れないため。
 export interface CharacterProfileFields {
   archetype?: string
   catchphrase?: string
@@ -28,6 +27,12 @@ export interface CharacterProfileFields {
   strengthsDetail?: string
   cautionSummary?: string[]
   cautionDetail?: string
+}
+
+// diagnosisContentPremium/character-{i} が持つ有料項目。項目の一覧は
+// utils/premiumContent.ts の PREMIUM_CHARACTER_FIELDS と一致していること
+// (移行スクリプトと管理画面もそちらを参照している)。
+export interface CharacterPremiumFields {
   cautionDetailPremium?: string
   practicalTips?: string[]
   bestEnvironment?: string
@@ -69,6 +74,18 @@ export interface DiagnosisContentDoc extends CharacterProfileFields, ToneProfile
   premiumText: string
   status: '公開' | '下書き'
   kinCelebrities?: KinCelebrity[] // kin-* のみ
+  // 以下は有料項目を別コレクションへ分離した際に無料側へ残した派生値
+  // (scripts/splitPremiumContent.ts が書き込む)。
+  premiumCharCount?: number // LockedVeilの「残り○○文字」用
+  hasMore?: boolean // kin-* のみ。続きが有料側にあるか
+}
+
+// diagnosisContentPremium のドキュメント。character-* は CharacterPremiumFields を、
+// kin-* は restText(本文の126文字目以降)を持つ。
+export interface DiagnosisContentPremiumDoc extends CharacterPremiumFields {
+  type: 'character' | 'kin'
+  index: number
+  restText?: string // kin-* のみ
 }
 
 export async function fetchPublishedDoc(firestore: Firestore, id: string): Promise<DiagnosisContentDoc | null> {
@@ -76,6 +93,22 @@ export async function fetchPublishedDoc(firestore: Firestore, id: string): Promi
   if (!snap.exists()) return null
   const data = snap.data() as DiagnosisContentDoc
   return data.status === '公開' ? data : null
+}
+
+// 有料ドキュメントの取得。閲覧権限が無ければFirestoreのルールが permission-denied を
+//返すので、それは「読めなかった」= null として正常系に畳む。呼び出し側は権限判定
+// (useEntitlement)を見て取得可否を決めているが、判定と実際の読み取りの間で権限が
+// 変わる可能性があるため、ここでも握りつぶして画面が壊れないようにしておく。
+// なお公開状態(status)は無料側ドキュメントだけが持つ — 有料側は無料側と対で
+// 存在するので、非公開なら呼び出し側が無料側を見た時点で弾かれる。
+export async function fetchPremiumDoc(firestore: Firestore, id: string): Promise<DiagnosisContentPremiumDoc | null> {
+  try {
+    const snap = await getDoc(doc(firestore, 'diagnosisContentPremium', id))
+    return snap.exists() ? (snap.data() as DiagnosisContentPremiumDoc) : null
+  } catch (err) {
+    if ((err as { code?: string })?.code === 'permission-denied') return null
+    throw err
+  }
 }
 
 export interface DiagnosisContentIndexes {
@@ -96,6 +129,10 @@ export interface DiagnosisContentIndexes {
 export function useDiagnosisContent(indexes: DiagnosisContentIndexes) {
   const { sealIndex, wavespellSealIndex, toneIndex, kin } = indexes
   const { $firestore } = useNuxtApp()
+  // 有料ドキュメントは権限がある時だけ取りに行く。権限が無いユーザーの分まで毎回
+  // 読みに行くと、必ず失敗する読み取りを3件発生させたうえでコンソールに
+  // permission-denied が並ぶだけで、得るものが何もないため。
+  const { entitled } = useEntitlement()
 
   const { data, pending } = useAsyncData(
     'diagnosis-content',
@@ -107,19 +144,35 @@ export function useDiagnosisContent(indexes: DiagnosisContentIndexes) {
         fetchPublishedDoc(firestore, `tone-${toneIndex.value}`),
         fetchPublishedDoc(firestore, `kin-${kin.value}`)
       ])
-      return { sunDoc, wavespellDoc, toneDoc, kinDoc }
+      const [sunPremium, wavespellPremium, kinPremium] = entitled.value
+        ? await Promise.all([
+            fetchPremiumDoc(firestore, `character-${sealIndex.value}`),
+            fetchPremiumDoc(firestore, `character-${wavespellSealIndex.value}`),
+            fetchPremiumDoc(firestore, `kin-${kin.value}`)
+          ])
+        : [null, null, null]
+      return { sunDoc, wavespellDoc, toneDoc, kinDoc, sunPremium, wavespellPremium, kinPremium }
     },
-    { server: false, lazy: true, watch: [sealIndex, wavespellSealIndex, toneIndex, kin] }
+    { server: false, lazy: true, watch: [sealIndex, wavespellSealIndex, toneIndex, kin, entitled] }
   )
 
   return {
     sunText: computed(() => data.value?.sunDoc?.freeText || null),
     sunProfile: computed<CharacterProfileFields | null>(() => data.value?.sunDoc ?? null),
+    sunPremium: computed<CharacterPremiumFields | null>(() => data.value?.sunPremium ?? null),
     wavespellText: computed(() => data.value?.wavespellDoc?.freeText || null),
     wavespellProfile: computed<CharacterProfileFields | null>(() => data.value?.wavespellDoc ?? null),
+    wavespellPremium: computed<CharacterPremiumFields | null>(() => data.value?.wavespellPremium ?? null),
     toneText: computed(() => data.value?.toneDoc?.freeText || null),
     toneProfile: computed<ToneProfileFields | null>(() => data.value?.toneDoc ?? null),
     kinText: computed(() => data.value?.kinDoc?.freeText || null),
+    // 続きの有無と残り文字数は無料側ドキュメントの派生値から取る。権限が無いと
+    // 有料側を読めない以上、本文の存在から判定することはできない。
+    kinHasMore: computed(() => data.value?.kinDoc?.hasMore ?? false),
+    kinRestText: computed(() => data.value?.kinPremium?.restText || null),
+    kinPremiumCharCount: computed(() => data.value?.kinDoc?.premiumCharCount ?? 0),
+    sunPremiumCharCount: computed(() => data.value?.sunDoc?.premiumCharCount ?? 0),
+    wavespellPremiumCharCount: computed(() => data.value?.wavespellDoc?.premiumCharCount ?? 0),
     kinCelebrities: computed<KinCelebrity[]>(() => data.value?.kinDoc?.kinCelebrities ?? []),
     pending
   }

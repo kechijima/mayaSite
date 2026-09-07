@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { doc, getDoc, serverTimestamp, updateDoc, type Firestore } from 'firebase/firestore'
+import { doc, getDoc, serverTimestamp, writeBatch, type Firestore } from 'firebase/firestore'
 import { CHARACTER_PROFILE_FIELDS, TONE_PROFILE_FIELDS, buildContentRow, typeLabel, type ContentRow } from '~/utils/diagnosisContentAdmin'
 import { formatKinCelebrities, type KinCelebrity } from '~/utils/kinCelebrities'
+import { countPremiumChars, splitKinText } from '~/utils/premiumContent'
 
 definePageMeta({ layout: 'admin' })
 
@@ -17,7 +18,7 @@ const notFound = ref(!row.value)
 //
 // 現状は表示のみで、保存対象に含めていない(このフィールドだけ未実装 — 他のフィールドは
 // admin:trueクレームを持つ管理者なら保存できる。CLAUDE.md「Admin authentication」参照)。
-// 編集を有効化する際は、この ref を編集可能に戻し、save() の updateDoc に
+// 編集を有効化する際は、この ref を編集可能に戻し、save() の無料側の書き込みに
 // `kinCelebrities: parseKinCelebrities(celebritiesText.value)` を足せばよい。
 const celebritiesText = ref('')
 const celebritiesCount = computed(() => celebritiesText.value.split('\n').filter((l) => l.trim()).length)
@@ -52,9 +53,16 @@ onMounted(async () => {
   if (!row.value) return
   try {
     const { $firestore } = useNuxtApp()
-    const snap = await getDoc(doc($firestore as Firestore, 'diagnosisContent', id))
+    const firestore = $firestore as Firestore
+    // 有料項目は diagnosisContentPremium 側にある。管理者は両方読めるので、
+    // 編集フォーム上は従来どおり1画面にまとめて出す(保存時に再び振り分ける)。
+    const [snap, premiumSnap] = await Promise.all([
+      getDoc(doc(firestore, 'diagnosisContent', id)),
+      getDoc(doc(firestore, 'diagnosisContentPremium', id))
+    ])
+    const premiumData = (premiumSnap.exists() ? premiumSnap.data() : {}) as Partial<ContentRow> & { restText?: string }
     if (snap.exists()) {
-      const data = snap.data() as Partial<ContentRow>
+      const data = { ...(snap.data() as Partial<ContentRow>), ...premiumData }
       row.value.name = data.name || row.value.name
       row.value.freeText = data.freeText ?? ''
       row.value.premiumText = data.premiumText ?? ''
@@ -67,6 +75,9 @@ onMounted(async () => {
       }
       if (row.value.type === 'kin') {
         celebritiesText.value = formatKinCelebrities(((data as { kinCelebrities?: KinCelebrity[] }).kinCelebrities) ?? [])
+        // KINの本文は無料側(冒頭125文字)と有料側(restText)に物理的に分かれている。
+        // 管理者には分割前の原文を1つのテキストエリアで編集させ、保存時に再分割する。
+        row.value.freeText = `${row.value.freeText}${premiumData.restText ?? ''}`
       }
     }
   } catch {
@@ -90,19 +101,54 @@ async function save() {
       const value = row.value![f.key]
       return f.kind === 'list' ? (Array.isArray(value) ? value.filter((v) => v.trim()) : []) : value ?? ''
     }
-    const profileUpdates = row.value.type === 'character'
-      ? Object.fromEntries(CHARACTER_PROFILE_FIELDS.map((f) => [f.key, fieldValue(f)]))
-      : row.value.type === 'tone'
-        ? Object.fromEntries(TONE_PROFILE_FIELDS.map((f) => [f.key, fieldValue(f)]))
-        : {}
-    await updateDoc(doc($firestore as Firestore, 'diagnosisContent', id), {
+    // 有料項目は diagnosisContentPremium 側へ振り分けて保存する。無料側に書くと
+    // allow read: if true でそのまま公開されてしまう(utils/premiumContent.ts参照)。
+    const freeUpdates: Record<string, unknown> = {}
+    const premiumUpdates: Record<string, unknown> = {}
+    if (row.value.type === 'character') {
+      for (const f of CHARACTER_PROFILE_FIELDS) {
+        ;(f.tier === 'premium' ? premiumUpdates : freeUpdates)[f.key] = fieldValue(f)
+      }
+      // ロック中の「残り○○文字」表示用。有料本文を読めない利用者にも数を出せるよう
+      // 無料側に数値だけを置く。
+      freeUpdates.premiumCharCount = countPremiumChars(premiumUpdates)
+    } else if (row.value.type === 'tone') {
+      for (const f of TONE_PROFILE_FIELDS) freeUpdates[f.key] = fieldValue(f)
+    }
+
+    // KINの本文は編集時に原文1本へ戻してあるので、保存時に再び125文字で分割する。
+    let freeText = row.value.freeText
+    if (row.value.type === 'kin') {
+      const split = splitKinText(row.value.freeText)
+      freeText = split.freeText
+      premiumUpdates.restText = split.restText
+      freeUpdates.hasMore = split.restText.length > 0
+      freeUpdates.premiumCharCount = split.restText.trimStart().length
+    }
+
+    const firestore = $firestore as Firestore
+    const batch = writeBatch(firestore)
+    // updateDoc相当(存在しないIDなら失敗させたい)を維持するため、無料側は事前に
+    // 存在確認したうえで batch.update を使う。有料側は分離前のドキュメントがまだ
+    // 無い場合があるので set(merge) で作成も許す。
+    const freeRef = doc(firestore, 'diagnosisContent', id)
+    if (!(await getDoc(freeRef)).exists()) throw Object.assign(new Error('not-found'), { code: 'not-found' })
+    batch.update(freeRef, {
       name: row.value.name,
-      freeText: row.value.freeText,
+      freeText,
       premiumText: row.value.premiumText,
       status: row.value.status,
       updatedAt: serverTimestamp(),
-      ...profileUpdates
+      ...freeUpdates
     })
+    if (Object.keys(premiumUpdates).length) {
+      batch.set(
+        doc(firestore, 'diagnosisContentPremium', id),
+        { type: row.value.type, index: row.value.index, ...premiumUpdates, updatedAt: serverTimestamp() },
+        { merge: true }
+      )
+    }
+    await batch.commit()
     saved.value = true
   } catch (error) {
     saveError.value = (error as { code?: string })?.code === 'permission-denied'

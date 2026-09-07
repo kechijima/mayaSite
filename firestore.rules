@@ -8,20 +8,107 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == uid;
     }
 
+    // 有料エリアの閲覧権限。現在は「チームに所属していること」= コードを入力したか、
+    // 管理者がチームに追加したか。決済導入時はここを .data.plan == 'paid' に変更し、
+    // composables/useEntitlement.ts の entitled と対で切り替える(仕様書10章)。
+    function isEntitled() {
+      return request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.entitlement == 'code';
+    }
+
+    // 紹介コードのドキュメントを引く。存在しなければ null を返すので、呼び出し側で
+    // null チェックしてから status/teamId を見ること。同一リクエスト内の同じパスへの
+    // get() はFirestoreがキャッシュするため、複数回呼んでも読み取り課金は1回。
+    function codeDoc(code) {
+      return exists(/databases/$(database)/documents/referralCodes/$(code))
+        ? get(/databases/$(database)/documents/referralCodes/$(code)).data
+        : null;
+    }
+
+    // 本人がコードを使って自分の権限を解放する書き込みの検証。書き込もうとしている
+    // teamId/teamName が、そのコードのドキュメントが持つ値と一致することまで要求している —
+    // これが無いと、有効なコードを1つ知っている人が「別のチームに所属している」と
+    // 名乗れてしまう。
+    // teamName を users 側にも持たせているのは、/account で所属チーム名を表示するため。
+    // referralTeams は管理者専用で、管理者に追加されたメンバーはコードも知らないため、
+    // 非正規化しないと本人が自分の所属チーム名に到達できない。チーム改称時に古い名前が
+    // 残るが、表示用の文字列なので許容している(所属の正は teamId)。
+    function redeemsCode(data) {
+      return data.referralCodeId is string
+        && data.entitlement == 'code'
+        && data.entitlementSource == 'code'
+        && data.referralRedeemedAt == request.time
+        && codeDoc(data.referralCodeId) != null
+        && codeDoc(data.referralCodeId).status == 'active'
+        && codeDoc(data.referralCodeId).teamId == data.teamId
+        && codeDoc(data.referralCodeId).teamName == data.teamName;
+    }
+
     match /users/{uid} {
       allow read: if isOwner(uid) || isAdmin();
+
       // 自己登録(pages/signup.vue)はplanを必ず'free'で作成する — 自分で'paid'を
       // 名乗れないようにするため。createdAt == request.timeはserverTimestamp()の
       // 送信を強制し、偽装された固定値を弾く(diagnosisHistoryのcreateと同じパターン)。
+      //
+      // 紹介コードは任意入力。空で登録する場合は権限系5フィールドを明示的に未設定の
+      // 値で書かせる(nullを省略させない) — フィールドが存在しないと、後から
+      // /account でコードを入れるときの update 側で resource.data.referralRedeemedAt
+      // の参照がエラーになり、正当な解放まで弾かれてしまうため。
       allow create: if isOwner(uid)
         && request.resource.data.plan == 'free'
-        && request.resource.data.createdAt == request.time;
-      // 本人は氏名・電話番号などのプロフィール項目を編集できるが、planフィールドには
-      // 触れない — 決済導入前に自己申告で有料化できてしまうのを防ぐため。planの変更
-      // (将来、決済確認後や手動での有料化)は管理者のみ。
+        && request.resource.data.createdAt == request.time
+        && (
+          (request.resource.data.referralCodeId == null
+            && request.resource.data.teamId == null
+            && request.resource.data.teamName == null
+            && request.resource.data.entitlement == 'none'
+            && request.resource.data.entitlementSource == null
+            && request.resource.data.referralRedeemedAt == null)
+          || redeemsCode(request.resource.data)
+        );
+
+      // 1本目: 管理者。チームへの追加・除外はこの経路で行う(pages/admin/teams/[teamId].vue)。
+      // 2本目: 本人による通常のプロフィール編集。権限系フィールドには一切触れさせない。
+      //   planを除外しているのは決済導入前に自己申告で有料化されるのを防ぐため、
+      //   teamId/entitlementを除外しているのは同じ理由でコード無しの自己解放を防ぐため。
+      // 3本目: 本人による後追いのコード入力(pages/account.vue)。
+      //   「一度もどのチームにも所属したことがない人が、1回だけ」に限定している。
+      //   条件を referralCodeId ではなく referralRedeemedAt の null 判定にしているのは、
+      //   管理者に除外された人が自分でコードを入れ直して復帰するのを防ぐため —
+      //   除外時は teamId/entitlement だけを戻し、referralRedeemedAt は履歴として
+      //   残すので、この条件が二度と成立しなくなる(復帰は管理者による再追加のみ)。
       allow update: if isAdmin()
-        || (isOwner(uid) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['plan']));
+        || (isOwner(uid)
+            && !request.resource.data.diff(resource.data).affectedKeys()
+                 .hasAny(['plan', 'teamId', 'teamName', 'entitlement',
+                          'entitlementSource', 'referralCodeId', 'referralRedeemedAt']))
+        || (isOwner(uid)
+            && resource.data.referralRedeemedAt == null
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['teamId', 'teamName', 'entitlement', 'entitlementSource',
+                           'referralCodeId', 'referralRedeemedAt'])
+            && redeemsCode(request.resource.data));
+
       allow delete: if false;
+    }
+
+    // チームの実体。名前・現在のコード・管理者メモを持つ。管理者専用で、コードを
+    // 知っているだけでは読めない — referralCodes と分けているのはこのため
+    // (あちらは get を全開放しているので、メモをあちらに置くと漏れる)。
+    match /referralTeams/{teamId} {
+      allow read, write: if isAdmin();
+    }
+
+    // コード → チームの引き当て表。ドキュメントIDがコード文字列そのもの。
+    // get だけを開放しているのが要点で、これにより pages/signup.vue が入力された
+    // コードの有効性をその場で確認できる一方、コードを知らない人は1件も取得できず、
+    // list(列挙)は管理者に限られるため全コードの吸い出しも成立しない。
+    // ここに置くのは signup 画面の確認表示に必要な最小限だけ(teamId/teamName/status)。
+    match /referralCodes/{code} {
+      allow get: if true;
+      allow list: if isAdmin();
+      allow write: if isAdmin();
     }
 
     match /diagnosisContent/{docId} {
@@ -29,6 +116,14 @@ service cloud.firestore {
       // /admin/content から直接書き込む(サーバー無し)。admin:trueカスタムクレームを
       // 持つ認証済みユーザーのみ許可 — middleware/admin-auth.global.ts はUIのガードに
       // 過ぎず、実際の防御はここ(CLAUDE.md「Admin authentication」参照)。
+      allow write: if isAdmin();
+    }
+    // 有料エリアの本文。diagnosisContent と違い読み取りを権限保持者に限定する —
+    // Firestoreのルールはフィールド単位で制御できないため、同じドキュメントに
+    // 同居させたままでは「無料本文は全公開、有料本文は非公開」が実現できず、
+    // 未ログインでも開発者ツールから有料本文を読めてしまう(仕様書9章)。
+    match /diagnosisContentPremium/{docId} {
+      allow read: if isEntitled() || isAdmin();
       allow write: if isAdmin();
     }
     match /diagnosisHistory/{docId} {
