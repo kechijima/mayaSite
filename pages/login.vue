@@ -26,6 +26,8 @@ watchEffect(() => {
   if (ready.value && currentUser.value) navigateTo(redirectTarget())
 })
 
+const { withLoading } = useGlobalLoading()
+
 async function submit() {
   errorMessage.value = ''
   submitting.value = true
@@ -33,8 +35,11 @@ async function submit() {
   const auth = $auth as Auth
 
   try {
-    await signInWithEmailAndPassword(auth, email.value, password.value)
-    await navigateTo(redirectTarget())
+    // 認証と遷移が終わるまで画面全体を覆う。押したのに何も起きていないように見える間を作らない。
+    await withLoading(async () => {
+      await signInWithEmailAndPassword(auth, email.value, password.value)
+      await navigateTo(redirectTarget())
+    })
   } catch {
     errorMessage.value = 'メールアドレスまたはパスワードが正しくありません'
     submitting.value = false

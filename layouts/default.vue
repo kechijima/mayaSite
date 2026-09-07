@@ -32,4 +32,5 @@ const RESULT_LINKS = [
   <SiteHeader v-else-if="route.path === '/result'" :links="RESULT_LINKS" hide-until-scrolled />
   <slot />
   <SiteFooter />
+  <LoadingOverlay />
 </template>

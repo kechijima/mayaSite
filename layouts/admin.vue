@@ -16,10 +16,14 @@ function isActive(to: string) {
   return to === '/admin' ? route.path === '/admin' : route.path.startsWith(to)
 }
 
+const { withLoading } = useGlobalLoading()
+
 async function logout() {
-  const { $auth } = useNuxtApp()
-  await signOut($auth as Auth)
-  await navigateTo('/admin/login')
+  await withLoading(async () => {
+    const { $auth } = useNuxtApp()
+    await signOut($auth as Auth)
+    await navigateTo('/admin/login')
+  })
 }
 </script>
 
@@ -70,5 +74,6 @@ async function logout() {
     <main class="min-w-0 flex-1 px-8 pb-16 pt-9">
       <slot />
     </main>
+    <LoadingOverlay />
   </div>
 </template>

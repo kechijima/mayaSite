@@ -13,6 +13,11 @@ import { doc, getDoc, type Firestore } from 'firebase/firestore'
 // 両方の完了を表す — 詳細は下記。
 
 export interface EntitlementProfile {
+  // 診断フォームの入力内容。コード登録後に本人の診断結果ページへ戻すために使う
+  // (pages/account.vue) — LockedVeil経由でない場合、戻り先のクエリが他に無いため。
+  name?: string
+  birthdate?: string
+  gender?: string
   teamId: string | null
   // 所属チーム名。referralTeams は管理者専用で、管理者に追加されたメンバーはコードも
   // 知らないため、非正規化しないと本人が自分の所属チーム名に到達できない(/accountの表示用)。
@@ -20,8 +25,9 @@ export interface EntitlementProfile {
   entitlement: 'none' | 'code'
   entitlementSource: 'code' | 'admin' | null
   referralCodeId: string | null
-  // 初回所属日時。チームから外れても消さないので、「一度でも所属したことがあるか」の
-  // 判定に使える — /account が「未所属」と「除外済み」を出し分けるのはこの値。
+  // 最後にチームへ所属した日時。外れても消さないので「一度でも所属したことがあるか」が
+  // 分かる — /account が案内文を「登録」と「再登録」で出し分けるのに使っている
+  // (閲覧できるかどうかの判定には使わない。それは entitlement / teamId 側)。
   referralRedeemedAt: unknown | null
   plan: 'free' | 'paid'
 }

@@ -85,6 +85,8 @@ onMounted(async () => {
   }
 })
 
+const { withLoading } = useGlobalLoading()
+
 const saving = ref(false)
 const saveError = ref('')
 const saved = ref(false)
@@ -148,7 +150,7 @@ async function save() {
         { merge: true }
       )
     }
-    await batch.commit()
+    await withLoading(() => batch.commit())
     saved.value = true
   } catch (error) {
     saveError.value = (error as { code?: string })?.code === 'permission-denied'

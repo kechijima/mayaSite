@@ -9,5 +9,6 @@
         <slot />
       </div>
     </div>
+    <LoadingOverlay />
   </div>
 </template>
