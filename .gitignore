@@ -6,6 +6,9 @@ dist
 *.log
 .firebase-emulator-data
 .firebase
+# エミュレータを強制終了したときに作られる書き出し。実行のたびに増えるだけで、
+# 復元には .firebase-emulator-data の方を使うため追跡しない。
+firebase-export-*
 
 # Raw, unoptimized source character illustrations (~42MB female + ~54MB male) — only the
 # generated assets/images/optimized/*.webp and assets/images/faces/*.webp derivatives are used
