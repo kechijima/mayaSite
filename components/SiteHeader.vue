@@ -44,10 +44,14 @@ function toggle() {
 // ログアウト後は useAuth() のuser/readyがリアクティブに更新されるので、result.vueの
 // deepUnlockedも自動で再ロックされる — 明示的なnavigateTo()は不要(admin側のログアウトと
 // 違い、一般ページに「ログイン専用」のページ自体が無いため)。
+const { withLoading } = useGlobalLoading()
+
 async function logout() {
   close()
-  const { $auth } = useNuxtApp()
-  await signOut($auth as Auth)
+  await withLoading(async () => {
+    const { $auth } = useNuxtApp()
+    await signOut($auth as Auth)
+  })
 }
 
 // ルート遷移でメニューを閉じる。同じリンクを再度押した場合も閉じたいので、リンク側でも

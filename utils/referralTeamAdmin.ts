@@ -147,9 +147,11 @@ export async function addMember(firestore: Firestore, uid: string, teamId: strin
   await batch.commit()
 }
 
-// チームから外す。referralCodeId と referralRedeemedAt は履歴として残す —
-// referralRedeemedAt を消すと、外された本人が自分でコードを入れ直して復帰できて
-// しまう(firestore.rules の update 3本目がこの値の null 判定で成立するため)。
+// チームから外す。referralCodeId と referralRedeemedAt は「いつ・どのコードで所属した
+// ことがあるか」の履歴として残す(消しても復帰の可否は変わらない — ルールの判定は
+// teamId が空かどうかで行っている)。
+// 外された本人は、コードを知っていればマイページから入力し直して再び所属できる。
+// 確実に閉め出したい場合はチームのコード自体を無効にする。
 export async function removeMember(firestore: Firestore, uid: string) {
   const batch = writeBatch(firestore)
   batch.update(doc(firestore, 'users', uid), {

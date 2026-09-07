@@ -40,6 +40,8 @@ const addBusy = ref(false)
 // 「外す」は閲覧権限を失わせる操作なので、確認を挟んでから実行する。
 const removeTarget = ref<TeamMember | null>(null)
 
+const { withLoading } = useGlobalLoading()
+
 function firestore() {
   const { $firestore } = useNuxtApp()
   return $firestore as Firestore
@@ -76,7 +78,7 @@ async function toggleStatus() {
   actionError.value = ''
   const next = status.value === 'active' ? 'disabled' : 'active'
   try {
-    await setCodeStatus(firestore(), team.value.code, next)
+    await withLoading(() => setCodeStatus(firestore(), team.value!.code, next))
     status.value = next
   } catch {
     actionError.value = 'コードの状態を変更できませんでした。'
@@ -93,10 +95,13 @@ async function saveMeta() {
     const name = draftName.value.trim()
     // チーム名は referralCodes と各メンバーの users にも複製されているので、
     // 変更時は3か所を揃える(utils/referralTeamAdmin.ts の renameTeam)。
-    if (name && name !== team.value.name) await renameTeam(db, team.value, name)
-    if (draftNote.value !== (team.value.note ?? '')) await updateNote(db, teamId, draftNote.value)
+    // 改称はチーム・コード・全メンバーの3か所を書き換えるため、メンバー数によっては時間がかかる。
+    await withLoading(async () => {
+      if (name && name !== team.value!.name) await renameTeam(db, team.value!, name)
+      if (draftNote.value !== (team.value!.note ?? '')) await updateNote(db, teamId, draftNote.value)
+    })
     savedMeta.value = true
-    await load()
+    await withLoading(load)
   } catch {
     actionError.value = '保存に失敗しました。時間をおいて再度お試しください。'
   } finally {
@@ -110,7 +115,7 @@ async function searchUser() {
   addSearched.value = false
   actionError.value = ''
   try {
-    addCandidate.value = await findUserByEmail(firestore(), addEmail.value)
+    addCandidate.value = await withLoading(() => findUserByEmail(firestore(), addEmail.value))
     addSearched.value = true
   } catch {
     actionError.value = '会員の検索に失敗しました。'
@@ -124,11 +129,11 @@ async function confirmAdd() {
   addBusy.value = true
   actionError.value = ''
   try {
-    await addMember(firestore(), addCandidate.value.uid, teamId, team.value.name)
+    await withLoading(() => addMember(firestore(), addCandidate.value!.uid, teamId, team.value!.name))
     addEmail.value = ''
     addCandidate.value = null
     addSearched.value = false
-    await load()
+    await withLoading(load)
   } catch {
     actionError.value = '追加に失敗しました。時間をおいて再度お試しください。'
   } finally {
@@ -142,8 +147,8 @@ async function confirmRemove() {
   removeTarget.value = null
   actionError.value = ''
   try {
-    await removeMember(firestore(), target.uid)
-    await load()
+    await withLoading(() => removeMember(firestore(), target.uid))
+    await withLoading(load)
   } catch {
     actionError.value = '除外に失敗しました。時間をおいて再度お試しください。'
   }
@@ -305,7 +310,8 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
           <h2 class="mb-3 text-base font-bold">{{ removeTarget.name || removeTarget.email }} をチームから外しますか？</h2>
           <p class="mb-5 text-[13px] leading-[1.8] text-slate-600 dark:text-slate-300">
             この会員は<strong>有料エリアを閲覧できなくなります</strong>。
-            外した後は本人がコードを入力し直しても復帰できないため、戻す場合はこの画面から再度追加してください。
+            ただし紹介コードをご存じの場合は、本人がマイページから入力し直して再び所属できます。
+            確実に閲覧させたくない場合は、あわせてこのチームのコードを無効にしてください。
           </p>
           <div class="flex justify-end gap-2">
             <button type="button" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold dark:border-slate-700" @click="removeTarget = null">やめる</button>

@@ -73,18 +73,24 @@ service cloud.firestore {
       //   planを除外しているのは決済導入前に自己申告で有料化されるのを防ぐため、
       //   teamId/entitlementを除外しているのは同じ理由でコード無しの自己解放を防ぐため。
       // 3本目: 本人による後追いのコード入力(pages/account.vue)。
-      //   「一度もどのチームにも所属したことがない人が、1回だけ」に限定している。
-      //   条件を referralCodeId ではなく referralRedeemedAt の null 判定にしているのは、
-      //   管理者に除外された人が自分でコードを入れ直して復帰するのを防ぐため —
-      //   除外時は teamId/entitlement だけを戻し、referralRedeemedAt は履歴として
-      //   残すので、この条件が二度と成立しなくなる(復帰は管理者による再追加のみ)。
+      //   条件は「今どこのチームにも所属していないこと」。所属中はここが false になるため、
+      //   別チームへの乗り換えは引き続きできない。
+      //   2026-09-07: 当初は referralRedeemedAt が未設定であること(=一度も所属したことが
+      //   ない)を条件にし、管理者に外された人が自分で入り直して除外を無効化するのを防いで
+      //   いたが、外れた人が再度コードを登録できないのは不便という判断で緩めた。
+      //   この結果、除外は「所属の解除」であって「出禁」ではない — コードを知っている人は
+      //   自分で入り直せる(管理者が追加しただけの人はコードを知らないので入り直せない)。
       allow update: if isAdmin()
         || (isOwner(uid)
             && !request.resource.data.diff(resource.data).affectedKeys()
                  .hasAny(['plan', 'teamId', 'teamName', 'entitlement',
                           'entitlementSource', 'referralCodeId', 'referralRedeemedAt']))
         || (isOwner(uid)
-            && resource.data.referralRedeemedAt == null
+            // get(key, default) を使うのは、フィールドが「存在しない」既存会員を弾かない
+            // ため。resource.data.teamId と直接書くと、この機能より前に登録した会員
+            // (権限フィールドを一つも持たない)のドキュメントでは参照そのものが評価エラーに
+            // なり、正当な後追い登録まで拒否される(2026-09-07、本番で実際に発生)。
+            && resource.data.get('teamId', null) == null
             && request.resource.data.diff(resource.data).affectedKeys()
                  .hasOnly(['teamId', 'teamName', 'entitlement', 'entitlementSource',
                            'referralCodeId', 'referralRedeemedAt'])

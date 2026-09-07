@@ -225,11 +225,23 @@ async function main() {
     await setDoc(doc(db, 'users', uid), { ...baseProfile(), ...unaffiliated() })
     await updateDoc(doc(db, 'users', uid), redeemed(ACTIVE_CODE, ACTIVE_TEAM))
     // 管理者による「チームから外す」操作を Admin SDK で再現する。
-    // referralRedeemedAt は履歴として残すのが仕様(仕様書4章)。
+    // referralRedeemedAt は履歴として残る(復帰の可否には影響しない — 判定は teamId)。
     await adminDb.collection('users').doc(uid).update({
       teamId: null, entitlement: 'none', entitlementSource: null
     })
-    await expectDeny('除外された会員は自分でコードを入れ直して復帰できない', () =>
+    await expectAllow('除外された会員は自分でコードを入れ直して復帰できる', () =>
+      updateDoc(doc(db, 'users', uid), redeemed(ACTIVE_CODE, ACTIVE_TEAM)))
+  }
+  {
+    // この機能より前に登録した会員のドキュメントには権限フィールドが一つも無い。
+    // ルールが resource.data.<field> を直接参照していると、その参照自体が評価エラーに
+    // なって正当な登録まで拒否される(2026-09-07に本番で発生)。get(key, default) で
+    // 拾えていることをここで担保する。
+    const uid = await freshUser()
+    await adminDb.collection('users').doc(uid).set(
+      { name: '旧会員', email: 'legacy@example.com', birthdate: '1992-10-16', gender: 'female', plan: 'free' }
+    )
+    await expectAllow('権限フィールドを持たない既存会員でも後からコードを登録できる', () =>
       updateDoc(doc(db, 'users', uid), redeemed(ACTIVE_CODE, ACTIVE_TEAM)))
   }
   {

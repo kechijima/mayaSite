@@ -15,6 +15,8 @@ interface TeamRow extends ReferralTeam {
   members: number
 }
 
+const { withLoading } = useGlobalLoading()
+
 const rows = ref<TeamRow[]>([])
 const loading = ref(true)
 const loadError = ref('')
@@ -58,10 +60,11 @@ async function submitCreate() {
   createError.value = ''
   try {
     const { $firestore } = useNuxtApp()
-    const { code } = await createTeam($firestore as Firestore, name)
+    // 衝突確認のための読み取りと2ドキュメントの書き込み、そのあとの一覧再取得までを覆う。
+    const { code } = await withLoading(() => createTeam($firestore as Firestore, name))
     justCreated.value = { name, code }
     newTeamName.value = ''
-    await load()
+    await withLoading(load)
   } catch (err) {
     createError.value = (err as { code?: string })?.code === 'permission-denied'
       ? '権限がありません。再度ログインしてください。'

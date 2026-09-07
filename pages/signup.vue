@@ -21,6 +21,7 @@ const errorMessage = ref('')
 // 紹介コード。任意入力で、正しいコードを入れた人だけが有料エリアを閲覧できる。
 // 照合ロジックは /account と共通(composables/useReferralCodeInput.ts)。
 const referral = useReferralCodeInput()
+const { withLoading } = useGlobalLoading()
 // コードは有効だったのに users への書き込みでルールに弾かれた場合の案内。
 // アカウント自体は作成済みなので、コード無しで作り直したうえでここに表示する。
 const codeWarning = ref('')
@@ -65,7 +66,7 @@ async function submit() {
   // Enterで送信された場合に素通りしないよう、送信時にもう一度照合する)。
   if (referral.code.value && !referral.isValid.value) {
     submitting.value = true
-    const ok = await referral.validate()
+    const ok = await withLoading(() => referral.validate())
     submitting.value = false
     if (!ok) return
   }
@@ -75,40 +76,45 @@ async function submit() {
   const firestore = $firestore as Firestore
 
   try {
-    const credential = await createUserWithEmailAndPassword(auth, email.value, password.value)
-    await updateProfile(credential.user, { displayName: name.value })
-    // useAuth()のuserにdisplayNameの変更を反映させる(composables/useAuth.tsのrefreshUser参照)。
-    refreshUser()
-    // plan は将来の決済導入に備えた予約フィールド。'free'固定で作成させ、書き込みも
-    // firestore.rulesでplanフィールドだけ管理者限定にしているため、本人がここを
-    // 自己申告で'paid'にすることはできない。
-    const baseProfile = {
-      name: name.value,
-      phone: phone.value,
-      email: email.value,
-      birthdate: birthdate.value,
-      gender: gender.value,
-      plan: 'free',
-      createdAt: serverTimestamp()
-    }
-    const userRef = doc(firestore, 'users', credential.user.uid)
-    if (referral.isValid.value) {
-      try {
-        await setDoc(userRef, { ...baseProfile, ...referral.redemptionFields() })
-      } catch (err) {
-        // 照合した後、この書き込みまでの間にコードが無効化されるとルールに弾かれる。
-        // ここで諦めるとAuthアカウントだけ作られてusersドキュメントが無い状態
-        // (どのページからも会員として扱えない孤児)が残るので、コード無しで作り直す。
-        if ((err as { code?: string })?.code !== 'permission-denied') throw err
-        await setDoc(userRef, { ...baseProfile, ...unaffiliatedFields() })
-        codeWarning.value = 'アカウントは作成されましたが、紹介コードは適用されませんでした。下のボタンから再度お試しください。'
-        submitting.value = false
-        return
+    // アカウント作成・プロフィール更新・usersドキュメント作成・遷移までを一続きで覆う。
+    // 通信が数回連なるため、覆わないと押した直後に無反応な時間が生まれる。
+    await withLoading(async () => {
+      const credential = await createUserWithEmailAndPassword(auth, email.value, password.value)
+      await updateProfile(credential.user, { displayName: name.value })
+      // useAuth()のuserにdisplayNameの変更を反映させる(composables/useAuth.tsのrefreshUser参照)。
+      refreshUser()
+      // plan は将来の決済導入に備えた予約フィールド。'free'固定で作成させ、書き込みも
+      // firestore.rulesでplanフィールドだけ管理者限定にしているため、本人がここを
+      // 自己申告で'paid'にすることはできない。
+      const baseProfile = {
+        name: name.value,
+        phone: phone.value,
+        email: email.value,
+        birthdate: birthdate.value,
+        gender: gender.value,
+        plan: 'free',
+        createdAt: serverTimestamp()
       }
-    } else {
-      await setDoc(userRef, { ...baseProfile, ...unaffiliatedFields() })
-    }
-    await navigateTo(redirectTarget())
+      const userRef = doc(firestore, 'users', credential.user.uid)
+      if (referral.isValid.value) {
+        try {
+          await setDoc(userRef, { ...baseProfile, ...referral.redemptionFields() })
+        } catch (err) {
+          // 照合した後、この書き込みまでの間にコードが無効化されるとルールに弾かれる。
+          // ここで諦めるとAuthアカウントだけ作られてusersドキュメントが無い状態
+          // (どのページからも会員として扱えない孤児)が残るので、コード無しで作り直す。
+          if ((err as { code?: string })?.code !== 'permission-denied') throw err
+          await setDoc(userRef, { ...baseProfile, ...unaffiliatedFields() })
+          codeWarning.value = 'アカウントは作成されましたが、紹介コードは適用されませんでした。下のボタンから再度お試しください。'
+          submitting.value = false
+          // 案内を読ませるためこの先の遷移は行わない(watchEffect側もcodeWarningで止まる)。
+          return
+        }
+      } else {
+        await setDoc(userRef, { ...baseProfile, ...unaffiliatedFields() })
+      }
+      await navigateTo(redirectTarget())
+    })
   } catch (err) {
     errorMessage.value = mapAuthError(err)
     submitting.value = false
@@ -173,14 +179,16 @@ async function submit() {
               placeholder="K7M3QP9XR"
               class="formfield"
               style="text-transform: uppercase;"
-              @blur="referral.validate()"
+              @blur="withLoading(() => referral.validate())"
             />
+            <!-- 常に1行分の高さを確保する。照合結果の出現でボタンが下へずれると、
+                 押した瞬間にクリックが外れることがあるため。 -->
             <p
               v-if="referral.message.value"
-              class="mt-1.5 text-[12.5px]"
+              class="mt-1.5 min-h-[1.5em] text-[12.5px] leading-[1.5]"
               :style="{ color: referral.isValid.value ? 'var(--gold-deep)' : 'var(--seal-red)' }"
             >{{ referral.message.value }}</p>
-            <p v-else class="mt-1.5 text-[12px]" style="color: var(--ink-faint);">
+            <p v-else class="mt-1.5 min-h-[1.5em] text-[12px] leading-[1.5]" style="color: var(--ink-faint);">
               お持ちでない場合は空欄のままご登録いただけます。
             </p>
           </div>

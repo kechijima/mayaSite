@@ -15,6 +15,8 @@ function redirectTarget(): string {
   return '/admin'
 }
 
+const { withLoading } = useGlobalLoading()
+
 async function submit() {
   submitting.value = true
   errorMessage.value = ''
@@ -22,17 +24,23 @@ async function submit() {
   const auth = $auth as Auth
 
   try {
-    const credential = await signInWithEmailAndPassword(auth, email.value, password.value)
-    const token = await getIdTokenResult(credential.user)
-
-    if (token.claims.admin !== true) {
-      await signOut(auth)
+    // 認証・クレーム確認・遷移の一連を覆う。管理者判定でIDトークンを取り直す分だけ
+    // 通常のログインより待ち時間が長い。
+    const denied = await withLoading(async () => {
+      const credential = await signInWithEmailAndPassword(auth, email.value, password.value)
+      const token = await getIdTokenResult(credential.user)
+      if (token.claims.admin !== true) {
+        await signOut(auth)
+        return true
+      }
+      await navigateTo(redirectTarget())
+      return false
+    })
+    if (denied) {
       errorMessage.value = 'このアカウントには管理者権限がありません'
       submitting.value = false
       return
     }
-
-    await navigateTo(redirectTarget())
   } catch {
     try {
       await signOut(auth)
