@@ -18,18 +18,23 @@ export interface EntitlementProfile {
   name?: string
   birthdate?: string
   gender?: string
+  // 所属チーム。2026-09-09以降、これは「誰の紹介で入会したか」の記録であって
+  // 閲覧可否には影響しない。
   teamId: string | null
   // 所属チーム名。referralTeams は管理者専用で、管理者に追加されたメンバーはコードも
   // 知らないため、非正規化しないと本人が自分の所属チーム名に到達できない(/accountの表示用)。
   teamName: string | null
-  entitlement: 'none' | 'code'
   entitlementSource: 'code' | 'admin' | null
   referralCodeId: string | null
   // 最後にチームへ所属した日時。外れても消さないので「一度でも所属したことがあるか」が
   // 分かる — /account が案内文を「登録」と「再登録」で出し分けるのに使っている
   // (閲覧できるかどうかの判定には使わない。それは entitlement / teamId 側)。
   referralRedeemedAt: unknown | null
+  // 会員ステータスの正。決済導入までは全員 'free' のまま(有料会員は存在しない)。
   plan: 'free' | 'paid'
+  // 利用停止。true の間だけ有料エリアが閲覧できなくなる。無料部分は使える。
+  // 変更できるのは管理者のみで、本人は解除できない(firestore.rules)。
+  suspended?: boolean
 }
 
 export function useEntitlement() {
@@ -47,10 +52,14 @@ export function useEntitlement() {
   )
 
   return {
-    // 決済導入時はここを profile.value?.plan === 'paid' に置き換える(仕様書10章)。
-    // 未確定(settled === false)の間は false を返すので、判定が固まる前に有料本文が
-    // 一瞬見えてしまうことはない。
-    entitled: computed(() => profile.value?.entitlement === 'code'),
+    // 現在の条件は「会員登録していて、利用停止されていないこと」。決済導入時は
+    // `&& profile.value?.plan === 'paid'` を足し、firestore.rules の isEntitled() と
+    // 対で切り替える(仕様書10章)。
+    // 未確定(settled === false)の間は profile が null なので false を返す。判定が
+    // 固まる前に有料本文が一瞬見えてしまうことはない。
+    entitled: computed(() => !!profile.value && profile.value.suspended !== true),
+    // 利用停止中かどうか。/account が「ご利用いただけません」を出し分けるのに使う。
+    suspended: computed(() => profile.value?.suspended === true),
     // 認証の復元とusersドキュメントの取得が両方終わったか。呼び出し側はこれが
     // true になるまで「解放」も「ロック」も出さない — ready(認証のみ)で判断すると、
     // 所属済みの会員にも profile 取得中の一瞬だけ有料エリアの訴求が出てしまうため。

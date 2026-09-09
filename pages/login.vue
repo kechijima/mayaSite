@@ -53,7 +53,7 @@ async function submit() {
       <div class="masthead masthead--plain">
         <span class="masthead__eyebrow">MEMBERSHIP</span>
         <h1 class="font-display masthead__title">ログイン</h1>
-        <p class="masthead__sub">紹介コードをご登録済みの方は、ログイン後に有料エリアをご覧いただけます。</p>
+        <p class="masthead__sub">ログインすると、有料エリアの内容までご覧いただけます。</p>
       </div>
 
       <div class="mx-auto max-w-[440px]">

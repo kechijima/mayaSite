@@ -93,6 +93,8 @@ async function submit() {
         birthdate: birthdate.value,
         gender: gender.value,
         plan: 'free',
+        // plan と suspended は本人が決められない。ルール側でも登録時の値を固定している。
+        suspended: false,
         createdAt: serverTimestamp()
       }
       const userRef = doc(firestore, 'users', credential.user.uid)
@@ -128,7 +130,7 @@ async function submit() {
       <div class="masthead masthead--plain">
         <span class="masthead__eyebrow">MEMBERSHIP</span>
         <h1 class="font-display masthead__title">会員登録</h1>
-        <p class="masthead__sub">紹介コードをお持ちの方は、ご登録時に入力いただくと有料エリアをご覧いただけます。</p>
+        <p class="masthead__sub">ご登録いただくと、有料エリアの内容までご覧いただけます。</p>
       </div>
 
       <div class="mx-auto max-w-[440px]">

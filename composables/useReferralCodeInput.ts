@@ -83,14 +83,15 @@ export function useReferralCodeInput() {
     }
   }
 
-  // users ドキュメントに書き込む権限系フィールド。Firestoreのルールはこの5項目が
+  // users ドキュメントに書き込む紹介系フィールド。Firestoreのルールはこの5項目が
   // 揃っていること、かつ teamId/teamName がコードのドキュメントと一致することを
   // 要求する(firestore.rules の redeemsCode)。
+  // 2026-09-09以降、これらは「誰の紹介で入会したか」の記録であって閲覧可否には
+  // 影響しない — 閲覧可否は plan/suspended 側で決まる。
   function redemptionFields() {
     return {
       teamId: teamId.value,
       teamName: teamName.value,
-      entitlement: 'code' as const,
       entitlementSource: 'code' as const,
       referralCodeId: code.value,
       referralRedeemedAt: serverTimestamp()
@@ -102,13 +103,12 @@ export function useReferralCodeInput() {
 
 // コード未入力で会員登録する場合に書き込む初期値。フィールドを省略せず明示的に
 // null を入れるのは、後から /account でコードを入れるときのルール判定が
-// resource.data.referralRedeemedAt を参照するため — フィールドが無いとその参照が
-// エラーになり、正当な解放まで弾かれてしまう。
+// resource.data を参照するため — フィールドが無いとその参照がエラーになり、
+// 正当な登録まで弾かれてしまう(2026-09-07に本番で発生)。
 export function unaffiliatedFields() {
   return {
     teamId: null,
     teamName: null,
-    entitlement: 'none' as const,
     entitlementSource: null,
     referralCodeId: null,
     referralRedeemedAt: null
