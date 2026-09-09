@@ -6,6 +6,8 @@ import { formatCelebrityBirth } from '~/utils/kinCelebrities'
 import { sealColor } from '~/utils/mayaData'
 import { type ProfileSection, iconFor, freeProfileSections, premiumProfileSections } from '~/utils/profileSections'
 import { RELATION_DESCRIPTION } from '~/utils/kinRelations'
+import { RESULT_LOADING_KEY } from '~/composables/useGlobalLoading'
+import { waitForImages } from '~/utils/waitForImages'
 
 const route = useRoute()
 const { user } = useAuth()
@@ -67,14 +69,51 @@ const toneCelebrities = computed(() => parseCelebrities(toneProfile.value?.celeb
 // 太陽の紋章・ウェイブスペルは別人格(別キャラクター)なので、それぞれ自分のセクション内で自分の
 // プロフィールを深掘りする(2026-08-06以前は両方まとめて「あなたについて」という1セクションに
 // していたが、実際には太陽の紋章側のプロフィールしか出せておらず紛らわしかったため分離した)。
-// 有料エリアの解放条件は composables/useEntitlement.ts に集約している。ログイン
-// しているだけでは解放されず、チームに所属していること(紹介コードを入力したか、
-// 管理者がチームに追加したか)が条件 — 決済導入時はそこを1行変えるだけで
-// 「決済した人のみ」に切り替わる。
+// 有料エリアの解放条件は composables/useEntitlement.ts に集約している。会員登録していて
+// 利用停止されていないことが条件 — 決済導入時はそこを1行変えるだけで「決済した人のみ」に
+// 切り替わる。
 // entitlementSettled は認証復元とusersドキュメント取得の両方が終わったかを表す。
 // 有料ブロックもLockedVeilもこれが立つまで出さない — 立てずにLockedVeilを出すと、
-// 所属済みの会員にも読み込み中の一瞬だけ購入訴求が見えてしまうため。
+// 閲覧できる会員にも読み込み中の一瞬だけ購入訴求が見えてしまうため。
 const { entitled: deepUnlocked, settled: entitlementSettled } = useEntitlement()
+
+// 全画面ローディング。トップの「無料で診断する」を押した時点で出し始め(pages/index.vue)、
+// ここで本文と画像が揃ってから外す。直接URLを開かれた場合(共有リンク・再読み込み)は
+// ここが開始側も兼ねる — 同じキーなので二重には出ない。
+//
+// 待つのは「本文の取得」と「画像の読み込み」の両方。本文だけで外すと、そこから
+// キャラクター全身像と装飾枠が数秒かけて順に現れる、いちばん出来上がっていない状態を
+// 見せることになる。画像を数えるのは本文が確定してからでなければならない — 先に数えると
+// まだDOMに無い画像を見逃す。
+const { beginLoading, endLoading } = useGlobalLoading()
+beginLoading(RESULT_LOADING_KEY)
+
+// 既に揃っていれば待たない。watch を張ってから条件を見ると、その前に揃っていた場合に
+// 変化が来ず永久に待つことになる。
+function untilContentReady() {
+  const ready = () => !content.pending.value && entitlementSettled.value
+  if (ready()) return Promise.resolve()
+  return new Promise<void>((resolve) => {
+    const stop = watch(ready, (ok) => {
+      if (!ok) return
+      stop()
+      resolve()
+    })
+  })
+}
+
+onMounted(async () => {
+  try {
+    await untilContentReady()
+    await nextTick()
+    await waitForImages()
+  } finally {
+    endLoading(RESULT_LOADING_KEY)
+  }
+})
+
+// 画像を待っている途中で別のページへ移られた場合に、覆いを残さない。
+onBeforeUnmount(() => endLoading(RESULT_LOADING_KEY))
 const sunFreeProfileSections = computed(() => freeProfileSections(sunProfile.value))
 const wavespellFreeProfileSections = computed(() => freeProfileSections(wavespellProfile.value))
 // 有料項目は diagnosisContentPremium 側のドキュメントから組み立てる。権限が無ければ

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { DEFAULT_GENDER, type Gender } from '~/utils/gender'
+import { RESULT_LOADING_KEY } from '~/composables/useGlobalLoading'
 import jmbLogoSrc from '~/assets/images/optimized/jmb-logo.webp'
 
 const name = ref('')
@@ -7,9 +8,14 @@ const birthdate = ref('')
 const gender = ref<Gender>(DEFAULT_GENDER)
 const router = useRouter()
 const { recordSingleDiagnosis } = useDiagnosisHistory()
+const { beginLoading } = useGlobalLoading()
 
 function submit() {
   recordSingleDiagnosis({ name: name.value, birthdate: birthdate.value, gender: gender.value })
+  // 覆いはここで出して、/result 側が本文と画像の到着を待ってから外す(pages/result.vue)。
+  // /result のJSチャンクの取得もこの間に入るので、遷移先でマウントされてから出したのでは
+  // 初回アクセス時にボタンを押しても何も起きない時間ができてしまう。
+  beginLoading(RESULT_LOADING_KEY)
   router.push({ path: '/result', query: { name: name.value || undefined, birth: birthdate.value || undefined, gender: gender.value } })
 }
 
