@@ -131,10 +131,16 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
    見せる。行を明示的に分けているのは、紋章名が2行に折り返しても(白い世界の橋渡し など)
    左右のキャラの高さがズレないようにするため。 */
 .kinduo { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); column-gap: 6px; row-gap: 14px; max-width: 500px; margin: 22px auto 0; }
-.kinduo__art { display: block; width: 100%; min-width: 0; aspect-ratio: 132 / 250; overflow: visible; min-height: 0; }
-/* width:auto + max-width:none は .kinhero__frame と同じ狙い — 横に広いポーズの
-   キャラが枠に合わせて縮まず、はみ出して等身が揃う。 */
-.kinduo__art img { display: block; width: auto; max-width: none; height: 100%; margin: 0 auto; object-fit: contain; object-position: top center; }
+/* 枠の比率は全身カットアウトの比率(640x925)と一致させること。scripts/generateSealCutouts.py の
+   pad_to_ar() が、全キャラの表示サイズを揃えるために「この絵柄セットで最も横幅の広いキャラ」の
+   比率までキャンバス幅を透明パディングしているので、20紋章すべてがこの1つの比率で書き出される。
+   ここが古い比率(132/250 = 0.528)のまま取り残されていたため、画像が枠より31%広くなり、しかも
+   親より広い要素は margin:0 auto では中央に寄らない(over-constrained で左揃えになる)ので、
+   はみ出しが全部右側に出てキャラが右にずれて見えていた(2026-09-09報告、原因は2026-08-24の
+   パディング基準変更 944ba72)。絵柄を差し替えて比率が変わったらここも合わせる。
+   object-fit:contain は、次に比率がずれたときに右へこぼれるのではなく枠内に収まるようにする保険。 */
+.kinduo__art { display: block; width: 100%; min-width: 0; aspect-ratio: 128 / 185; overflow: visible; min-height: 0; }
+.kinduo__art img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: top center; }
 .kinduo__art--l { grid-column: 1; grid-row: 1; }
 .kinduo__art--r { grid-column: 3; grid-row: 1; }
 .kinduo__cap { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; text-align: center; }
