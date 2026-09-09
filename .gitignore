@@ -16,3 +16,6 @@ firebase-export-*
 assets/images/*.png
 assets/images/male/*.png
 .DS_Store
+
+# Claude Code のローカル権限設定。このマシンの絶対パスが入るので共有しない。
+.claude/settings.json

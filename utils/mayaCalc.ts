@@ -1,24 +1,29 @@
-// Tzolkin (260-day sacred calendar) KIN calculator, matching the "KIN早見表"
-// (quick-reference table) method used by mainstream Japanese マヤ暦占い sites
-// — e.g. https://unkoi.com/special/mayareki/ — rather than a Dreamspell/GMT
-// astronomical correlation. This table method advances the KIN base by
-// exactly 365 days per calendar year (never 366, even across real leap
-// years), then applies an isolated +1 correction only for people born in
-// **March** (1st–31st) of a leap year — not March through December; the
-// source site is explicit that this +1 is scoped to that single month
-// ("誕生日がうるう年の3月1日～3月31日の人の場合"), and its printed table
-// marks only the March column with "*" in leap-year rows. A `month >= 2`
-// (March onward) condition was shipped here initially and silently
-// over-applied the +1 to every leap-year birthday from April through
-// December (e.g. 1992-10-04 computed as KIN110 instead of the correct
-// KIN109) — the one leap-year example used to verify this file at the time,
-// 1964-03-05, was itself a March date, so both the correct rule and the
-// wrong one agreed on it and the bug went unnoticed until a later leap-year,
-// non-March birthdate surfaced it.
-// It is NOT a continuous real-day count — verified byte-for-byte against
-// unkoi.com's published 早見表 grid (216 cells, year/month → base value)
-// and all 3 of their worked examples (2014-02-05→KIN98, 1966-02-20→KIN13,
-// 1964-03-05→KIN77) before being encoded here.
+// Tzolkin (260-day sacred calendar) KIN calculator. The reference implementation is
+// mayadan.jp — the site this project's KIN readings and relation formulas come from —
+// and the numbers here are matched against it, NOT against a Dreamspell/GMT
+// astronomical correlation.
+//
+// The method is the Japanese "KIN早見表" (quick-reference table): a per-year base value
+// that advances by exactly 365 days every calendar year (never 366), plus a fixed
+// per-month offset taken from a **non-leap** day table, plus the day of month.
+//
+// **There is no leap-year correction, and February 29 is not special-cased.** Both fall
+// out of the non-leap month table on their own:
+//     2/29 → 31 (days before Feb) + 29 = 60
+//     3/1  → 59 (days before Mar) + 1  = 60
+// so Feb 29 lands on the same KIN as March 1, which is exactly what mayadan.jp returns.
+// Because the year step is a flat 365, every date after Feb 29 in a leap year is one
+// behind a true continuous day count — that is inherent to the 早見表 method, not a bug.
+//
+// 2026-09-09: an earlier version added +1 for March of leap years and folded 2/29 onto
+// 2/28. Both were wrong against mayadan.jp (1992-03-01 came out KIN153 instead of 152,
+// and 2/29 came out 151 instead of 152), and the March-only +1 also left a visible
+// discontinuity at April 1 of every leap year. They came from following unkoi.com's
+// printed table instead; unkoi.com and mayadan.jp do not agree with each other, so
+// don't re-introduce a correction from another site's worked examples.
+//
+// Verified against mayadan.jp: 1992-02-28→151, 1992-02-29→152, 1992-03-01→152,
+// 1992-04-01→183, 1992-10-04→109 (see scripts/verifyMayaCalc.ts).
 const REFERENCE_YEAR = 1910
 const REFERENCE_JAN_VALUE = 62 // table's base value for January of 1910 (and every +52-year multiple)
 const YEAR_STEP = 105 // 365 mod 260 — constant per calendar year, leap years included
@@ -61,25 +66,17 @@ function mod(n: number, m: number): number {
   return ((n % m) + m) % m
 }
 
-function isLeapYear(year: number): boolean {
-  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
-}
-
 export function dateToKin(date: Date): number {
   const year = date.getFullYear()
   const month = date.getMonth() // 0-11
-  // CUMULATIVE_DAYS_BEFORE_MONTH is a non-leap template with no slot for 2/29 — left as-is,
-  // 2/29 would land on 3/1's slot instead (one past 2/28, not on it). Treat 2/29 as 2/28 so a
-  // leap-day birthdate gets the same KIN as 2/28, per explicit request.
-  const day = month === 1 && date.getDate() === 29 ? 28 : date.getDate()
+  const day = date.getDate()
 
+  // うるう年の補正も 2/29 の特別扱いも入れない。非うるう年の月テーブルのまま計算すると
+  // 2/29 は 3/1 と同じ値になり、それが mayadan.jp の返す値と一致する(ファイル冒頭参照)。
   const janValue = mod(REFERENCE_JAN_VALUE - 1 + YEAR_STEP * (year - REFERENCE_YEAR), 260) + 1
   const monthValue = mod(janValue - 1 + CUMULATIVE_DAYS_BEFORE_MONTH[month], 260) + 1
 
-  let kin = monthValue + day
-  if (isLeapYear(year) && month === 2) kin += 1 // March only (month index 2), not March–December
-  if (kin > 260) kin -= 260
-  return kin
+  return mod(monthValue + day - 1, 260) + 1
 }
 
 export function kinInfo(kin: number): KinInfo {

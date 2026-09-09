@@ -6,9 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 "マヤ暦占い" (Maya Calendar Fortune-Telling) — a Nuxt 3 site that calculates a visitor's KIN from their birthdate and reveals an increasingly deep reading behind a paywall. Requirements are documented in Japanese at [docs/要件定義.md](docs/要件定義.md); `docs/参考画像.png` and [mockup/maya-mockup.html](mockup/maya-mockup.html) are visual references for the target design (a static HTML mockup covering the free/paid views and the admin console — not wired to the app, but the source of truth for styling intent).
 
-**Current state: the KIN diagnosis, its CMS content, signup/login, the referral-code paywall and the admin console are all real and Firestore-backed. Payment (Stripe) is the only thing still not implemented.**
+**Current state: the KIN diagnosis, its CMS content, signup/login, member statuses and the admin console are all real and Firestore-backed. Payment (Stripe) is the only thing still not implemented.**
 
-The paid area is unlocked by **belonging to a team**, not by being signed in and not by paying — an admin creates a team, which issues one referral code, and a member who enters that code joins the team and gains access. See "Referral codes and the paid-area gate" below; the decision is centralised in [composables/useEntitlement.ts](composables/useEntitlement.ts) so that introducing payment later is a one-line change there plus one in [firestore.rules](firestore.rules).
+The paid area is unlocked by **being a signed-in member who has not been suspended**. Registering is enough; there is nothing to pay and no code to enter. See "Member status and the paid-area gate" below; the decision is centralised in [composables/useEntitlement.ts](composables/useEntitlement.ts) so that introducing payment later is a one-line change there plus one in [firestore.rules](firestore.rules).
+
+**Referral codes do not unlock anything.** They record *whose introduction a member joined through*, nothing more. This changed on 2026-09-09 — earlier the code was the gate — so treat any older comment or document that says "entering a code unlocks the paid area" as out of date.
 
 Real and Firestore-backed: the diagnosis, 相性診断 ([pages/compatibility.vue](pages/compatibility.vue)), the per-seal and per-KIN detail pages ([pages/kin/[sealIndex].vue](pages/kin/%5BsealIndex%5D.vue), [pages/kin/[kin]/detail.vue](pages/kin/%5Bkin%5D/detail.vue)), the CMS ([pages/admin/content/**](pages/admin/content)), 診断履歴 ([pages/admin/history/index.vue](pages/admin/history/index.vue)), チーム管理 ([pages/admin/teams/**](pages/admin/teams)), ユーザー管理 ([pages/admin/users.vue](pages/admin/users.vue)) and 紹介コード入力 ([pages/account.vue](pages/account.vue)).
 
@@ -33,13 +35,20 @@ npm run seed:characters            # seed the REAL Firestore project instead —
 npm run admin:create:emulator -- --email=you@example.com --password=xxxx   # create/promote an admin login in the emulator (no credentials needed) — see "Admin authentication"
 npm run admin:create -- --email=you@example.com --password=xxxx            # same, against the REAL project — requires FIREBASE_SERVICE_ACCOUNT_KEY in .env
 
-npm run verify:rules:emulator      # firestore.rules の検証(22項目)。エミュレータ起動中に実行する — 下記参照
+npm run verify:kin                 # dateToKin() が mayadan.jp と一致するかの検証。単体で動く(エミュレータ不要)
+npm run verify:rules:emulator      # firestore.rules の検証(24項目)。エミュレータ起動中に実行する — 下記参照
 npm run migrate:premium:emulator   # 有料項目を diagnosisContentPremium へ切り出す移行。--dry-run で件数だけ確認できる
 npm run migrate:premium            # 同上、REAL project に対して。リリース時に一度だけ実行する(冪等)
 ```
 
-No linter or formatter is configured in this repo. The only automated check is
-`npm run verify:rules:emulator` ([scripts/verifyReferralRules.ts](scripts/verifyReferralRules.ts)) — it drives the raw
+No linter or formatter is configured in this repo. There are two automated checks:
+
+`npm run verify:kin` ([scripts/verifyMayaCalc.ts](scripts/verifyMayaCalc.ts)) asserts `dateToKin()` against values read
+off mayadan.jp, and sweeps 1900–2050 for日ごとの進み方. It needs nothing running.
+**Run it after touching `utils/mayaCalc.ts`** — a wrong KIN is silently wrong, every reading on the
+site derives from it, and this file has already shipped two different leap-year bugs.
+
+`npm run verify:rules:emulator` ([scripts/verifyReferralRules.ts](scripts/verifyReferralRules.ts)) drives the raw
 Firebase SDKs against the emulator and asserts what [firestore.rules](firestore.rules) does and doesn't allow.
 **Run it after touching `firestore.rules`.** This app has no server, so those rules are the only
 thing standing between a visitor and the paid content / other people's PII; a mistake there is
@@ -74,7 +83,20 @@ Requires a JRE on PATH (the Firestore emulator is Java-based) — `brew install 
 ### Diagnosis pipeline
 `birthdate` → [utils/mayaCalc.ts](utils/mayaCalc.ts) → [utils/mayaData.ts](utils/mayaData.ts) → [composables/useDiagnosis.ts](composables/useDiagnosis.ts) (+ [composables/useDiagnosisContent.ts](composables/useDiagnosisContent.ts) for DB text) → [pages/result.vue](pages/result.vue).
 
-- `mayaCalc.ts`'s `dateToKin()` replicates the "KIN早見表" (quick-reference table) method used by mainstream Japanese マヤ暦占い sites — e.g. https://unkoi.com/special/mayareki/ — **not** a Dreamspell/GMT astronomical correlation. It advances the KIN base by exactly 365 days per calendar year (never 366, even across real leap years), with an isolated +1 correction only for people born March–December of a leap year. This was reverse-engineered and verified byte-for-byte against that site's published 早見表 grid (216 cells) and all 3 of its worked examples before being encoded — see the file's header comment before touching the constants (`REFERENCE_YEAR`/`REFERENCE_JAN_VALUE`/`YEAR_STEP`/`CUMULATIVE_DAYS_BEFORE_MONTH`). `kinInfo()` then derives `sealIndex` (0–19, one of 20 day-signs/紋章), `toneIndex` (0–12, one of 13 galactic tones/音), `wavespellSealIndex` (the seal opening the current 13-day wavespell), and `occultSealIndex` (`sealIndex + 10`, the "hidden power" counterpart seal) — these are universal mod-20/mod-13 relationships independent of the date→KIN correlation, so they didn't need to change when the correlation was fixed.
+- `mayaCalc.ts`'s `dateToKin()` replicates the "KIN早見表" (quick-reference table) method, **not** a
+  Dreamspell/GMT astronomical correlation. **The reference implementation is https://mayadan.jp/** —
+  the same site this project's KIN readings and relation formulas come from. It advances the KIN base
+  by exactly 365 days per calendar year (never 366), adds a fixed per-month offset from a **non-leap**
+  day table, and adds the day of month. **There is no leap-year correction and no special case for
+  February 29** — both fall out of the table on their own (2/29 → 31+29 = 60, 3/1 → 59+1 = 60, so
+  Feb 29 lands on the same KIN as March 1, which is what mayadan.jp returns). Every date after Feb 29
+  in a leap year therefore sits one behind a true continuous day count; that is inherent to the
+  早見表 method, not a bug. Run `npm run verify:kin` after touching the constants
+  (`REFERENCE_YEAR`/`REFERENCE_JAN_VALUE`/`YEAR_STEP`/`CUMULATIVE_DAYS_BEFORE_MONTH`).
+  **Do not add a leap correction back from another site's worked examples.** unkoi.com publishes a
+  table that disagrees with mayadan.jp (e.g. 1964-03-05 → KIN77 there, KIN76 on mayadan.jp), and
+  following it is exactly how this file carried a wrong +1 for leap-year March until 2026-09-09.
+- `kinInfo()` derives `sealIndex` (0–19, one of 20 day-signs/紋章), `toneIndex` (0–12, one of 13 galactic tones/音), `wavespellSealIndex` (the seal opening the current 13-day wavespell), and `occultSealIndex` (`sealIndex + 10`, the "hidden power" counterpart seal) — these are universal mod-20/mod-13 relationships independent of the date→KIN correlation, so they didn't need to change when the correlation was fixed.
 - `mayaData.ts` holds the static *structural* tables: `SEALS` (20 day-signs with name/english/keyword/essence) and `TONES` (13 tones), plus `sealColor()` mapping a seal index to its 4-color cycle (red/white/blue/yellow) used for glyph styling. `SEALS[i].essence`/`TONES[i].keyword` are also the seed source for Firestore content (see below) — treat them as the canonical names/keywords, but not as the editable body copy anymore.
 - `useDiagnosis(input)` combines a birth KIN and today's KIN into the reading sections shown on the result page: `sun` (太陽の紋章, birth seal), `wavespell` (ウェイブスペル, potential), `tone` (銀河の音, birth tone), `daysign` (デイサイン, hidden pattern — `occultSealIndex`), and `tresena` (トレセーナ, current 13-day cycle based on *today's* date, not birthdate). Each of `sun`/`wavespell`/`tone` carries a hardcoded `.text` template string that now serves only as the **fallback** shown before/without Firestore content — see below.
 
@@ -139,18 +161,35 @@ deliberately has no `~/` imports so `scripts/` can import it under tsx.
   predates the split; it is idempotent (skips IDs that already have a premium doc) and supports
   `--dry-run`.
 
-### Referral codes and the paid-area gate
+### Member status and the paid-area gate
 The paid sections of [pages/result.vue](pages/result.vue), [pages/kin/[sealIndex].vue](pages/kin/%5BsealIndex%5D.vue) and
-[pages/kin/[kin]/detail.vue](pages/kin/%5Bkin%5D/detail.vue) are unlocked by **team membership**. There is no payment yet;
-being signed in is not enough.
+[pages/kin/[kin]/detail.vue](pages/kin/%5Bkin%5D/detail.vue) are unlocked for any signed-in member who is not suspended.
+
+**Status is derived, not stored** ([utils/userAdmin.ts](utils/userAdmin.ts)):
+
+| Shown as | Condition | Paid area |
+|---|---|---|
+| 利用停止 | `suspended === true` | locked (free diagnosis still works) |
+| 有料会員 | `plan === 'paid'` | unlocked — **nobody is in this state yet**; it exists for payment |
+| 無料会員 | anything else | unlocked |
+
+`/admin/users` only offers 無料会員 / 利用停止 (`SELECTABLE_USER_STATUSES`). 有料会員 is deliberately
+withheld until payment ships, because today it would be a button that visibly does nothing — add
+`'paid'` to that array to release it. Both `plan` and `suspended` are admin-only in
+[firestore.rules](firestore.rules); a member cannot promote or un-suspend themselves.
+
+**Team membership is a separate axis** and does not affect access. `/admin/teams` moves members
+between teams (紹介経路), `/admin/users` sets status (閲覧可否). Keeping one operation in one place
+is deliberate — putting both in both screens is what makes it ambiguous which one is authoritative.
 
 **Data model.** One team, one code.
 
 ```
 referralTeams/{teamId}          admin only. { name, code, note, createdAt, updatedAt }
 referralCodes/{code}            get: anyone, list: admin. { teamId, teamName, status }
-users/{uid}                     + teamId, teamName, entitlement, entitlementSource,
-                                  referralCodeId, referralRedeemedAt
+users/{uid}                     plan, suspended        ← 閲覧可否はこの2つだけで決まる
+                                teamId, teamName, entitlementSource,
+                                referralCodeId, referralRedeemedAt   ← 紹介経路の記録
 ```
 
 **The code string is the document ID of `referralCodes`.** This is the whole design. Firestore rules
@@ -171,9 +210,11 @@ and don't replace it with something memorable.
   claim membership of a different team.
 - A member already in a team cannot redeem another code (no switching teams).
 - A member **not** currently in a team can redeem — including one an admin removed. Removal is
-  therefore un-enrolment, not a ban: someone who knows the code can rejoin. To actually shut a team
-  out, disable its code. (This was originally "once only, ever"; relaxed 2026-09-07 on request.)
-- `plan` is still admin-only, as before.
+  un-enrolment, not a ban: someone who knows the code can rejoin. (This was originally "once only,
+  ever"; relaxed 2026-09-07 on request.) Since 2026-09-09 rejoining grants nothing anyway.
+- A **suspended** member cannot redeem at all. Without that, someone an admin suspended could enter
+  a code and undo it themselves; only an admin can lift a suspension.
+- `plan` and `suspended` are admin-only.
 - Conditions read `resource.data.get('teamId', null)`, not `resource.data.teamId`. Members created
   before this feature have **no** permission fields at all, and a direct reference to a missing field
   is an evaluation error that fails the whole clause — which is exactly how every pre-existing
@@ -186,16 +227,18 @@ A member an admin added to a team never learns the code (`referralCodeId` stays 
 `entitlementSource` is `'admin'`).
 
 **The gate itself** is [composables/useEntitlement.ts](composables/useEntitlement.ts). Pages don't compute it. It exposes
-`entitled` and `settled`; `settled` covers the auth restore *and* the `users` document fetch, and
-pages must wait for it before rendering **either** the unlocked content or LockedVeil, or an entitled
-member sees the upsell flash by. Note the opposite rule for truncating body text: that must default
-to "truncate" while undecided, otherwise the full text flashes.
+`entitled`, `settled` and `suspended`; `settled` covers the auth restore *and* the `users` document
+fetch, and pages must wait for it before rendering **either** the unlocked content or LockedVeil, or
+an entitled member sees the upsell flash by. Note the opposite rule for truncating body text: that
+must default to "truncate" while undecided, otherwise the full text flashes.
 
-**Introducing payment** means changing `entitled` to read `plan === 'paid'` and `isEntitled()` in
-[firestore.rules](firestore.rules) to match, then deploying both. That's the whole switch.
+**Introducing payment** means adding `&& plan === 'paid'` to `entitled` and to `isEntitled()` in
+[firestore.rules](firestore.rules), then deploying both, and adding `'paid'` to `SELECTABLE_USER_STATUSES`.
+`plan` already cannot be self-granted, so nothing else needs to move.
 
 **Where members enter a code**: [pages/signup.vue](pages/signup.vue) (optional field during registration) and
 [pages/account.vue](pages/account.vue) (afterwards). Both share [composables/useReferralCodeInput.ts](composables/useReferralCodeInput.ts).
+Entering one only records the introduction — it grants no access.
 [composables/useUnlockLink.ts](composables/useUnlockLink.ts) decides where LockedVeil's CTA points: `/signup` when signed out,
 `/account` when signed in. Sending a signed-in visitor to `/signup` is a dead end — that page
 bounces an authenticated user straight back — which is what it did until 2026-09-07. After a
@@ -226,16 +269,19 @@ General visitors can self-register via [pages/signup.vue](pages/signup.vue) (nam
 - **State**: [composables/useAuth.ts](composables/useAuth.ts) is a module-level singleton `onAuthStateChanged` subscription (same pattern as [composables/useAdminAuth.ts](composables/useAdminAuth.ts)), exposing `user` and a `ready` flag that flips true once Firebase's initial async session restore has fired — [composables/useEntitlement.ts](composables/useEntitlement.ts) builds on it (its `settled` also waits for the `users` document) so pages never have to `await` [utils/authReady.ts](utils/authReady.ts) themselves.
 - **Redirect-back**: both pages read/validate `route.query.redirect` the same way [pages/admin/login.vue](pages/admin/login.vue) does (must start with `/`, must not start with `//`), default to `/` if absent, and each links to the other while forwarding that same `redirect` query — this is how a visitor bounced here from a `LockedVeil` on `/result` or `/kin/{n}` gets returned to that exact page after signing up or logging in. Both pages also auto-`navigateTo(redirectTarget())` immediately if `useAuth()` already reports a signed-in user (e.g. a stale bookmark to `/signup` while already logged in).
 - **Firestore**: a `users/{uid}` doc is created at signup with `name`, `phone`, `email`, `birthdate`,
-  `gender`, `plan`, `createdAt` plus the six permission fields (`teamId`, `teamName`, `entitlement`,
-  `entitlementSource`, `referralCodeId`, `referralRedeemedAt`). **Write all six explicitly, as `null`
-  when unset** — see [composables/useReferralCodeInput.ts](composables/useReferralCodeInput.ts)'s `unaffiliatedFields()`. The owner can
-  read and edit their own doc, `isAdmin()` can read any; the owner's `update` rule excludes `plan`
-  and the permission fields except via the code-redemption branch (see "Referral codes" above).
+  `gender`, `plan: 'free'`, `suspended: false`, `createdAt` plus the five referral fields (`teamId`,
+  `teamName`, `entitlementSource`, `referralCodeId`, `referralRedeemedAt`). **Write the referral
+  fields explicitly as `null` when unset** — see [composables/useReferralCodeInput.ts](composables/useReferralCodeInput.ts)'s
+  `unaffiliatedFields()`. A missing field is an evaluation error in the rules, not a falsy value, so
+  omitting them locks the member out of ever redeeming a code. The owner can read and edit their own
+  doc, `isAdmin()` can read any; the owner's `update` rule excludes `plan`/`suspended` and the
+  referral fields except via the code-redemption branch.
+  There is also a vestigial `entitlement` field on documents created before 2026-09-09. Nothing reads
+  or writes it any more — status is derived from `plan`/`suspended`. Don't revive it.
 - **What's still missing for real payment**: an automated way to set `plan: 'paid'`. Stripe Checkout
   needs somewhere to receive the webhook, and this app is a serverless SPA on the free Spark plan
   with no Cloud Functions (see "Deployment"), so that flow still needs designing. Everything on the
-  reading side is ready — flipping `useEntitlement`'s `entitled` and `firestore.rules`'s
-  `isEntitled()` to `plan === 'paid'` is the entire switch, and `plan` already cannot be self-granted.
+  reading side is ready — see "Introducing payment" above.
 - **Display/logout**: [components/SiteHeader.vue](components/SiteHeader.vue) (rendered only on `/` and `/result`, see "Two visual worlds" below) shows the signed-in visitor's name (`user.displayName`, set at signup, falling back to `user.email`) + a `#i-user` icon and a ログアウト button once `useAuth()` reports `ready && user` — both in the desktop `.siteheader__nav` and the mobile `.sitemenu` drawer, since `.siteheader__nav` is CSS-hidden below 900px. Logging out just calls `signOut()`; unlike admin's logout (which redirects to `/admin/login`, since `/admin/**` requires a session) there's no dedicated logged-in-only general page to navigate away from — `useAuth()`'s reactive `user` feeds `useEntitlement()`, which re-locks `/result`/`/kin/{n}` on its own.
 
 ### Two visual worlds
@@ -267,11 +313,10 @@ Real and Firestore-backed: [pages/admin/content/**](pages/admin/content) (see ab
 logged fire-and-forget from the public site; cursor-paginated),
 [pages/admin/teams/**](pages/admin/teams) (see "Admin: teams") and [pages/admin/users.vue](pages/admin/users.vue).
 
-`/admin/users` lists real members with their team, how they joined and whether they can read the paid
-area. It deliberately **dropped** three columns the mockup had: 最終ログイン (Firebase Auth's
-`lastSignInTime` for another user is Admin-SDK-only, unreachable from a serverless client),
-支払い方法 (no payment yet) and ステータス(有効/解約済) (no such concept). It is read-only —
-granting and revoking access happens in チーム管理, so there is one place to look.
+`/admin/users` lists real members with their status, team and how they joined, and its detail modal is
+where a member is suspended or reinstated (see "Member status" above). It deliberately **dropped** two
+columns the mockup had: 最終ログイン (Firebase Auth's `lastSignInTime` for another user is
+Admin-SDK-only, unreachable from a serverless client) and 支払い方法 (no payment yet).
 
 [pages/admin/index.vue](pages/admin/index.vue) (dashboard stats) is still hardcoded `ref()` arrays; edits are lost on
 reload. All of `/admin/**` requires a real admin login — see "Admin authentication" below.
