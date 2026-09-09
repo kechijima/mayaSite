@@ -538,8 +538,14 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
    (トップページのような透過表示ではなく完全非表示 — ファーストビューのヒーローに被らないため)。
    visibility も切っておくことで、隠れている間はキーボード操作でもフォーカスが飛ばない。 */
 .siteheader.is-hidden { opacity: 0; visibility: hidden; transform: translateY(-6px); pointer-events: none; }
+/* レイヤー順(すべて .siteheader の stacking context 内、下から):
+   1 背景グラデーション(::before) / 2 ヘッダーの中身 / 3 スクリム / 4 ドロワー / 5 バーガー。
+   ドロワーとスクリムをヘッダーの中身より上に置くことで、メニューを開いたときにロゴと
+   サイト名が普通に覆われる。バーガーだけは×として押し続けられる必要があるので最上段。
+   .siteheader__inner に z-index を付けると stacking context ができてバーガーの 5 が
+   閉じ込められ、ドロワーの下に潜るので、ここには z-index を付けない。 */
 .siteheader__inner {
-  position: relative; z-index: 2;
+  position: relative;
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   height: var(--header-h); padding: 0 16px; margin: 0 auto; max-width: 1180px;
 }
@@ -555,13 +561,13 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 }
 @media (min-width: 768px) { .siteheader__inner { padding: 0 28px; } }
 
-.siteheader__brand { display: flex; align-items: center; gap: 9px; min-width: 0; text-decoration: none; color: var(--gold-deep); }
+.siteheader__brand { position: relative; z-index: 2; display: flex; align-items: center; gap: 9px; min-width: 0; text-decoration: none; color: var(--gold-deep); }
 .siteheader__logo { display: block; width: 32px; height: 32px; flex: none; }
 .siteheader__title { font-size: 16px; letter-spacing: .1em; white-space: nowrap; }
 @media (min-width: 768px) { .siteheader__logo { width: 36px; height: 36px; } .siteheader__title { font-size: 18px; } }
 
 /* PC用の横並びメニュー。スマホはドロワーを使うので隠す。 */
-.siteheader__nav { display: none; align-items: center; gap: 22px; }
+.siteheader__nav { position: relative; z-index: 2; display: none; align-items: center; gap: 22px; }
 @media (min-width: 900px) { .siteheader__nav { display: flex; } }
 .siteheader__link { font-size: 13.5px; letter-spacing: .04em; color: var(--ink-soft); text-decoration: none; white-space: nowrap; transition: color .15s ease; }
 .siteheader__link:hover { color: var(--gold-deep); }
@@ -577,7 +583,7 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .siteheader__logout:hover { color: var(--gold-deep); }
 
 /* ハンバーガー。開いている間は×に変形する(ドロワーより上に重ねてあるので閉じるボタンを兼ねる)。 */
-.siteheader__burger { appearance: none; border: 0; background: transparent; cursor: pointer; padding: 8px; margin-right: -8px; display: flex; flex-direction: column; justify-content: center; gap: 5px; width: 40px; height: 40px; flex: none; }
+.siteheader__burger { position: relative; z-index: 5; appearance: none; border: 0; background: transparent; cursor: pointer; padding: 8px; margin-right: -8px; display: flex; flex-direction: column; justify-content: center; gap: 5px; width: 40px; height: 40px; flex: none; }
 @media (min-width: 900px) { .siteheader__burger { display: none; } }
 .siteheader__burger-bar { display: block; width: 22px; height: 1.5px; border-radius: 2px; background: var(--gold-deep); transition: transform .22s ease, opacity .18s ease; }
 .siteheader.is-open .siteheader__burger-bar:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
@@ -585,11 +591,11 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .siteheader.is-open .siteheader__burger-bar:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
 .siteheader__burger:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 6px; }
 
-.siteheader__scrim { position: fixed; inset: 0; z-index: 0; background: rgba(38, 27, 8, .42); opacity: 0; pointer-events: none; transition: opacity .25s ease; }
+.siteheader__scrim { position: fixed; inset: 0; z-index: 3; background: rgba(38, 27, 8, .42); opacity: 0; pointer-events: none; transition: opacity .25s ease; }
 .siteheader.is-open .siteheader__scrim { opacity: 1; pointer-events: auto; }
 
 .sitemenu {
-  position: fixed; top: 0; right: 0; bottom: 0; z-index: 1;
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 4;
   width: min(78vw, 300px); padding: calc(var(--header-h) + 12px) 0 24px;
   display: flex; flex-direction: column;
   background: var(--paper-panel); border-left: 1px solid var(--gold-line-soft);

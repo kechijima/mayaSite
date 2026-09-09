@@ -204,7 +204,7 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
           </button>
         </div>
         <p class="mt-2.5 text-[11.5px] text-slate-500 dark:text-slate-400">
-          無効にすると、以降このコードで新規登録できなくなります。<strong>既にメンバーの{{ members.length }}名の閲覧権限はそのまま維持されます。</strong>
+          無効にすると、以降このコードで新規登録できなくなります。<strong>既にメンバーの{{ members.length }}名の所属はそのまま維持されます。</strong>
         </p>
       </div>
 
@@ -239,7 +239,7 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
         <!-- 追加 -->
         <div class="mb-4 rounded-lg border border-slate-200 p-4 dark:border-slate-800">
           <p class="mb-2.5 text-xs font-bold text-slate-500 dark:text-slate-400">
-            会員をこのチームに追加（コードを渡さずに閲覧権限を付与します）
+            会員をこのチームに追加（コードを渡さずに所属だけを付けます）
           </p>
           <form class="flex flex-wrap gap-2.5" @submit.prevent="searchUser">
             <input
@@ -309,9 +309,10 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
         <div class="w-full max-w-[440px] rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
           <h2 class="mb-3 text-base font-bold">{{ removeTarget.name || removeTarget.email }} をチームから外しますか？</h2>
           <p class="mb-5 text-[13px] leading-[1.8] text-slate-600 dark:text-slate-300">
-            この会員は<strong>有料エリアを閲覧できなくなります</strong>。
-            ただし紹介コードをご存じの場合は、本人がマイページから入力し直して再び所属できます。
-            確実に閲覧させたくない場合は、あわせてこのチームのコードを無効にしてください。
+            この会員の<strong>所属が解除されます</strong>（紹介経路の記録が外れます）。
+            有料エリアの閲覧可否は変わりません — 閲覧を止めたい場合は
+            ユーザー管理でその会員を「利用停止」にしてください。
+            なお紹介コードをご存じの場合は、本人が入力し直して再び所属できます。
           </p>
           <div class="flex justify-end gap-2">
             <button type="button" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold dark:border-slate-700" @click="removeTarget = null">やめる</button>

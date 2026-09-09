@@ -3,6 +3,14 @@ import { collection, getDocs, type Firestore, type Timestamp } from 'firebase/fi
 import { diagnoseBirthdate } from '~/utils/mayaCalc'
 import { SEALS } from '~/utils/mayaData'
 import { genderLabel, isGender } from '~/utils/gender'
+import {
+  SELECTABLE_USER_STATUSES,
+  USER_STATUS_LABEL,
+  USER_STATUS_NOTE,
+  setUserStatus,
+  userStatus,
+  type UserStatus
+} from '~/utils/userAdmin'
 
 definePageMeta({ layout: 'admin' })
 
@@ -22,9 +30,9 @@ interface UserDoc {
   gender?: string
   teamId?: string | null
   teamName?: string | null
-  entitlement?: 'none' | 'code'
   entitlementSource?: 'code' | 'admin' | null
   plan?: string
+  suspended?: boolean
   createdAt?: Timestamp
 }
 
@@ -39,7 +47,7 @@ interface UserRow {
   seal: string
   teamName: string
   source: string
-  entitled: boolean
+  status: UserStatus
   joined: string
   joinedAt: number
 }
@@ -48,7 +56,7 @@ const rows = ref<UserRow[]>([])
 const loading = ref(true)
 const loadError = ref('')
 const keyword = ref('')
-const entitlementFilter = ref<'all' | 'entitled' | 'locked'>('all')
+const statusFilter = ref<'all' | UserStatus>('all')
 
 function formatDate(ts?: Timestamp) {
   const d = ts?.toDate()
@@ -81,7 +89,7 @@ function buildRow(uid: string, data: UserDoc): UserRow {
     seal,
     teamName: data.teamId ? (data.teamName || data.teamId) : '',
     source: data.entitlementSource === 'admin' ? '管理者追加' : data.entitlementSource === 'code' ? 'コード入力' : '—',
-    entitled: data.entitlement === 'code',
+    status: userStatus(data),
     joined: formatDate(data.createdAt),
     joinedAt: data.createdAt?.toMillis() ?? 0
   }
@@ -105,14 +113,62 @@ onMounted(async () => {
 const filtered = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
   return rows.value.filter((r) => {
-    if (entitlementFilter.value === 'entitled' && !r.entitled) return false
-    if (entitlementFilter.value === 'locked' && r.entitled) return false
+    if (statusFilter.value !== 'all' && r.status !== statusFilter.value) return false
     if (!kw) return true
     return r.name.toLowerCase().includes(kw) || r.email.toLowerCase().includes(kw) || r.teamName.toLowerCase().includes(kw)
   })
 })
 
 const selected = ref<UserRow | null>(null)
+const draftStatus = ref<UserStatus>('free')
+const savingStatus = ref(false)
+const statusError = ref('')
+const statusSaved = ref(false)
+
+function openDetail(row: UserRow) {
+  selected.value = row
+  draftStatus.value = row.status
+  statusError.value = ''
+  statusSaved.value = false
+}
+
+// 有料会員は決済導入後に解禁するが、既に 'paid' の会員を開いたときは
+// その選択肢も出す(出さないと現在の状態を表せなくなるため)。
+const statusOptions = computed<UserStatus[]>(() => {
+  const base = [...SELECTABLE_USER_STATUSES]
+  if (selected.value && !base.includes(selected.value.status)) base.unshift(selected.value.status)
+  return base
+})
+
+async function applyStatus() {
+  if (!selected.value || savingStatus.value || draftStatus.value === selected.value.status) return
+  savingStatus.value = true
+  statusError.value = ''
+  statusSaved.value = false
+  try {
+    const { $firestore } = useNuxtApp()
+    await withLoading(() => setUserStatus($firestore as Firestore, selected.value!.uid, draftStatus.value))
+    // 一覧側にも反映させる。再取得は行数が多いと重いので、対象の行だけ書き換える。
+    const row = rows.value.find((r) => r.uid === selected.value!.uid)
+    if (row) row.status = draftStatus.value
+    selected.value.status = draftStatus.value
+    statusSaved.value = true
+  } catch (err) {
+    statusError.value = (err as { code?: string })?.code === 'permission-denied'
+      ? '権限がありません。再度ログインしてください。'
+      : '変更に失敗しました。時間をおいて再度お試しください。'
+  } finally {
+    savingStatus.value = false
+  }
+}
+
+function statusChip(status: UserStatus) {
+  if (status === 'suspended') return 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400'
+  if (status === 'paid') return 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400'
+  return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
+}
+
+const { withLoading } = useGlobalLoading()
 </script>
 
 <template>
@@ -120,7 +176,7 @@ const selected = ref<UserRow | null>(null)
     <div class="mb-6">
       <h1 class="text-xl font-bold">ユーザー管理</h1>
       <span class="text-xs text-slate-500 dark:text-slate-400">
-        登録会員の一覧です。閲覧権限の付与・除外は<NuxtLink to="/admin/teams" class="font-semibold text-brass-700 hover:underline dark:text-gold-300">チーム管理</NuxtLink>から行います。
+        登録会員の一覧です。会員ステータス（有料エリアの閲覧可否）は各会員の詳細から変更できます。
       </span>
     </div>
 
@@ -131,10 +187,11 @@ const selected = ref<UserRow | null>(null)
         placeholder="氏名・メールアドレス・チーム名で検索"
         class="min-w-[240px] flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900"
       />
-      <select v-model="entitlementFilter" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900">
-        <option value="all">すべての会員</option>
-        <option value="entitled">閲覧できる会員</option>
-        <option value="locked">閲覧できない会員</option>
+      <select v-model="statusFilter" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900">
+        <option value="all">すべてのステータス</option>
+        <option value="free">無料会員</option>
+        <option value="paid">有料会員</option>
+        <option value="suspended">利用停止</option>
       </select>
     </div>
 
@@ -153,10 +210,10 @@ const selected = ref<UserRow | null>(null)
             <tr class="text-left text-[11px] uppercase tracking-wide text-slate-400">
               <th class="pb-2.5 pr-3">名前</th>
               <th class="pb-2.5 pr-3">メール</th>
+              <th class="pb-2.5 pr-3">ステータス</th>
               <th class="pb-2.5 pr-3">所属チーム</th>
               <th class="pb-2.5 pr-3">所属経路</th>
               <th class="pb-2.5 pr-3">登録日</th>
-              <th class="pb-2.5 pr-3">有料エリア</th>
               <th class="pb-2.5"></th>
             </tr>
           </thead>
@@ -164,17 +221,14 @@ const selected = ref<UserRow | null>(null)
             <tr v-for="u in filtered" :key="u.uid" class="border-b border-slate-100 last:border-0 dark:border-slate-800/60">
               <td class="py-2.5 pr-3">{{ u.name || '—' }}</td>
               <td class="py-2.5 pr-3 text-slate-500 dark:text-slate-400">{{ u.email }}</td>
+              <td class="py-2.5 pr-3">
+                <span class="rounded-full px-2.5 py-0.5 text-[11.5px] font-bold" :class="statusChip(u.status)">{{ USER_STATUS_LABEL[u.status] }}</span>
+              </td>
               <td class="py-2.5 pr-3">{{ u.teamName || '—' }}</td>
               <td class="py-2.5 pr-3 text-slate-500 dark:text-slate-400">{{ u.source }}</td>
               <td class="py-2.5 pr-3 tabular-nums text-slate-500 dark:text-slate-400">{{ u.joined }}</td>
-              <td class="py-2.5 pr-3">
-                <span
-                  class="rounded-full px-2.5 py-0.5 text-[11.5px] font-bold"
-                  :class="u.entitled ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'"
-                >{{ u.entitled ? '閲覧可' : 'ロック' }}</span>
-              </td>
               <td class="py-2.5">
-                <button class="text-xs font-semibold text-brass-700 hover:underline dark:text-gold-300" @click="selected = u">詳細</button>
+                <button class="text-xs font-semibold text-brass-700 hover:underline dark:text-gold-300" @click="openDetail(u)">詳細</button>
               </td>
             </tr>
           </tbody>
@@ -203,10 +257,45 @@ const selected = ref<UserRow | null>(null)
           <div><dt class="text-slate-400">所属経路</dt><dd class="font-semibold">{{ selected.source }}</dd></div>
         </dl>
 
+        <!-- 会員ステータス。有料エリアの閲覧可否はここで決まる。
+             チームの出し入れは「誰の紹介で入会したか」の付け替えなのでチーム管理側。 -->
+        <div class="mb-5 rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+          <p class="mb-2.5 text-xs font-bold text-slate-500 dark:text-slate-400">会員ステータス</p>
+          <div class="mb-2.5 flex flex-wrap gap-2">
+            <label
+              v-for="opt in statusOptions"
+              :key="opt"
+              class="cursor-pointer rounded-lg border px-3.5 py-2 text-sm font-semibold"
+              :class="draftStatus === opt
+                ? 'border-brass-700 bg-amber-50 text-brass-700 dark:border-gold-300 dark:bg-amber-950/40 dark:text-gold-300'
+                : 'border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-300'"
+            >
+              <input v-model="draftStatus" type="radio" :value="opt" class="sr-only" />
+              {{ USER_STATUS_LABEL[opt] }}
+            </label>
+          </div>
+          <p class="mb-3 text-[12px] leading-[1.8] text-slate-500 dark:text-slate-400">{{ USER_STATUS_NOTE[draftStatus] }}</p>
+          <p v-if="!statusOptions.includes('paid')" class="mb-3 text-[11.5px] text-slate-400">
+            有料会員は決済機能の導入後に選択できるようになります。
+          </p>
+          <div class="flex items-center gap-3">
+            <button
+              type="button"
+              class="rounded-lg bg-brass-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
+              :disabled="savingStatus || draftStatus === selected.status"
+              @click="applyStatus"
+            >
+              {{ savingStatus ? '変更中…' : '変更を適用' }}
+            </button>
+            <span v-if="statusSaved" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">変更しました</span>
+            <span v-if="statusError" class="text-xs font-semibold text-red-600 dark:text-red-400">{{ statusError }}</span>
+          </div>
+        </div>
+
         <p class="rounded-lg border border-slate-200 p-3.5 text-[12px] leading-[1.8] text-slate-500 dark:border-slate-800 dark:text-slate-400">
-          有料エリアの閲覧可否はチームへの所属で決まります。付与・除外は
+          所属チームの変更は
           <NuxtLink to="/admin/teams" class="font-semibold text-brass-700 hover:underline dark:text-gold-300">チーム管理</NuxtLink>
-          から行ってください。
+          から行います。所属は「誰の紹介で入会したか」の記録で、有料エリアの閲覧可否には影響しません。
         </p>
 
         <div class="mt-5 flex justify-end">

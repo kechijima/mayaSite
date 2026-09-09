@@ -114,6 +114,7 @@ function baseProfile() {
     birthdate: '1992-10-16',
     gender: 'female',
     plan: 'free',
+    suspended: false,
     createdAt: serverTimestamp()
   }
 }
@@ -121,7 +122,6 @@ function unaffiliated() {
   return {
     teamId: null,
     teamName: null,
-    entitlement: 'none',
     entitlementSource: null,
     referralCodeId: null,
     referralRedeemedAt: null
@@ -131,7 +131,6 @@ function redeemed(code: string, teamId: string, teamName = teamNameOf(teamId)) {
   return {
     teamId,
     teamName,
-    entitlement: 'code',
     entitlementSource: 'code',
     referralCodeId: code,
     referralRedeemedAt: serverTimestamp()
@@ -160,6 +159,11 @@ async function seed() {
   })
 }
 
+// 管理者が「利用停止」にした状態を Admin SDK で再現する。
+async function suspend(uid: string) {
+  await adminDb.collection('users').doc(uid).update({ suspended: true })
+}
+
 async function main() {
   await seed()
 
@@ -186,9 +190,9 @@ async function main() {
   }
   {
     const uid = await freshUser()
-    await expectDeny('コード無しで entitlement:code を自称できない', () =>
+    await expectDeny('登録時に suspended:false 以外を名乗れない', () =>
       setDoc(doc(db, 'users', uid), {
-        ...baseProfile(), ...unaffiliated(), entitlement: 'code'
+        ...baseProfile(), ...unaffiliated(), suspended: true
       }))
   }
   {
@@ -227,7 +231,7 @@ async function main() {
     // 管理者による「チームから外す」操作を Admin SDK で再現する。
     // referralRedeemedAt は履歴として残る(復帰の可否には影響しない — 判定は teamId)。
     await adminDb.collection('users').doc(uid).update({
-      teamId: null, entitlement: 'none', entitlementSource: null
+      teamId: null, teamName: null, entitlementSource: null
     })
     await expectAllow('除外された会員は自分でコードを入れ直して復帰できる', () =>
       updateDoc(doc(db, 'users', uid), redeemed(ACTIVE_CODE, ACTIVE_TEAM)))
@@ -251,8 +255,8 @@ async function main() {
       updateDoc(doc(db, 'users', uid), { name: '改名 後太郎' }))
     await expectDeny('プロフィール編集に紛れて plan は変えられない', () =>
       updateDoc(doc(db, 'users', uid), { name: '改名', plan: 'paid' }))
-    await expectDeny('プロフィール編集に紛れて entitlement は変えられない', () =>
-      updateDoc(doc(db, 'users', uid), { name: '改名', entitlement: 'code' }))
+    await expectDeny('プロフィール編集に紛れて suspended は変えられない', () =>
+      updateDoc(doc(db, 'users', uid), { name: '改名', suspended: true }))
   }
 
   console.log('\n▸ コードの可視範囲(referralCodes / referralTeams)')
@@ -272,14 +276,20 @@ async function main() {
     await setDoc(doc(db, 'users', uid), { ...baseProfile(), ...unaffiliated() })
     await expectAllow('無料本文は誰でも読める', () =>
       getDoc(doc(db, 'diagnosisContent', 'character-3')))
-    await expectDeny('未所属の会員は有料本文を読めない', () =>
+    // 2026-09-09: 閲覧条件はチーム所属ではなく「会員登録していて停止されていないこと」。
+    await expectAllow('チーム未所属でも会員なら有料本文を読める', () =>
       getDoc(doc(db, 'diagnosisContentPremium', 'character-3')))
   }
   {
     const uid = await freshUser()
-    await setDoc(doc(db, 'users', uid), { ...baseProfile(), ...redeemed(ACTIVE_CODE, ACTIVE_TEAM) })
-    await expectAllow('チーム所属の会員は有料本文を読める', () =>
+    await setDoc(doc(db, 'users', uid), { ...baseProfile(), ...unaffiliated() })
+    await suspend(uid)
+    await expectDeny('利用停止の会員は有料本文を読めない', () =>
       getDoc(doc(db, 'diagnosisContentPremium', 'character-3')))
+    await expectDeny('利用停止の会員はコードを登録できない', () =>
+      updateDoc(doc(db, 'users', uid), redeemed(ACTIVE_CODE, ACTIVE_TEAM)))
+    await expectDeny('利用停止の会員は自分で停止を解除できない', () =>
+      updateDoc(doc(db, 'users', uid), { suspended: false }))
   }
   {
     await signOut(auth).catch(() => {})

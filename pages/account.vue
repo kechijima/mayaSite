@@ -7,7 +7,7 @@ import { doc, updateDoc, type Firestore } from 'firebase/firestore'
 // 固定のダミー値であり、実データである紹介コードと並べると利用者が混乱するため。
 // 決済を導入する際は改めて設計する(useMembershipは/checkoutのモックにまだ残っている)。
 const { user, ready: authReady } = useAuth()
-const { profile, settled, refresh: refreshEntitlement } = useEntitlement()
+const { profile, settled, suspended, refresh: refreshEntitlement } = useEntitlement()
 const referral = useReferralCodeInput()
 const { withLoading } = useGlobalLoading()
 
@@ -42,12 +42,13 @@ const loginLink = computed(() =>
   `/login?redirect=${encodeURIComponent(requestedRedirect.value ? `/account?redirect=${encodeURIComponent(requestedRedirect.value)}` : '/account')}`
 )
 
-// 2状態: 所属中(表示のみ) / 未所属(入力できる)。
-// 管理者に外された人も「未所属」に含める — 以前は入力させない扱いだったが、
-// 入り直せないのは不便という判断で、今はルール側も「今どこにも所属していない人」なら
-// 受け付ける(firestore.rules の update 3本目)。
+// 3状態: 利用停止(入力できない) / 所属中(表示のみ) / 未所属(入力できる)。
+// 利用停止はルール側でもコード登録を拒否するので、入力欄を出しても必ず失敗する。
+// 管理者に外された人は「未所属」に含める — 入り直せないのは不便という判断で、
+// ルール側も「今どこにも所属していない人」なら受け付ける(firestore.rules の update 3本目)。
 const membership = computed(() => {
   if (!profile.value) return 'unknown'
+  if (suspended.value) return 'suspended'
   return profile.value.teamId ? 'joined' : 'unaffiliated'
 })
 // 一度どこかに所属したことがあるか。文言を「登録」と「再登録」で出し分けるだけに使う。
@@ -95,11 +96,6 @@ async function submitCode() {
 
       <div class="mx-auto max-w-[560px]">
         <section class="panel">
-          <!-- 有料エリアの「続きを購入する」から来た場合。なぜこの画面にいるのかを明示する。 -->
-          <p v-if="requestedRedirect && membership !== 'joined'" class="mb-3.5 rounded-lg px-3.5 py-2.5 text-[13px] leading-[1.8]" style="border: 1px solid var(--gold-line-soft); background: var(--paper);">
-            続きをご覧いただくには、紹介コードのご登録が必要です。
-          </p>
-
           <p v-if="!authReady" class="text-[13.5px]" style="color: var(--ink-faint);">読み込み中…</p>
 
           <template v-else-if="!user">
@@ -111,6 +107,14 @@ async function submitCode() {
 
           <p v-else-if="!settled" class="text-[13.5px]" style="color: var(--ink-faint);">読み込み中…</p>
 
+          <!-- 利用停止: ルール上、本人によるコード登録は受け付けられない -->
+          <template v-else-if="membership === 'suspended'">
+            <p class="mb-2 text-[14.5px]">現在このアカウントはご利用いただけません。</p>
+            <p class="text-[12.5px]" style="color: var(--ink-faint);">
+              お手数ですがお問い合わせください。
+            </p>
+          </template>
+
           <!-- 所属中: コード文字列そのものは表示しない(管理者のみが閲覧できる情報) -->
           <template v-else-if="membership === 'joined'">
             <p class="mb-2 text-[14.5px]">
@@ -118,17 +122,17 @@ async function submitCode() {
               {{ profile?.teamName || 'チーム' }}に所属しています
             </p>
             <p class="text-[12.5px]" style="color: var(--ink-faint);">
-              有料エリアをご覧いただけます。変更をご希望の場合はお問い合わせください。
+              変更をご希望の場合はお問い合わせください。
             </p>
           </template>
 
           <!-- 未所属: 一度も所属していない人も、管理者に外された人も、ここで入力できる -->
           <template v-else-if="membership === 'unaffiliated'">
             <p v-if="hasJoinedBefore" class="mb-3.5 text-[13.5px] leading-[1.9]" style="color: var(--ink-soft);">
-              現在どのチームにも所属していません。紹介コードをご登録いただくと、再び有料エリアをご覧いただけます。
+              現在どのチームにも所属していません。紹介コードをお持ちの方はご登録ください。
             </p>
             <p v-else class="mb-3.5 text-[13.5px] leading-[1.9]" style="color: var(--ink-soft);">
-              紹介コードをご登録いただくと、有料エリアをご覧いただけます。
+              ご紹介いただいた方からお受け取りの紹介コードをご登録いただけます。
             </p>
             <form class="space-y-3" @submit.prevent="submitCode">
               <input

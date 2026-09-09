@@ -133,31 +133,31 @@ export async function findUserByEmail(firestore: Firestore, email: string) {
 
 // 管理者によるチームへの追加。entitlementSource を 'admin' にすることで、コードを
 // 自分で入力した会員と区別する(この経路では referralCodeId は付けない — 管理者追加の
-// メンバーにコードを知らせないため)。referralRedeemedAt は「一度でも所属したか」の
-// 記録なので、ここでも必ず入れる。
+// メンバーにコードを知らせないため)。referralRedeemedAt は「一度でも所属したか」の記録。
+//
+// 2026-09-09: チームの出し入れは「誰の紹介で入会したか」の付け替えであって、
+// 有料エリアの閲覧可否には影響しない。閲覧可否は plan/suspended 側で決まり、
+// /admin/users から操作する(utils/userAdmin.ts)。
 export async function addMember(firestore: Firestore, uid: string, teamId: string, teamName: string) {
   const batch = writeBatch(firestore)
   batch.update(doc(firestore, 'users', uid), {
     teamId,
     teamName,
-    entitlement: 'code',
     entitlementSource: 'admin',
     referralRedeemedAt: serverTimestamp()
   })
   await batch.commit()
 }
 
-// チームから外す。referralCodeId と referralRedeemedAt は「いつ・どのコードで所属した
-// ことがあるか」の履歴として残す(消しても復帰の可否は変わらない — ルールの判定は
-// teamId が空かどうかで行っている)。
-// 外された本人は、コードを知っていればマイページから入力し直して再び所属できる。
-// 確実に閉め出したい場合はチームのコード自体を無効にする。
+// チームから外す。所属の解除だけで、有料エリアの閲覧可否は変わらない
+// (閲覧を止めたい場合は /admin/users で「利用停止」にする)。
+// referralCodeId と referralRedeemedAt は「いつ・どのコードで所属したことがあるか」の
+// 履歴として残す。外された本人は、コードを知っていれば入力し直して再び所属できる。
 export async function removeMember(firestore: Firestore, uid: string) {
   const batch = writeBatch(firestore)
   batch.update(doc(firestore, 'users', uid), {
     teamId: null,
     teamName: null,
-    entitlement: 'none',
     entitlementSource: null
   })
   await batch.commit()

@@ -94,7 +94,7 @@ function statusLabel(status: TeamRow['status']) {
     <div class="mb-6">
       <h1 class="text-xl font-bold">チーム管理</h1>
       <span class="text-xs text-slate-500 dark:text-slate-400">
-        チームを作成すると紹介コードが1つ発行されます。コードを入力した会員はそのチームに所属し、有料エリアを閲覧できます。
+        チームを作成すると紹介コードが1つ発行されます。コードを入力した会員はそのチームに所属します（誰の紹介で入会したかの記録です）。有料エリアの閲覧可否はユーザー管理の会員ステータスで決まります。
       </span>
     </div>
 
