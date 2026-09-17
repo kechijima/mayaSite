@@ -25,12 +25,11 @@ function planAction(_plan: 'subscription' | 'single'): string {
 const subscriptionLink = computed(() => planAction('subscription'))
 const singleLink = computed(() => planAction('single'))
 
-const referralLink = computed(() => buildSignupLink(redirect.value, route.query, '/signup/referral'))
 const loginLink = computed(() => (redirect.value ? `/login?redirect=${encodeURIComponent(redirect.value)}` : '/login'))
 </script>
 
 <template>
-  <div class="paper-page min-h-screen">
+  <div class="paper-page paper-page--focus">
     <IconSprite />
     <div class="sheet">
       <div class="masthead masthead--plain">
@@ -40,7 +39,8 @@ const loginLink = computed(() => (redirect.value ? `/login?redirect=${encodeURIC
       </div>
 
       <div class="plans">
-        <!-- おすすめ。DOM順でも先頭にして、モバイルの縦積みで最初に目に入るようにする。 -->
+        <!-- おすすめ。DOM順でも先頭にして、モバイルの縦積みで最初に目に入るようにする。
+             2カラム(640px以上)では CSS の order で右側に置く(左は「この記事のみ」)。 -->
         <section class="plancard plancard--reco" aria-labelledby="plan-subscription">
           <span class="plancard__badge">おすすめ</span>
           <h2 id="plan-subscription" class="plancard__name">有料会員</h2>
@@ -68,11 +68,7 @@ const loginLink = computed(() => (redirect.value ? `/login?redirect=${encodeURIC
       </div>
 
       <div class="mx-auto mt-10 max-w-[440px] text-center">
-        <p class="text-[13px]" style="color: var(--ink-soft);">
-          紹介コードをお持ちの方は
-          <NuxtLink :to="referralLink" class="font-semibold hover:underline" style="color: var(--gold-deep);">こちらから登録</NuxtLink>
-        </p>
-        <p v-if="ready && !user" class="mt-2 text-[12.5px]" style="color: var(--ink-faint);">
+        <p v-if="ready && !user" class="text-[12.5px]" style="color: var(--ink-faint);">
           すでに会員登録済みの方は
           <NuxtLink :to="loginLink" class="hover:underline" style="color: var(--gold-deep);">こちらからログイン</NuxtLink>
         </p>

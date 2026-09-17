@@ -48,6 +48,14 @@
   padding-bottom: clamp(120px, 16vw, 200px);
 }
 
+/* フッターを出さない単機能ページ(/plans・/signup・/signup/referral・/login・/account)。画面の高さいっぱいに取り、
+   中身を上下中央に置く。収まらない高さのときは通常どおり上から並んでスクロールする
+   (justify-content:center だけだと上端が画面外に切れるので、safe で上揃えに逃がす)。
+   フッター前提の下余白(.paper-page の padding-bottom)と見出し上の余白はここでは要らない。 */
+.paper-page--focus { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; justify-content: safe center; padding-bottom: 0; }
+.paper-page--focus > .sheet { width: 100%; padding-top: 20px; padding-bottom: 20px; }
+.paper-page--focus .masthead--plain { padding-top: 0; }
+
 .sheet { position: relative; padding: 34px 20px 56px; max-width: 1180px; margin: 0 auto; }
 @media (min-width: 640px) { .sheet { padding: 40px 40px 64px; } }
 @media (min-width: 1000px) { .sheet { padding: 56px 76px 76px; } }
@@ -649,6 +657,20 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .btn-danger:hover { filter: brightness(1.08); }
 .btn-gold:focus-visible, .btn-outline:focus-visible, .btn-quiet:focus-visible, .btn-danger:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: 2px; }
 
+/* 入力欄の並び。基本は1列。会員登録フォーム(.signupform)の中だけ、PC幅で2列にして
+   1画面に収める(フッターを出さない .paper-page--focus と組み合わせてスクロールを無くすため)。 */
+.formgrid { display: grid; gap: 12px; }
+.signupwrap { max-width: 440px; margin: 20px auto 0; }
+.signupform { display: flex; flex-direction: column; gap: 12px; }
+.signupform .btn-gold { margin-top: 6px; width: 100%; }
+@media (min-width: 768px) {
+  .signupwrap { max-width: 680px; }
+  .signupform { padding: 20px 24px; }
+  .signupform .formgrid { grid-template-columns: 1fr 1fr; column-gap: 20px; }
+  .signupform .formgrid__wide { grid-column: 1 / -1; }
+  .signupform .btn-gold { width: min(100%, 320px); align-self: center; }
+}
+
 .formlabel { display: block; margin-bottom: 5px; font-size: 11px; letter-spacing: .1em; color: var(--ink-soft); }
 .formfield { width: 100%; border-radius: 6px; border: 1px solid var(--gold-line-soft); background: var(--paper-panel-2); padding: 9px 12px; font-size: 13.5px; color: var(--ink); }
 .formfield:disabled { color: var(--ink-faint); }
@@ -656,9 +678,13 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 
 /* ---------------- 購入プラン選択 (pages/plans.vue) ---------------- */
 /* よくあるサブスク選択画面の形。おすすめ(有料会員)を金枠・淡い金地・上端のバッジで目立たせる。
-   モバイルは縦積み(おすすめが先頭)、640px以上で2カラム。 */
+   モバイルは縦積み(おすすめが先頭)、640px以上で2カラム(「この記事のみ」が左、おすすめが右)。
+   DOM順はおすすめが先のまま、2カラム時だけ order で左右を入れ替えている。 */
 .plans { display: grid; gap: 28px; max-width: 760px; margin: 40px auto 0; }
-@media (min-width: 640px) { .plans { grid-template-columns: 1fr 1fr; align-items: stretch; } }
+@media (min-width: 640px) {
+  .plans { grid-template-columns: 1fr 1fr; align-items: stretch; }
+  .plans > .plancard--reco { order: 2; }
+}
 .plancard { position: relative; display: flex; flex-direction: column; gap: 14px; border: 1px solid var(--gold-line-soft); background: var(--paper-panel); box-shadow: var(--shadow); border-radius: 14px; padding: 30px 22px 24px; text-align: center; }
 .plancard--reco { border: 2px solid var(--gold); background: radial-gradient(140% 120% at 50% 0%, color-mix(in srgb, var(--gold) 12%, var(--paper-panel)) 0%, var(--paper-panel) 70%); box-shadow: 0 18px 36px -20px rgba(60, 42, 10, .55); }
 @media (min-width: 640px) { .plancard--reco { transform: translateY(-6px); } }

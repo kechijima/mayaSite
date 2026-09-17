@@ -32,7 +32,8 @@ watch(
 </script>
 
 <template>
-  <div class="space-y-3.5">
+  <!-- /signup/referral では PC 幅でチームとコードを横に並べる(.signupform 内だけ2列。/account は1列のまま)。 -->
+  <div class="formgrid">
     <div>
       <label class="formlabel" for="referral-team">チーム</label>
       <select

@@ -11,6 +11,10 @@ const HOME_LINKS = [
 // 診断結果ページ用: 同ページ内セクションへのハッシュリンクのみ(id は pages/result.vue 側の
 // 各<section>に対応 — #から始まるto はSiteHeader側で<NuxtLink>ではなく素の<a>として描画され、
 // vue-routerを経由しない(query の name/birth/gender を保ったまま素直にハッシュジャンプする)。
+// フッターを出さないページ。フォーム1枚・プラン選択だけの画面で、スクロールさせずに
+// 1画面に収めて中央に置くため(.paper-page--focus と対)。
+const FOOTERLESS_PATHS = ['/plans', '/signup', '/signup/referral', '/login', '/account']
+
 const RESULT_LINKS = [
   { to: '#sun', label: '太陽の紋章' },
   { to: '#wavespell', label: 'ウェイブスペル' },
@@ -31,6 +35,6 @@ const RESULT_LINKS = [
   <SiteHeader v-if="route.path === '/'" :links="HOME_LINKS" />
   <SiteHeader v-else-if="route.path === '/result'" :links="RESULT_LINKS" hide-until-scrolled />
   <slot />
-  <SiteFooter />
+  <SiteFooter v-if="!FOOTERLESS_PATHS.includes(route.path)" />
   <LoadingOverlay />
 </template>
