@@ -48,7 +48,7 @@ async function submit() {
 </script>
 
 <template>
-  <div class="paper-page min-h-screen">
+  <div class="paper-page paper-page--focus">
     <div class="sheet">
       <div class="masthead masthead--plain">
         <span class="masthead__eyebrow">MEMBERSHIP</span>
@@ -56,7 +56,7 @@ async function submit() {
         <p class="masthead__sub">ログインすると、有料エリアの内容までご覧いただけます。</p>
       </div>
 
-      <div class="mx-auto max-w-[440px]">
+      <div class="mx-auto mt-5 max-w-[440px]">
         <form class="panel space-y-3.5" @submit.prevent="submit">
           <div>
             <label class="formlabel">メールアドレス</label>

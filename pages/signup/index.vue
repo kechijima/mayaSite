@@ -13,7 +13,7 @@ const referralLink = computed(() => buildSignupLink(form.redirect.value, route.q
 </script>
 
 <template>
-  <div class="paper-page min-h-screen">
+  <div class="paper-page paper-page--focus">
     <div class="sheet">
       <div class="masthead masthead--plain">
         <span class="masthead__eyebrow">MEMBERSHIP</span>
@@ -21,11 +21,11 @@ const referralLink = computed(() => buildSignupLink(form.redirect.value, route.q
         <p class="masthead__sub">ご登録いただくと、有料エリアの内容までご覧いただけます。</p>
       </div>
 
-      <div class="mx-auto max-w-[440px]">
-        <form class="panel space-y-3.5" @submit.prevent="form.submit()">
+      <div class="signupwrap">
+        <form class="panel signupform" @submit.prevent="form.submit()">
           <SignupProfileFields :form="form" />
           <p v-if="errorMessage" class="notice">{{ errorMessage }}</p>
-          <button type="submit" class="btn-gold mt-2 w-full" :disabled="submitting">
+          <button type="submit" class="btn-gold" :disabled="submitting">
             {{ submitting ? '登録中…' : '会員登録する' }}
           </button>
         </form>

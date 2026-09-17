@@ -81,14 +81,14 @@ async function submitCode() {
 <template>
   <!-- 2026-08-17: 黒地に金(bg-ink-950)の独自配色から、他のユーザー向けページと同じ
        paper(羊皮紙)配色へ統一。共通ヘッダー追加にあわせて、ヘッダーだけ浮いて見えないように。 -->
-  <div class="paper-page min-h-screen">
+  <div class="paper-page paper-page--focus">
     <div class="sheet">
       <div class="masthead masthead--plain">
         <span class="masthead__eyebrow">MY ACCOUNT</span>
         <h1 class="font-display masthead__title">紹介コード入力</h1>
       </div>
 
-      <div class="mx-auto max-w-[560px]">
+      <div class="mx-auto mt-5 max-w-[560px]">
         <section class="panel">
           <p v-if="!authReady" class="text-[13.5px]" style="color: var(--ink-faint);">読み込み中…</p>
 

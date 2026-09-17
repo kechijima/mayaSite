@@ -33,7 +33,7 @@ async function submit() {
 </script>
 
 <template>
-  <div class="paper-page min-h-screen">
+  <div class="paper-page paper-page--focus">
     <div class="sheet">
       <div class="masthead masthead--plain">
         <span class="masthead__eyebrow">MEMBERSHIP</span>
@@ -41,7 +41,7 @@ async function submit() {
         <p class="masthead__sub">チームと紹介コードを入力してご登録ください。ご登録後は有料会員として、すべての診断結果をご覧いただけます。</p>
       </div>
 
-      <div class="mx-auto max-w-[440px]">
+      <div class="signupwrap">
         <!-- 照合後に紹介コードが無効化された場合。アカウント自体は作成済みなので、
              フォームに戻さず先へ進む導線だけを出す。 -->
         <div v-if="codeWarning" class="panel text-center">
@@ -49,13 +49,13 @@ async function submit() {
           <NuxtLink to="/account" class="btn-gold">紹介コードを登録する</NuxtLink>
         </div>
 
-        <form v-else class="panel space-y-3.5" @submit.prevent="submit">
+        <form v-else class="panel signupform" @submit.prevent="submit">
           <SignupProfileFields :form="form" />
           <ReferralCodeFields :referral="referral" />
           <p v-if="errorMessage" class="notice">{{ errorMessage }}</p>
           <button
             type="submit"
-            class="btn-gold mt-2 w-full"
+            class="btn-gold"
             :disabled="submitting || !referral.selectedTeamId.value || !referral.code.value"
           >
             {{ submitting ? '登録中…' : '有料会員として登録する' }}

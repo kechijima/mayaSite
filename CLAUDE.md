@@ -277,7 +277,7 @@ After a successful redemption `/account` always navigates somewhere: the `redire
 Every LockedVeil's 「続きを購入する」 goes to [pages/plans.vue](pages/plans.vue) regardless of sign-in state, via
 [composables/usePlansLink.ts](composables/usePlansLink.ts): `/plans?kin=N&redirect=<current page>&name&birth&gender`.
 `/plans` shows 有料会員 ￥5,500/月(税込), highlighted as おすすめ, and この記事のみ ￥550(税込) for `kin` (hidden
-when there is no `kin`), plus links to `/signup/referral` and login. **Until payment ships both buttons do the
+when there is no `kin`), plus a login link for signed-out visitors (no referral-signup link here — that lives on `/signup`). **Until payment ships both buttons do the
 same thing**: signed out → `/signup` (with `redirect` and the prefill query), signed in → `redirect`.
 `planAction()` is the single place to switch to Stripe Checkout.
 
@@ -331,6 +331,12 @@ The app deliberately uses two unrelated design systems, matching the mockup:
 - **Admin pages** (`/admin/**`, `layouts/admin.vue`) use a neutral, theme-aware (light/dark via `media`) console style with `brass-700` accents, sans-serif body text, and a fixed sidebar. Admin pages set `definePageMeta({ layout: 'admin' })` individually.
 
 Tailwind `darkMode` is `'media'` (follows OS preference), not a manual toggle.
+
+`/plans`, `/signup`, `/signup/referral`, `/login` and `/account` render **no footer** (`FOOTERLESS_PATHS` in [layouts/default.vue](layouts/default.vue))
+and use `.paper-page--focus`, which fills the viewport and centres the content vertically so they fit on one screen
+without scrolling. The signup forms go two-column from 768px (`.signupform .formgrid`) for the same reason. On phones
+the forms and the stacked plan cards are taller than the screen and still scroll; `justify-content: safe center`
+keeps the top from being cut off in that case.
 
 [components/LoadingOverlay.vue](components/LoadingOverlay.vue) spans both worlds and is mounted in all three layouts. It is
 driven by [composables/useGlobalLoading.ts](composables/useGlobalLoading.ts), whose `withLoading()` wraps any Firebase call the
