@@ -10,10 +10,11 @@ service cloud.firestore {
 
     // 有料エリアの閲覧権限。現在は「会員登録していて、利用停止されていないこと」。
     // 決済導入時はここに .plan == 'paid' の条件を足し、composables/useEntitlement.ts の
-    // entitled と対で切り替える(仕様書10章)。
+    // entitled と対で切り替える(CLAUDE.md「Payment roadmap (Phase 2)」)。
     //
-    // 2026-09-09: 判定を「チームに所属していること」から変更した。紹介コードは
-    // 「誰の紹介で入会したか」の記録専用になり、閲覧可否には影響しない。
+    // 2026-09-09: 判定を「チームに所属していること」から変更した。
+    // 2026-09-17: チーム所属中の会員は「有料会員(紹介)」として扱うことになったが、決済導入までは
+    // 会員全員が閲覧できるので、ここはまだ変えていない(導入時の条件は CLAUDE.md の Phase 2 参照)。
     // get(key, default) なのは suspended を持たない既存会員を弾かないため。
     function isEntitled() {
       return request.auth != null
@@ -82,7 +83,7 @@ service cloud.firestore {
       //   所属中はここが false になるため、別チームへの乗り換えはできない。
       //   利用停止中を弾いているのは、停止された人が自分で入り直して停止を無効化
       //   できないようにするため(解除は管理者のみ)。
-      //   なお2026-09-09以降、コード登録は閲覧可否に影響しない。所属の記録だけ。
+      //   コード登録で所属すると有料会員(紹介)になる(現在は会員全員が閲覧可なので閲覧可否は変わらない)。
       //   get(key, default) を使うのは、フィールドが「存在しない」既存会員を弾かないため。
       //   直接参照すると、この機能より前に登録した会員のドキュメントでは参照そのものが
       //   評価エラーになり、正当な操作まで拒否される(2026-09-07、本番で実際に発生)。
@@ -117,6 +118,16 @@ service cloud.firestore {
     match /referralCodes/{code} {
       allow get: if true;
       allow list: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // 紹介コード付き会員登録(pages/signup/referral.vue)と /account のチーム選択プルダウン用の
+    // 公開チーム一覧。{ name, active } だけを持ち、誰でも読める(チーム名の公開は了承済み)。
+    // 管理者メモを含む referralTeams とは分けてある。書き込みは utils/referralTeamAdmin.ts が
+    // チーム作成・改名・コードの有効/無効切り替えと同じバッチで行う。
+    // ここにコードは置かないこと — 置くと get だけを開けている referralCodes の意味が無くなる。
+    match /publicTeams/{teamId} {
+      allow read: if true;
       allow write: if isAdmin();
     }
 

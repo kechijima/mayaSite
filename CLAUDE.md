@@ -6,15 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 "マヤ暦占い" (Maya Calendar Fortune-Telling) — a Nuxt 3 site that calculates a visitor's KIN from their birthdate and reveals an increasingly deep reading behind a paywall. Requirements are documented in Japanese at [docs/要件定義.md](docs/要件定義.md); `docs/参考画像.png` and [mockup/maya-mockup.html](mockup/maya-mockup.html) are visual references for the target design (a static HTML mockup covering the free/paid views and the admin console — not wired to the app, but the source of truth for styling intent).
 
-**Current state: the KIN diagnosis, its CMS content, signup/login, member statuses and the admin console are all real and Firestore-backed. Payment (Stripe) is the only thing still not implemented.**
+**Current state: the KIN diagnosis, its CMS content, signup/login, member statuses, the purchase-plan page and the admin console are all real and Firestore-backed. Payment (Stripe) is the only thing still not implemented** — see "Payment roadmap (Phase 2)" at the end for the agreed design.
 
-The paid area is unlocked by **being a signed-in member who has not been suspended**. Registering is enough; there is nothing to pay and no code to enter. See "Member status and the paid-area gate" below; the decision is centralised in [composables/useEntitlement.ts](composables/useEntitlement.ts) so that introducing payment later is a one-line change there plus one in [firestore.rules](firestore.rules).
+The paid area is unlocked by **being a signed-in member who has not been suspended**. Registering is enough; there is nothing to pay yet. See "Member status and the paid-area gate" below; the decision is centralised in [composables/useEntitlement.ts](composables/useEntitlement.ts) so that introducing payment later is a change there plus one in [firestore.rules](firestore.rules).
 
-**Referral codes do not unlock anything.** They record *whose introduction a member joined through*, nothing more. This changed on 2026-09-09 — earlier the code was the gate — so treat any older comment or document that says "entering a code unlocks the paid area" as out of date.
+**Membership tiers are already modelled for payment** (2026-09-17): 無料会員 / 有料会員(紹介) / 有料会員(サブスク) / 利用停止. A member who belongs to a team (joined with a referral code, or added by an admin) is **有料会員(紹介)** for as long as they stay in the team. Today that label changes nothing about access — every non-suspended member can already read the paid area — but it is what Phase 2 will gate on.
 
 Real and Firestore-backed: the diagnosis, 相性診断 ([pages/compatibility.vue](pages/compatibility.vue)), the per-seal and per-KIN detail pages ([pages/kin/[sealIndex].vue](pages/kin/%5BsealIndex%5D.vue), [pages/kin/[kin]/detail.vue](pages/kin/%5Bkin%5D/detail.vue)), the CMS ([pages/admin/content/**](pages/admin/content)), 診断履歴 ([pages/admin/history/index.vue](pages/admin/history/index.vue)), チーム管理 ([pages/admin/teams/**](pages/admin/teams)), ユーザー管理 ([pages/admin/users.vue](pages/admin/users.vue)) and 紹介コード入力 ([pages/account.vue](pages/account.vue)).
 
-Still mocks: [pages/admin/index.vue](pages/admin/index.vue) (dashboard stats, hardcoded `ref()` arrays) and [pages/checkout.vue](pages/checkout.vue) (plan selection, `setTimeout` prototype). [composables/useMembership.ts](composables/useMembership.ts) — the old `localStorage`-only `free`/`paid` flag — now powers **only** `/checkout` and is unrelated to the real gate in `useEntitlement`; don't conflate the two. `/checkout` is currently not linked from anywhere in the UI (its only entry point was removed from `/account` on 2026-09-07).
+Still a mock: [pages/admin/index.vue](pages/admin/index.vue) (dashboard stats, hardcoded `ref()` arrays). The old `/checkout` prototype and its `localStorage`-only `useMembership` flag were deleted on 2026-09-17; [pages/plans.vue](pages/plans.vue) replaced them.
 
 デイサイン/トレセーナ/古代マヤ暦全書 are not displayed anywhere in the current UI. `/admin/**` requires a Firebase Auth session carrying an `admin: true` custom claim, enforced by both a client-side route guard and [firestore.rules](firestore.rules) itself — see "Admin authentication" below.
 
@@ -36,15 +36,18 @@ npm run admin:create:emulator -- --email=you@example.com --password=xxxx   # cre
 npm run admin:create -- --email=you@example.com --password=xxxx            # same, against the REAL project — requires FIREBASE_SERVICE_ACCOUNT_KEY in .env
 
 npm run verify:kin                 # dateToKin() が mayadan.jp と一致するかの検証。単体で動く(エミュレータ不要)
-npm run verify:rules:emulator      # firestore.rules の検証(24項目)。エミュレータ起動中に実行する — 下記参照
+npm run verify:rules:emulator      # firestore.rules の検証(29項目)。エミュレータ起動中に実行する — 下記参照
 npm run migrate:premium:emulator   # 有料項目を diagnosisContentPremium へ切り出す移行。--dry-run で件数だけ確認できる
 npm run migrate:premium            # 同上、REAL project に対して。リリース時に一度だけ実行する(冪等)
+npm run backfill:public-teams:emulator  # 既存チームぶんの publicTeams を作る(冪等、--dry-run 可)
+npm run backfill:public-teams           # 同上、REAL project に対して。publicTeams 導入時に一度だけ
 ```
 
 No linter or formatter is configured in this repo. There are two automated checks:
 
 `npm run verify:kin` ([scripts/verifyMayaCalc.ts](scripts/verifyMayaCalc.ts)) asserts `dateToKin()` against values read
-off mayadan.jp, and sweeps 1900–2050 for日ごとの進み方. It needs nothing running.
+off mayadan.jp, and sweeps 1900–2050 for日ごとの進み方. It also checks that `relationSealIndices()` / `destinyKins()`
+agree with `kinInfo()` for all 260 KINs. It needs nothing running.
 **Run it after touching `utils/mayaCalc.ts`** — a wrong KIN is silently wrong, every reading on the
 site derives from it, and this file has already shipped two different leap-year bugs.
 
@@ -115,6 +118,14 @@ Requires a JRE on PATH (the Firestore emulator is Java-based) — `brew install 
   125-character split as result.vue's own KIN letter.
 Both carry `name`/`birth`/`gender` through in the query so 診断結果へ戻る lands on the same reading.
 
+Both also receive **`?from=<the result page's KIN>`**. It is adopted (`sourceKin`) only if the page really is
+one of that KIN's 4 relation seals (`relationSealIndices`) / 5 destiny KINs (`destinyKins`, which includes the
+KIN itself) — both in [utils/mayaCalc.ts](utils/mayaCalc.ts). The check matters because a single-article purchase
+of KIN N is meant to unlock these pages *when reached from KIN N* (Phase 2); without it, editing the URL would
+turn one purchase into every seal and KIN. Today `sourceKin` only decides which KIN `/plans` offers as the
+single article: the relation page offers `sourceKin` or nothing (a seal is not a purchasable unit), the detail
+page offers `sourceKin ?? its own KIN`.
+
 ### Diagnosis content (Firestore)
 Body text lives in **two** collections. `diagnosisContent` is world-readable; `diagnosisContentPremium`
 is readable only by an entitled member or an admin. Both use the same deterministic doc IDs:
@@ -169,27 +180,35 @@ The paid sections of [pages/result.vue](pages/result.vue), [pages/kin/[sealIndex
 
 | Shown as | Condition | Paid area |
 |---|---|---|
+Checked in this order:
+
+| Shown as | Condition | Paid area |
+|---|---|---|
 | 利用停止 | `suspended === true` | locked (free diagnosis still works) |
-| 有料会員 | `plan === 'paid'` | unlocked — **nobody is in this state yet**; it exists for payment |
-| 無料会員 | anything else | unlocked |
+| 有料会員(サブスク) | `plan === 'paid'` | unlocked — **nobody is in this state yet**; it exists for payment |
+| 有料会員(紹介) | `teamId != null` | unlocked |
+| 無料会員 | anything else | unlocked (until Phase 2) |
 
-`/admin/users` only offers 無料会員 / 利用停止 (`SELECTABLE_USER_STATUSES`). 有料会員 is deliberately
-withheld until payment ships, because today it would be a button that visibly does nothing — add
-`'paid'` to that array to release it. Both `plan` and `suspended` are admin-only in
-[firestore.rules](firestore.rules); a member cannot promote or un-suspend themselves.
+`/admin/users` offers 無料会員 / 利用停止 (`SELECTABLE_USER_STATUSES`); for a member in a team the modal shows
+有料会員(紹介) in place of 無料会員, because choosing 無料会員 would change nothing while the team is set.
+有料会員(サブスク) is withheld until payment ships — add `'paid'` to that array to release it. After a
+change the row's status is re-derived with `userStatus()`, not copied from the radio. Both `plan` and
+`suspended` are admin-only in [firestore.rules](firestore.rules); a member cannot promote or un-suspend themselves.
 
-**Team membership is a separate axis** and does not affect access. `/admin/teams` moves members
-between teams (紹介経路), `/admin/users` sets status (閲覧可否). Keeping one operation in one place
-is deliberate — putting both in both screens is what makes it ambiguous which one is authoritative.
+**Team membership is managed only in `/admin/teams`**, status (suspension) only in `/admin/users`.
+Removing a member from their team is how an admin turns 有料会員(紹介) back into 無料会員; there is no
+status button for it. Keeping one operation in one place is deliberate — putting both in both screens is
+what makes it ambiguous which one is authoritative.
 
 **Data model.** One team, one code.
 
 ```
 referralTeams/{teamId}          admin only. { name, code, note, createdAt, updatedAt }
 referralCodes/{code}            get: anyone, list: admin. { teamId, teamName, status }
-users/{uid}                     plan, suspended        ← 閲覧可否はこの2つだけで決まる
+publicTeams/{teamId}            read: anyone, write: admin. { name, active }   ← 登録ページのチーム選択用
+users/{uid}                     plan, suspended        ← 現在の閲覧可否はこの2つで決まる
                                 teamId, teamName, entitlementSource,
-                                referralCodeId, referralRedeemedAt   ← 紹介経路の記録
+                                referralCodeId, referralRedeemedAt   ← 紹介経路。teamId があれば有料会員(紹介)
 ```
 
 **The code string is the document ID of `referralCodes`.** This is the whole design. Firestore rules
@@ -211,7 +230,7 @@ and don't replace it with something memorable.
 - A member already in a team cannot redeem another code (no switching teams).
 - A member **not** currently in a team can redeem — including one an admin removed. Removal is
   un-enrolment, not a ban: someone who knows the code can rejoin. (This was originally "once only,
-  ever"; relaxed 2026-09-07 on request.) Since 2026-09-09 rejoining grants nothing anyway.
+  ever"; relaxed 2026-09-07 on request.) Rejoining makes them 有料会員(紹介) again.
 - A **suspended** member cannot redeem at all. Without that, someone an admin suspended could enter
   a code and undo it themselves; only an admin can lift a suspension.
 - `plan` and `suspended` are admin-only.
@@ -219,6 +238,15 @@ and don't replace it with something memorable.
   before this feature have **no** permission fields at all, and a direct reference to a missing field
   is an evaluation error that fails the whole clause — which is exactly how every pre-existing
   production member was locked out on 2026-09-07. Keep using `get(key, default)` here.
+
+**`publicTeams`** is the world-readable copy of each team's name and whether its code is active, for the
+team dropdown on `/signup/referral` and `/account` (team names being public was explicitly accepted). It
+never holds the code. [utils/referralTeamAdmin.ts](utils/referralTeamAdmin.ts) writes it in the same batch as
+`createTeam`, `renameTeam` and `setCodeStatus` (the latter two use `set` with `merge`, so teams that predate the
+collection get created on first edit); `scripts/backfillPublicTeams.ts` creates it for existing teams. The
+dropdown's "selected team must match the code" check is client-side only — the rules already require
+`teamId`/`teamName` to equal the code document's, so a mismatched team cannot be written anyway. Keep
+`redemptionFields()` taking `teamName` from the code document, not from `publicTeams`.
 
 **Who can see a code.** Only admins. `referralTeams` (which holds the admin note) is admin-only, and
 `referralCodes` carries only what `/signup` needs to show. The one exception is
@@ -232,19 +260,31 @@ fetch, and pages must wait for it before rendering **either** the unlocked conte
 an entitled member sees the upsell flash by. Note the opposite rule for truncating body text: that
 must default to "truncate" while undecided, otherwise the full text flashes.
 
-**Introducing payment** means adding `&& plan === 'paid'` to `entitled` and to `isEntitled()` in
-[firestore.rules](firestore.rules), then deploying both, and adding `'paid'` to `SELECTABLE_USER_STATUSES`.
-`plan` already cannot be self-granted, so nothing else needs to move.
+**Introducing payment**: see "Payment roadmap (Phase 2)" at the end.
 
-**Where members enter a code**: [pages/signup.vue](pages/signup.vue) (optional field during registration) and
-[pages/account.vue](pages/account.vue) (afterwards). Both share [composables/useReferralCodeInput.ts](composables/useReferralCodeInput.ts).
-Entering one only records the introduction — it grants no access.
-[composables/useUnlockLink.ts](composables/useUnlockLink.ts) decides where LockedVeil's CTA points: `/signup` when signed out,
-`/account` when signed in. Sending a signed-in visitor to `/signup` is a dead end — that page
-bounces an authenticated user straight back — which is what it did until 2026-09-07. After a
-successful redemption `/account` always navigates somewhere: the `redirect` it was given, or a
-`/result` URL rebuilt from the member's own birthdate. Landing on the unlocked page *is* the success
-message.
+**Where members enter a code** (team + code, both required): [pages/signup/referral.vue](pages/signup/referral.vue)
+(registration with a code) and [pages/account.vue](pages/account.vue) (afterwards, for an existing member not in a
+team). [pages/signup/index.vue](pages/signup/index.vue) has **no** code field. The inputs are
+[components/ReferralCodeFields.vue](components/ReferralCodeFields.vue) over
+[composables/useReferralCodeInput.ts](composables/useReferralCodeInput.ts). Non-existent, disabled and
+wrong-team codes all show the same message, so the check can't be used to probe which codes exist.
+The blur/team-change check deliberately does **not** use `withLoading`: the overlay takes pointer events, so a
+blur triggered by pressing the submit button would swallow that very click. Submits still wrap in `withLoading`.
+After a successful redemption `/account` always navigates somewhere: the `redirect` it was given, or a
+`/result` URL rebuilt from the member's own birthdate.
+
+### Purchase plans and the paywall CTA
+Every LockedVeil's 「続きを購入する」 goes to [pages/plans.vue](pages/plans.vue) regardless of sign-in state, via
+[composables/usePlansLink.ts](composables/usePlansLink.ts): `/plans?kin=N&redirect=<current page>&name&birth&gender`.
+`/plans` shows 有料会員 ￥5,500/月(税込), highlighted as おすすめ, and この記事のみ ￥550(税込) for `kin` (hidden
+when there is no `kin`), plus links to `/signup/referral` and login. **Until payment ships both buttons do the
+same thing**: signed out → `/signup` (with `redirect` and the prefill query), signed in → `redirect`.
+`planAction()` is the single place to switch to Stripe Checkout.
+
+LockedVeil's 「有料エリア 合計○○文字」 is the **sum over every veil currently shown on the page**, and every
+veil shows the same number. On `/result` that is `lockedTotalChars` (sun + wavespell when not unlocked — both
+count even when they are the same seal — plus the KIN letter when locked), computed with the same conditions as
+the veils' own `v-if`s. The kin pages have a single veil, so it is just that veil's count.
 
 ### Admin: teams
 [pages/admin/teams/index.vue](pages/admin/teams/index.vue) creates teams (name only — `teamId` and code are generated) and
@@ -261,19 +301,20 @@ active/disabled state, the team name and note, and adding/removing members by em
 - Member queries are `where('teamId','==',x)` with **no `orderBy`**, sorted client-side, capped at
   `MEMBER_LIST_LIMIT` (500). Adding `orderBy` would require creating a composite index by hand
   before the feature works at all.
-- Disabling a code stops new registrations only; existing members keep access.
+- Disabling a code stops new registrations only (and hides the team from the signup dropdown); existing members stay in the team.
 
 ### General-user authentication (signup/login)
-General visitors can self-register via [pages/signup.vue](pages/signup.vue) (name/phone/email/password/birthdate/gender → `createUserWithEmailAndPassword` + `updateProfile` for the display name + a `users/{uid}` Firestore doc) or sign in via [pages/login.vue](pages/login.vue) (`signInWithEmailAndPassword`) — both client-side only, on the same shared `$auth` instance as admin login ([plugins/firebase.client.ts](plugins/firebase.client.ts)), and both self-service with **no custom claims involved**, so this can never grant `/admin/**` access. Birthdate/gender reuse the diagnosis form's own inputs (`components/BirthdateSelect.vue` `theme="paper"` / `components/GenderRadio.vue`) and, when arriving from a `LockedVeil` redirect, pre-fill from the `name`/`birth`/`gender` query params described above — otherwise they start blank/default.
+General visitors can self-register via [pages/signup/index.vue](pages/signup/index.vue) (→ 無料会員) or [pages/signup/referral.vue](pages/signup/referral.vue) (same fields + team + referral code → 有料会員(紹介)); both use [composables/useSignupForm.ts](composables/useSignupForm.ts) and [components/SignupProfileFields.vue](components/SignupProfileFields.vue) (name/phone/email/password/birthdate/gender → `createUserWithEmailAndPassword` + `updateProfile` for the display name + a `users/{uid}` Firestore doc). The page lives at `pages/signup/index.vue` rather than `pages/signup.vue` because the latter would become the parent route of `/signup/referral` and render instead of it. Members sign in via [pages/login.vue](pages/login.vue) (`signInWithEmailAndPassword`) — both client-side only, on the same shared `$auth` instance as admin login ([plugins/firebase.client.ts](plugins/firebase.client.ts)), and both self-service with **no custom claims involved**, so this can never grant `/admin/**` access. Birthdate/gender reuse the diagnosis form's own inputs (`components/BirthdateSelect.vue` `theme="paper"` / `components/GenderRadio.vue`) and, when arriving via `/plans`, pre-fill from the `name`/`birth`/`gender` query params ([utils/signupLink.ts](utils/signupLink.ts)) — otherwise they start blank/default.
 
 - **State**: [composables/useAuth.ts](composables/useAuth.ts) is a module-level singleton `onAuthStateChanged` subscription (same pattern as [composables/useAdminAuth.ts](composables/useAdminAuth.ts)), exposing `user` and a `ready` flag that flips true once Firebase's initial async session restore has fired — [composables/useEntitlement.ts](composables/useEntitlement.ts) builds on it (its `settled` also waits for the `users` document) so pages never have to `await` [utils/authReady.ts](utils/authReady.ts) themselves.
-- **Redirect-back**: both pages read/validate `route.query.redirect` the same way [pages/admin/login.vue](pages/admin/login.vue) does (must start with `/`, must not start with `//`), default to `/` if absent, and each links to the other while forwarding that same `redirect` query — this is how a visitor bounced here from a `LockedVeil` on `/result` or `/kin/{n}` gets returned to that exact page after signing up or logging in. Both pages also auto-`navigateTo(redirectTarget())` immediately if `useAuth()` already reports a signed-in user (e.g. a stale bookmark to `/signup` while already logged in).
+- **Redirect-back**: the signup pages, `/login`, `/account` and `/plans` read/validate `route.query.redirect` the same way [pages/admin/login.vue](pages/admin/login.vue) does (must start with `/`, must not start with `//`; `safeRedirect()` in [utils/signupLink.ts](utils/signupLink.ts)), default to `/` if absent, and each links to the other while forwarding that same `redirect` query — this is how a visitor who came through `/plans` from `/result` or `/kin/{n}` gets returned to that exact page after signing up or logging in. Both pages also auto-`navigateTo(redirectTarget())` immediately if `useAuth()` already reports a signed-in user (e.g. a stale bookmark to `/signup` while already logged in).
 - **Firestore**: a `users/{uid}` doc is created at signup with `name`, `phone`, `email`, `birthdate`,
   `gender`, `plan: 'free'`, `suspended: false`, `createdAt` plus the five referral fields (`teamId`,
   `teamName`, `entitlementSource`, `referralCodeId`, `referralRedeemedAt`). **Write the referral
   fields explicitly as `null` when unset** — see [composables/useReferralCodeInput.ts](composables/useReferralCodeInput.ts)'s
   `unaffiliatedFields()`. A missing field is an evaluation error in the rules, not a falsy value, so
-  omitting them locks the member out of ever redeeming a code. The owner can read and edit their own
+  omitting them locks the member out of ever redeeming a code. `plan` is always `'free'` at signup —
+  有料会員(紹介) comes from `teamId`, not from `plan`. The owner can read and edit their own
   doc, `isAdmin()` can read any; the owner's `update` rule excludes `plan`/`suspended` and the
   referral fields except via the code-redemption branch.
   There is also a vestigial `entitlement` field on documents created before 2026-09-09. Nothing reads
@@ -286,7 +327,7 @@ General visitors can self-register via [pages/signup.vue](pages/signup.vue) (nam
 
 ### Two visual worlds
 The app deliberately uses two unrelated design systems, matching the mockup:
-- **Public/user pages** (`/`, `/result`, `/checkout`, `/account`, `/signup`, `/login`, `/compatibility`, `/kin/[sealIndex]`, `/kin/[kin]/detail`; `layouts/default.vue`) share the "paper" (羊皮紙) theme — `paper-page`/`sheet`/`masthead`/`panel`/`formlabel`/`formfield`/`btn-gold` etc. in [assets/css/paper-theme.css](assets/css/paper-theme.css), serif `font-display`/`font-body` (Cormorant Garamond / Shippori Mincho B1). `/checkout`/`/account` were migrated onto this shared theme from an earlier one-off slate/brass style (see the `2026-08-17` comments in those files); the raw `bg-ink-950`/`gold-*` Tailwind utilities in [tailwind.config.ts](tailwind.config.ts) predate that unification and aren't the current styling mechanism for these pages — check the mockup before assuming either naming scheme is still authoritative.
+- **Public/user pages** (`/`, `/result`, `/plans`, `/account`, `/signup`, `/signup/referral`, `/login`, `/compatibility`, `/kin/[sealIndex]`, `/kin/[kin]/detail`; `layouts/default.vue`) share the "paper" (羊皮紙) theme — `paper-page`/`sheet`/`masthead`/`panel`/`formlabel`/`formfield`/`btn-gold`/`plancard` etc. in [assets/css/paper-theme.css](assets/css/paper-theme.css), serif `font-display`/`font-body` (Cormorant Garamond / Shippori Mincho B1). `/account` was migrated onto this shared theme from an earlier one-off slate/brass style (see the `2026-08-17` comment there); the raw `bg-ink-950`/`gold-*` Tailwind utilities in [tailwind.config.ts](tailwind.config.ts) predate that unification and aren't the current styling mechanism for these pages — check the mockup before assuming either naming scheme is still authoritative.
 - **Admin pages** (`/admin/**`, `layouts/admin.vue`) use a neutral, theme-aware (light/dark via `media`) console style with `brass-700` accents, sans-serif body text, and a fixed sidebar. Admin pages set `definePageMeta({ layout: 'admin' })` individually.
 
 Tailwind `darkMode` is `'media'` (follows OS preference), not a manual toggle.
@@ -329,7 +370,7 @@ reload. All of `/admin/**` requires a real admin login — see "Admin authentica
 - **Display/logout**: [composables/useAdminAuth.ts](composables/useAdminAuth.ts) is a module-level singleton reactive `onAuthStateChanged` subscription, used only by [layouts/admin.vue](layouts/admin.vue) to show the signed-in email and drive the ログアウト button (`signOut()` + redirect to `/admin/login`) — **not** used by the route guard itself, to avoid the two listeners racing each other.
 - **Authorization is enforced twice, independently**: the middleware above gates page rendering, but the real security boundary is [firestore.rules](firestore.rules)'s `isAdmin()` helper (`request.auth != null && request.auth.token.admin == true`), used on `diagnosisContent` writes and on `diagnosisHistory` reads (`diagnosisHistory` holds real visitor PII — name/birthdate/gender — so unlike `diagnosisContent`, which stays publicly readable since it's shown to anonymous site visitors, it's admin-only in both directions) — a client-side guard alone would just be UI polish, easily bypassed by calling the Firestore SDK directly from devtools; the rule is what actually rejects an unauthorized read/write. `diagnosisHistory` **creates** stay open to anyone, unauthenticated — those are submitted by ordinary site visitors via the diagnosis form, not admins.
 - **Bootstrapping an admin account**: there's no signup UI (`/admin/**` is invite-only by design) — use `npm run admin:create[:emulator] -- --email=... --password=...` ([scripts/createAdminUser.ts](scripts/createAdminUser.ts), mirrors the seed scripts' emulator-vs-real-project branching). Idempotent: re-running just re-asserts the `admin:true` claim without touching the password unless `--reset-password` is also passed. Custom claims only take effect on the user's *next* ID-token refresh — sign out/in again after granting.
-- **General end-user auth is a separate, independent system** from all of the above — see "General-user authentication" above. It shares the same Firebase `$auth` instance and the same [utils/authReady.ts](utils/authReady.ts)/singleton-subscription pattern, but has no custom claims, no admin middleware involvement (`middleware/admin-auth.global.ts` only ever looks at `/admin/**` paths), and doesn't touch `useMembership`. Because the app has a single shared Auth instance, a browser tab can only be signed in as one Firebase user at a time — general and admin sessions don't coexist, same as before this was added.
+- **General end-user auth is a separate, independent system** from all of the above — see "General-user authentication" above. It shares the same Firebase `$auth` instance and the same [utils/authReady.ts](utils/authReady.ts)/singleton-subscription pattern, but has no custom claims and no admin middleware involvement (`middleware/admin-auth.global.ts` only ever looks at `/admin/**` paths). Because the app has a single shared Auth instance, a browser tab can only be signed in as one Firebase user at a time — general and admin sessions don't coexist, same as before this was added.
 
 ### Firebase config
 Firebase web config is read from `NUXT_PUBLIC_FIREBASE_*` env vars in [nuxt.config.ts](nuxt.config.ts) `runtimeConfig.public.firebase`, with the actual project's values hardcoded as fallback defaults (not secret — this is the public web SDK config, safe to expose client-side, and since there's no server, it's baked into the client bundle at `npm run generate` time rather than read at request time). The Firebase project is `mayachannel-34fd5` (see [.firebaserc](.firebaserc)). `FIREBASE_SERVICE_ACCOUNT_KEY` (in the gitignored `.env`, generated manually from Firebase Console → Project Settings → Service Accounts) holds the Admin SDK credential used **only** by local, never-deployed scripts — the seed scripts and [scripts/createAdminUser.ts](scripts/createAdminUser.ts) — read directly via `tsx --env-file=.env`, not through Nuxt's `runtimeConfig`.
@@ -343,6 +384,7 @@ the app:
 ```bash
 npx firebase deploy --only firestore:rules
 npm run migrate:premium            # 移行が必要なときだけ。--dry-run で件数を先に確認できる
+npm run backfill:public-teams      # publicTeams 導入時に一度だけ。--dry-run 可
 npm run generate && npx firebase deploy --only hosting
 ```
 
@@ -350,3 +392,26 @@ Migrating first would move documents into a collection that has no rule yet, and
 `match /{document=**} { allow read, write: if false }` would make them unreadable to everyone —
 admins included — until the rules land. Between the migration and the app deploy the live site
 degrades gracefully (paid sections just don't render); it never leaks.
+
+## Payment roadmap (Phase 2)
+Agreed on 2026-09-17; Phase 1 (tiers, `/plans`, referral signup, `from`, page-wide char count) is implemented.
+Prices are tax-included.
+
+- **有料会員(サブスク)** ￥5,500/月: reads everything.
+- **記事の単体購入** ￥550 (one-off), unit = one KIN. Buying KIN N unlocks: `/result` for KIN N in full
+  (太陽の紋章 and ウェイブスペル premium items + the KIN letter), `/kin/N/detail`, and — only when opened with a
+  valid `from=N` — the 4 relation pages and the 5 destiny-number pages linked from KIN N's result. Purchases
+  require being signed in. Suspension overrides purchases.
+- **有料会員(紹介)** stays as today: in a team ⇒ reads everything.
+- **Infrastructure**: Stripe Checkout needs a webhook, which needs a server — the plan is Firebase Blaze +
+  Cloud Functions (Checkout session creation, webhook, Customer Portal). Only the server writes
+  `users/{uid}.plan = 'paid'` and purchase records `users/{uid}/purchases/kin-{N}`.
+- **Rules**: a purchase record carries the content document IDs it unlocks (`kin-N`, the sun/wavespell and 4
+  relation `character-*`, the 5 destiny `kin-*`), because rules cannot iterate purchases. `isEntitled()` becomes
+  "not suspended && (plan == 'paid' || teamId != null || this doc ID is in a purchase)", mirrored in
+  `useEntitlement` — which must then decide per page (by the page's KIN / validated `from`), not globally.
+  Because `character-*` documents are shared by several KINs, Firestore read access will be somewhat wider than
+  what the UI unlocks; that was accepted.
+- **Also needed then**: add `'paid'` to `SELECTABLE_USER_STATUSES`, replace `planAction()` in `/plans`,
+  change the free tier to "free area + purchased KINs" in copy.
+- **Still undecided**: behaviour after cancelling (e.g. readable until period end), 特定商取引法に基づく表記, refund policy.

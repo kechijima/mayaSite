@@ -2,31 +2,35 @@ import { doc, updateDoc, type Firestore } from 'firebase/firestore'
 
 // 会員ステータスの読み替えと変更。/admin/users から使う。
 //
-// ステータスは users ドキュメントの2つのフィールドから導出する:
+// ステータスは保存せず、users ドキュメントのフィールドから導出する(上から順に判定):
 //   suspended: true  → 利用停止（有料エリアが閲覧できない）
-//   plan: 'paid'     → 有料会員
+//   plan: 'paid'     → 有料会員(サブスク) — 決済導入後にサーバーが付与する
+//   teamId != null   → 有料会員(紹介) — チームに所属している間だけ
 //   それ以外          → 無料会員
 //
-// チーム所属(teamId)はここには入らない。2026-09-09に「紹介コードは誰の紹介で入会したかの
-// 記録であって、閲覧可否には影響しない」と整理したため、所属の出し入れは /admin/teams、
-// 閲覧可否の操作はこちら、と役割を分けている。
+// 有料会員(紹介)は選択肢ではなく表示専用。所属の出し入れは /admin/teams で行い、
+// チームから外せば自動的に無料会員に戻る(管理者が追加したメンバーも同じ扱い)。
+// こちらで操作するのは利用停止の付け外しだけ、と役割を分けている。
 
-export type UserStatus = 'suspended' | 'paid' | 'free'
+export type UserStatus = 'suspended' | 'paid' | 'referral' | 'free'
 
 export interface UserStatusFields {
   plan?: string
   suspended?: boolean
+  teamId?: string | null
 }
 
 export function userStatus(data: UserStatusFields): UserStatus {
   if (data.suspended === true) return 'suspended'
   if (data.plan === 'paid') return 'paid'
+  if (data.teamId) return 'referral'
   return 'free'
 }
 
 export const USER_STATUS_LABEL: Record<UserStatus, string> = {
   free: '無料会員',
-  paid: '有料会員',
+  referral: '有料会員(紹介)',
+  paid: '有料会員(サブスク)',
   suspended: '利用停止'
 }
 
@@ -37,12 +41,14 @@ export const SELECTABLE_USER_STATUSES: UserStatus[] = ['free', 'suspended']
 
 export const USER_STATUS_NOTE: Record<UserStatus, string> = {
   free: '有料エリアを閲覧できます。',
+  referral: 'チームに所属しているため有料会員です。無料会員に戻す場合はチーム管理からチームを外してください。',
   paid: '有料エリアを閲覧できます。決済済みの会員です。',
   suspended: '有料エリアを閲覧できません。無料の診断はこれまで通りご利用いただけます。本人が紹介コードを入力しても解除されません。'
 }
 
 // 利用停止は suspended、有料化は plan で表す。片方だけを書き換えると
 // 「停止中の有料会員」のような読みにくい状態が残るので、常に両方を確定させる。
+// 'referral' はチーム所属から導出されるので、ここでは書き込まない(plan は 'free' になる)。
 export async function setUserStatus(firestore: Firestore, uid: string, status: UserStatus) {
   await updateDoc(doc(firestore, 'users', uid), {
     suspended: status === 'suspended',

@@ -11,11 +11,6 @@ import { waitForImages } from '~/utils/waitForImages'
 
 const route = useRoute()
 const { user } = useAuth()
-// 有料エリアの各LockedVeilに渡す遷移先。未ログインなら/signup(登録フォームに紹介コード欄が
-// ある)、ログイン済みなら/account(後追い入力欄)へ — ログイン済みの人を/signupへ送ると
-// 「既にログイン済み」と判定されて即座に戻され、行き止まりになるため(composables/useUnlockLink.ts)。
-const signupRedirectTo = useUnlockLink()
-
 const input = computed(() => {
   const genderQuery = route.query.gender as string | undefined
   return {
@@ -25,6 +20,8 @@ const input = computed(() => {
   }
 })
 const { result } = useDiagnosis(input)
+// 有料エリアの各LockedVeilに渡す遷移先 = 購入プラン選択(/plans)。単体購入の対象は表示中のKIN。
+const plansLink = usePlansLink(() => result.value.kin)
 
 const content = useDiagnosisContent({
   sealIndex: computed(() => result.value.sealIndex),
@@ -146,6 +143,16 @@ const wavespellOtherFreeProfileSections = computed(() => excludingLabel(wavespel
 const kinHasMore = computed(() => content.kinHasMore.value)
 const kinLetterLocked = computed(() => kinHasMore.value && !content.kinRestText.value)
 const kinPremiumChars = computed(() => content.kinPremiumCharCount.value)
+// ページ内で隠れている有料エリアの文字数の合計。全てのLockedVeilに同じ値を出す。
+// 足すのは「実際にLockedVeilが表示されている箇所」だけなので、各veilの v-if と同じ条件で数える。
+// 太陽の紋章とウェイブスペルが同じ紋章(音1のKIN)でも、画面上は2箇所に出ているので両方足す。
+const lockedTotalChars = computed(() => {
+  if (!entitlementSettled.value) return 0
+  let total = 0
+  if (!deepUnlocked.value) total += sunPremiumChars.value + wavespellPremiumChars.value
+  if (kinText.value && kinLetterLocked.value) total += kinPremiumChars.value
+  return total
+})
 const kinLetterFull = computed(() => {
   if (!kinText.value) return ''
   // 権限があれば分割前の原文をそのまま復元する(splitKinTextはtrimしていない)。
@@ -383,7 +390,7 @@ async function shareResult() {
         <!-- 有料項目はまとめて1つのモザイクに入れる(項目ごとに小さなロック箱を並べるより、
              「この分量の続きがある」ことが伝わるため)。参考: kinoshita-reon.jp -->
         <ProfileBlocks v-if="deepUnlocked" :sections="sunPremiumProfileSections" />
-        <LockedVeil v-else-if="entitlementSettled && sunPremiumChars" :to="signupRedirectTo" :remaining-chars="sunPremiumChars" />
+        <LockedVeil v-else-if="entitlementSettled && sunPremiumChars" :to="plansLink" :total-chars="lockedTotalChars" />
       </section>
 
       <!-- ウェイブスペル -->
@@ -426,7 +433,7 @@ async function shareResult() {
         <ProfileBlocks :sections="wavespellOtherFreeProfileSections" />
 
         <ProfileBlocks v-if="deepUnlocked" :sections="wavespellPremiumProfileSections" />
-        <LockedVeil v-else-if="entitlementSettled && wavespellPremiumChars" :to="signupRedirectTo" :remaining-chars="wavespellPremiumChars" />
+        <LockedVeil v-else-if="entitlementSettled && wavespellPremiumChars" :to="plansLink" :total-chars="lockedTotalChars" />
       </section>
 
       <!-- 銀河の音 -->
@@ -465,7 +472,7 @@ async function shareResult() {
       <section v-if="kinText" class="section">
         <SectionDivider :label="`KIN${result.kin}のあなたへ`" eyebrow="紋章や音を超えた、あなたへの言葉" numeric />
         <p class="kinletter">{{ kinLetterFree }}</p>
-        <LockedVeil v-if="entitlementSettled && kinLetterLocked" class="kinletter-gate" :to="signupRedirectTo" :remaining-chars="kinPremiumChars" />
+        <LockedVeil v-if="entitlementSettled && kinLetterLocked" class="kinletter-gate" :to="plansLink" :total-chars="lockedTotalChars" />
 
         <!-- 同じKINを持つ有名人。有料エリアより後ろに置き、無料/有料を問わず全件表示する。 -->
         <div v-if="kinCelebrities.length" class="block">
@@ -489,7 +496,7 @@ async function shareResult() {
               <h3 class="font-display relcard__name">{{ r.seal.name }}</h3>
               <p class="relcard__desc">{{ RELATION_DESCRIPTION[r.label] }}</p>
               <NuxtLink
-                :to="{ path: `/kin/${r.seal.index}`, query: { label: r.label, name: result.name, birth: input.birthdate, gender: result.gender } }"
+                :to="{ path: `/kin/${r.seal.index}`, query: { label: r.label, from: result.kin, name: result.name, birth: input.birthdate, gender: result.gender } }"
                 class="relcard__cta"
               ><span class="relcard__cta-icon"><svg><use href="#i-search" /></svg></span>詳しく見る</NuxtLink>
             </div>
@@ -503,7 +510,7 @@ async function shareResult() {
         <div class="numrow">
           <div v-for="d in destinyNumbers" :key="d.label" class="numcell">
             <NuxtLink
-              :to="{ path: `/kin/${d.kin}/detail`, query: { name: result.name, birth: input.birthdate, gender: result.gender } }"
+              :to="{ path: `/kin/${d.kin}/detail`, query: { from: result.kin, name: result.name, birth: input.birthdate, gender: result.gender } }"
               class="numcell__link"
             >
               <GoldMedal :value="d.kin" :size="68" :num-font-size="20" />

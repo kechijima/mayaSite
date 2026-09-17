@@ -22,7 +22,7 @@ export function useAuth() {
   return { user, ready }
 }
 
-// updateProfile()(pages/signup.vueのdisplayName設定など)はサインイン状態そのものを
+// updateProfile()(composables/useSignupForm.tsのdisplayName設定など)はサインイン状態そのものを
 // 変えないため onAuthStateChanged を再発火させない。userは同一オブジェクト参照のまま
 // 中身だけ書き換わるので、Vueのreactivityは変化に気づけない — updateProfile直後に
 // 呼び出し側からこれを呼び、SiteHeaderの表示名などを明示的に再評価させる。

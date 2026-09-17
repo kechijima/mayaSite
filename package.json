@@ -22,6 +22,8 @@
     "cleanup:legacy-content:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/deleteLegacyContent.ts",
     "backfill:caution-split": "tsx --env-file=.env scripts/backfillCautionSplit.ts",
     "backfill:caution-split:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/backfillCautionSplit.ts",
+    "backfill:public-teams": "tsx --env-file=.env scripts/backfillPublicTeams.ts",
+    "backfill:public-teams:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/backfillPublicTeams.ts",
     "migrate:bulletFields": "tsx --env-file=.env scripts/migrateBulletFields.ts",
     "migrate:bulletFields:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/migrateBulletFields.ts",
     "migrate:premium": "tsx --env-file=.env scripts/splitPremiumContent.ts",
