@@ -194,11 +194,12 @@ function editAgain() {
             <div v-for="pair in result.pairs" :key="pair.key" class="rounded-xl p-5" style="border: 1px solid var(--gold-line-soft); background: var(--paper-panel); box-shadow: var(--shadow);">
               <h3 class="mb-4 font-display text-[17px]" style="color: var(--ink);">{{ pair.a.name }} × {{ pair.b.name }}</h3>
 
-              <div v-for="dir in [pair.forward, pair.backward]" :key="`${dir.from.id}-${dir.to.id}`" class="mb-4">
+              <!-- 当てはまる関係が無い向きは、見出しごと出さない(要望による)。 -->
+              <div v-for="dir in [pair.forward, pair.backward].filter((d) => d.rows.length)" :key="`${dir.from.id}-${dir.to.id}`" class="mb-4">
                 <div class="mb-2 text-[11px] font-bold tracking-[.08em]" style="color: var(--gold-deep);">{{ dir.from.name }}さんから見た{{ dir.to.name }}さん</div>
                 <!-- 当てはまる関係ごとに、アーキタイプのアイコン同士と関係のチップを出す。
                      絶対反対KINのカードだけ赤で出す(要望による)。 -->
-                <div v-if="dir.rows.length" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div
                     v-for="(row, i) in dir.rows"
                     :key="i"
@@ -229,10 +230,10 @@ function editAgain() {
                     >{{ row.label }}</span>
                   </div>
                 </div>
-                <p v-else class="rounded-lg px-3.5 py-2.5 text-[12.5px]" style="border: 1px dashed var(--gold-line-soft); color: var(--ink-faint);">該当なし</p>
               </div>
 
-              <div class="rounded-lg px-3.5 py-4 text-center" style="border: 1px solid var(--gold-line-soft); background: var(--paper);">
+              <!-- 運命数字も当てはまるときだけ出す。 -->
+              <div v-if="pair.destinyRelation" class="rounded-lg px-3.5 py-4 text-center" style="border: 1px solid var(--gold-line-soft); background: var(--paper);">
                 <span class="text-[10.5px] tracking-[.04em]" style="color: var(--ink-faint);">運命数字</span>
 
                 <div class="mt-2 flex items-center justify-center gap-3">
@@ -247,18 +248,23 @@ function editAgain() {
                   </div>
                 </div>
 
-                <span
-                  class="mt-2.5 inline-block rounded-full px-2.5 py-1 text-[11.5px] font-bold"
-                  :style="pair.destinyRelation
-                    ? { background: 'var(--gold)', color: '#241a06' }
-                    : { border: '1px solid var(--gold-line-soft)', color: 'var(--ink-faint)' }"
-                >
-                  {{ pair.destinyRelationLabel ?? '特になし' }}
+                <span class="mt-2.5 inline-block rounded-full px-2.5 py-1 text-[11.5px] font-bold" style="background: var(--gold); color: #241a06;">
+                  {{ pair.destinyRelationLabel }}
                 </span>
-                <p v-if="pair.destinyRelation" class="mt-2 text-left text-[12px] leading-[1.7]" style="color: var(--ink-soft);">
+                <p class="mt-2 text-left text-[12px] leading-[1.7]" style="color: var(--ink-soft);">
                   {{ DESTINY_RELATION_CONTENT[pair.destinyRelation].text }}
                 </p>
               </div>
+
+              <!-- どちらの向きにも関係が無く、運命数字も当てはまらない組み合わせ。カードごと消すと
+                   診断し忘れたように見えるので、該当が無かったことを明示する。 -->
+              <p
+                v-if="!pair.forward.rows.length && !pair.backward.rows.length && !pair.destinyRelation"
+                class="rounded-lg px-3.5 py-4 text-center text-[12.5px] leading-[1.8]"
+                style="border: 1px dashed var(--gold-line-soft); color: var(--ink-faint);"
+              >
+                この組み合わせには、ガイドKIN・神秘KIN・反対KIN・類似KIN・鏡の向こうの自分KIN・絶対反対KIN、<br class="hidden sm:inline" />運命数字のいずれにも当てはまる関係はありませんでした。
+              </p>
             </div>
           </div>
         </section>

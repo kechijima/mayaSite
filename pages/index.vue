@@ -125,8 +125,8 @@ const todayLabel = computed(() => `${today.getFullYear()}年${today.getMonth() +
           <p class="mb-4 text-[13px]" style="color: var(--ink-soft);">パートナーや友人の生年月日を入れるだけで、紋章の組み合わせから相性を読み解きます。</p>
           <NuxtLink
             to="/compatibility"
-            class="inline-block rounded-full px-6.5 py-2.5 text-[13.5px] font-semibold"
-            style="border: 1px solid var(--gold); color: var(--gold-deep);"
+            class="inline-block rounded-full px-8 py-3 text-[14px] font-bold tracking-[.03em]"
+            style="background: var(--gold); color: #241a06;"
           >
             相性診断をはじめる
           </NuxtLink>
