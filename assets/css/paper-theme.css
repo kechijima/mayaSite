@@ -660,7 +660,7 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 /* 入力欄の並び。基本は1列。会員登録フォーム(.signupform)の中だけ、PC幅で2列にして
    1画面に収める(フッターを出さない .paper-page--focus と組み合わせてスクロールを無くすため)。 */
 .formgrid { display: grid; gap: 12px; }
-.signupwrap { max-width: 440px; margin: 20px auto 0; }
+.signupwrap { max-width: 440px; margin: 40px auto 0; }
 .signupform { display: flex; flex-direction: column; gap: 12px; }
 .signupform .btn-gold { margin-top: 6px; width: 100%; }
 @media (min-width: 768px) {

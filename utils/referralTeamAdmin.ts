@@ -148,7 +148,7 @@ export async function findUserByEmail(firestore: Firestore, email: string) {
 // 自分で入力した会員と区別する(この経路では referralCodeId は付けない — 管理者追加の
 // メンバーにコードを知らせないため)。referralRedeemedAt は「一度でも所属したか」の記録。
 //
-// チームに所属している間は有料会員(紹介)として扱われる(utils/userAdmin.ts の userStatus)。
+// チームに所属している間はチーム会員として扱われる(utils/userAdmin.ts の userStatus)。
 // 管理者が追加したメンバーも同じ扱い。
 export async function addMember(firestore: Firestore, uid: string, teamId: string, teamName: string) {
   const batch = writeBatch(firestore)
@@ -161,7 +161,7 @@ export async function addMember(firestore: Firestore, uid: string, teamId: strin
   await batch.commit()
 }
 
-// チームから外す。外すと有料会員(紹介)ではなくなり、無料会員に戻る
+// チームから外す。外すとチーム会員ではなくなり、無料会員に戻る
 // (利用停止にしたい場合は /admin/users で「利用停止」にする)。
 // referralCodeId と referralRedeemedAt は「いつ・どのコードで所属したことがあるか」の
 // 履歴として残す。外された本人は、コードを知っていれば入力し直して再び所属できる。

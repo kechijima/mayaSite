@@ -3,7 +3,7 @@ import { buildSignupLink } from '~/utils/signupLink'
 
 // 紹介コード付きの会員登録。通常の項目に加えてチーム選択と紹介コードを入力してもらい、
 // 選んだチームのコードであれば、そのチームに所属した状態でアカウントを作る。
-// チーム所属中は有料会員(紹介)として扱われる(utils/userAdmin.ts の userStatus)。
+// チーム所属中はチーム会員として扱われる(utils/userAdmin.ts の userStatus)。
 //
 // チーム・コードは必須。コードなしで登録したい人は pages/signup/index.vue へ案内する。
 // 実際の検証は firestore.rules の redeemsCode が users への書き込み時に行う
@@ -38,7 +38,7 @@ async function submit() {
       <div class="masthead masthead--plain">
         <span class="masthead__eyebrow">MEMBERSHIP</span>
         <h1 class="font-display masthead__title">紹介コードで会員登録</h1>
-        <p class="masthead__sub">チームと紹介コードを入力してご登録ください。ご登録後は有料会員として、すべての診断結果をご覧いただけます。</p>
+        <p class="masthead__sub">チームと紹介コードを入力してご登録ください。ご登録後はチーム会員として、すべての診断結果をご覧いただけます。</p>
       </div>
 
       <div class="signupwrap">
@@ -58,7 +58,7 @@ async function submit() {
             class="btn-gold"
             :disabled="submitting || !referral.selectedTeamId.value || !referral.code.value"
           >
-            {{ submitting ? '登録中…' : '有料会員として登録する' }}
+            {{ submitting ? '登録中…' : 'チーム会員として登録する' }}
           </button>
         </form>
 

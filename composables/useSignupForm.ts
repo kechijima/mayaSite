@@ -5,7 +5,7 @@ import { safeRedirect } from '~/utils/signupLink'
 import type { useReferralCodeInput } from '~/composables/useReferralCodeInput'
 
 // 会員登録フォームの共通処理。pages/signup/index.vue(通常登録 → 無料会員)と
-// pages/signup/referral.vue(紹介コード付き登録 → チーム所属 = 有料会員(紹介))で共用する。
+// pages/signup/referral.vue(紹介コード付き登録 → チーム所属 = チーム会員)で共用する。
 // 2つのページの違いは「紹介コードを渡すかどうか」だけで、アカウント作成から
 // usersドキュメントの作成、遷移までの流れは同じ。
 export function useSignupForm() {
@@ -77,9 +77,9 @@ export function useSignupForm() {
         await updateProfile(credential.user, { displayName: name.value })
         // useAuth()のuserにdisplayNameの変更を反映させる(composables/useAuth.tsのrefreshUser参照)。
         refreshUser()
-        // plan は 'free' 固定で作成する。有料会員(サブスク)の付与は決済導入後にサーバーが行い、
+        // plan は 'free' 固定で作成する。有料会員の付与は決済導入後にサーバーが行い、
         // firestore.rules でも本人による 'paid' の自己申告はできないようにしている。
-        // 紹介コードで登録した人の「有料会員(紹介)」は plan ではなく teamId から導出される。
+        // 紹介コードで登録した人の「チーム会員」は plan ではなく teamId から導出される。
         const baseProfile = {
           name: name.value,
           phone: phone.value,

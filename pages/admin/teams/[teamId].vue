@@ -309,7 +309,7 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
         <div class="w-full max-w-[440px] rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
           <h2 class="mb-3 text-base font-bold">{{ removeTarget.name || removeTarget.email }} をチームから外しますか？</h2>
           <p class="mb-5 text-[13px] leading-[1.8] text-slate-600 dark:text-slate-300">
-            この会員の<strong>所属が解除され、有料会員（紹介）から無料会員に戻ります</strong>。
+            この会員の<strong>所属が解除され、チーム会員から無料会員に戻ります</strong>。
             利用そのものを止めたい場合は、ユーザー管理でその会員を「利用停止」にしてください。
             なお紹介コードをご存じの場合は、本人が入力し直して再び所属できます。
           </p>
