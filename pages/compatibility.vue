@@ -8,13 +8,12 @@ import { DESTINY_RELATION_CONTENT } from '~/utils/destinyCompatibility'
 function attributeLabel(attr: SealAttribute) {
   return attr === 'sun' ? '太陽の紋章' : 'ウェイブスペル'
 }
-// 行に出す紋章の補足。紋章同士の関係はどちらの紋章かを添える(音1のKINは太陽の紋章とウェイブスペルが
-// 同じ紋章で、同じ関係が2行出るため、ラベルが無いと同じ行が並んでいるように見える)。
-// 鏡の向こうの自分KIN・絶対反対KINはKIN番号同士の関係なので紋章名だけ。
-function sealNote(row: RelationRow, side: 'from' | 'to') {
-  const name = side === 'from' ? row.fromSealName : row.toSealName
-  if (isKinLevelRelation(row.type)) return name
-  return `${name}・${attributeLabel(side === 'from' ? row.fromAttribute : row.toAttribute)}`
+// カード上部の小見出し。紋章同士の関係はどちらの紋章同士かを出す(音1のKINは太陽の紋章とウェイブスペルが
+// 同じ紋章で、同じ関係のカードが2枚出るため、これが無いと同じカードが並んでいるように見える)。
+// 鏡の向こうの自分KIN・絶対反対KINはKIN番号同士の関係なのでKIN番号を出す。
+function cardCaption(row: RelationRow, from: { name: string; kin: number }, to: { name: string; kin: number }) {
+  if (isKinLevelRelation(row.type)) return `KIN${from.kin}（${from.name}） × KIN${to.kin}（${to.name}）`
+  return `${attributeLabel(row.fromAttribute)}（${from.name}） × ${attributeLabel(row.toAttribute)}（${to.name}）`
 }
 
 // 2026-09-17: 診断結果ページからの遷移時に名前・生年月日・性別を自動入力していたのをやめた
@@ -197,28 +196,39 @@ function editAgain() {
 
               <div v-for="dir in [pair.forward, pair.backward]" :key="`${dir.from.id}-${dir.to.id}`" class="mb-4">
                 <div class="mb-2 text-[11px] font-bold tracking-[.08em]" style="color: var(--gold-deep);">{{ dir.from.name }}さんから見た{{ dir.to.name }}さん</div>
-                <ul v-if="dir.rows.length" class="space-y-2">
-                  <!-- 絶対反対KINの行だけ赤で出す(要望による)。 -->
-                  <li
+                <!-- 当てはまる関係ごとに、アーキタイプのアイコン同士と関係のチップを出す。
+                     絶対反対KINのカードだけ赤で出す(要望による)。 -->
+                <div v-if="dir.rows.length" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div
                     v-for="(row, i) in dir.rows"
                     :key="i"
-                    class="flex flex-col items-start gap-1.5 rounded-lg px-3.5 py-2.5 text-[12.5px] leading-[1.7] sm:flex-row sm:items-center sm:gap-3"
+                    class="rounded-lg px-3.5 py-4 text-center"
                     :style="row.type === 'absoluteOpposite'
-                      ? { border: '1px solid color-mix(in srgb, var(--seal-red) 45%, transparent)', background: 'color-mix(in srgb, var(--seal-red) 6%, var(--paper))', color: 'var(--seal-red)' }
-                      : { border: '1px solid var(--gold-line-soft)', background: 'var(--paper)', color: 'var(--ink-soft)' }"
+                      ? { border: '1px solid color-mix(in srgb, var(--seal-red) 45%, transparent)', background: 'color-mix(in srgb, var(--seal-red) 6%, var(--paper))' }
+                      : { border: '1px solid var(--gold-line-soft)', background: 'var(--paper)' }"
                   >
-                    <span class="sm:min-w-0 sm:flex-1">
-                      KIN{{ dir.from.kin }} {{ dir.from.name }}さん（{{ sealNote(row, 'from') }}）から見て
-                      KIN{{ dir.to.kin }} {{ dir.to.name }}さん（{{ sealNote(row, 'to') }}）は
-                    </span>
+                    <span class="text-[10.5px] tracking-[.04em]" style="color: var(--ink-faint);">{{ cardCaption(row, dir.from, dir.to) }}</span>
+
+                    <div class="mt-2 flex items-center justify-center gap-3">
+                      <div class="flex flex-col items-center gap-1">
+                        <MayaGlyph :seal-index="row.fromSealIndex" size="md" />
+                        <span class="text-[12px] font-semibold">{{ row.fromSealName }}</span>
+                      </div>
+                      <span class="text-[13px]" style="color: var(--gold-deep);">×</span>
+                      <div class="flex flex-col items-center gap-1">
+                        <MayaGlyph :seal-index="row.toSealIndex" size="md" />
+                        <span class="text-[12px] font-semibold">{{ row.toSealName }}</span>
+                      </div>
+                    </div>
+
                     <span
-                      class="shrink-0 rounded-full px-2.5 py-0.5 text-[11.5px] font-bold"
+                      class="mt-2.5 inline-block rounded-full px-2.5 py-0.5 text-[11.5px] font-bold"
                       :style="row.type === 'absoluteOpposite'
                         ? { background: 'var(--seal-red)', color: '#fff6f2' }
                         : { border: '1px solid var(--gold)', color: 'var(--gold-deep)' }"
                     >{{ row.label }}</span>
-                  </li>
-                </ul>
+                  </div>
+                </div>
                 <p v-else class="rounded-lg px-3.5 py-2.5 text-[12.5px]" style="border: 1px dashed var(--gold-line-soft); color: var(--ink-faint);">該当なし</p>
               </div>
 
