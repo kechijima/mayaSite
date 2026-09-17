@@ -18,7 +18,7 @@ export interface EntitlementProfile {
   name?: string
   birthdate?: string
   gender?: string
-  // 所属チーム。所属中は有料会員(紹介)として扱われる(utils/userAdmin.ts)。
+  // 所属チーム。所属中はチーム会員として扱われる(utils/userAdmin.ts)。
   // 現在(決済導入前)は会員全員が有料エリアを閲覧できるので、閲覧可否にはまだ影響しない。
   teamId: string | null
   // 所属チーム名。referralTeams は管理者専用で、管理者に追加されたメンバーはコードも

@@ -30,7 +30,7 @@ const seal = computed(() => (sealIndex.value !== null ? SEALS[sealIndex.value] :
 // URLは書き換えられるので、検証しないと1つのKINの購入で任意の紋章を開けてしまう。
 // 決済導入後は「from のKINを単体購入済みなら、この関係性ページも解放」の判定に使う。現在は
 // 購入プラン選択(/plans)にどのKINの記事を案内するかにだけ使っている。紋章そのものは
-// 購入単位ではないので、from が無ければ単体購入は案内しない(有料会員のみ)。
+// 購入単位ではないので、from が無ければ単体購入は案内しない(有料会員・チーム会員のみ)。
 const sourceKin = computed(() => {
   const from = parseKin(route.query.from)
   return from !== null && sealIndex.value !== null && relationSealIndices(from).includes(sealIndex.value) ? from : null

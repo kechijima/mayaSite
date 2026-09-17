@@ -3,7 +3,7 @@ import { doc, updateDoc, type Firestore } from 'firebase/firestore'
 import { safeRedirect } from '~/utils/signupLink'
 
 // 紹介コードの後追い入力ページ。既に会員登録済みの人がチームとコードを入力すると、
-// そのチームに所属し有料会員(紹介)になる。新規登録と同時に入力する場合は pages/signup/referral.vue。
+// そのチームに所属しチーム会員になる。新規登録と同時に入力する場合は pages/signup/referral.vue。
 // 契約状況・解約の表示は決済導入時に改めて設計する。
 const { user, ready: authReady } = useAuth()
 const { profile, settled, suspended, refresh: refreshEntitlement } = useEntitlement()
@@ -88,7 +88,7 @@ async function submitCode() {
         <h1 class="font-display masthead__title">紹介コード入力</h1>
       </div>
 
-      <div class="mx-auto mt-5 max-w-[560px]">
+      <div class="mx-auto mt-10 max-w-[560px]">
         <section class="panel">
           <p v-if="!authReady" class="text-[13.5px]" style="color: var(--ink-faint);">読み込み中…</p>
 
@@ -116,7 +116,7 @@ async function submitCode() {
               {{ profile?.teamName || 'チーム' }}に所属しています
             </p>
             <p class="mb-2 text-[13px]" style="color: var(--ink-soft);">
-              有料会員（紹介）として、すべての診断結果をご覧いただけます。
+              チーム会員として、すべての診断結果をご覧いただけます。
             </p>
             <p class="text-[12.5px]" style="color: var(--ink-faint);">
               変更をご希望の場合はお問い合わせください。
@@ -129,7 +129,7 @@ async function submitCode() {
               現在どのチームにも所属していません。紹介コードをお持ちの方はご登録ください。
             </p>
             <p v-else class="mb-3.5 text-[13.5px] leading-[1.9]" style="color: var(--ink-soft);">
-              ご紹介いただいたチームと紹介コードをご登録いただくと、有料会員としてすべての診断結果をご覧いただけます。
+              ご紹介いただいたチームと紹介コードをご登録いただくと、チーム会員としてすべての診断結果をご覧いただけます。
             </p>
             <form class="space-y-3" @submit.prevent="submitCode">
               <!-- 照合メッセージとエラーは部品内の1つの枠にまとめ、空でも1行分の高さを確保している。 -->

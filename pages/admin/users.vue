@@ -136,10 +136,10 @@ function openDetail(row: UserRow) {
 
 // 有料会員は決済導入後に解禁するが、既に 'paid' の会員を開いたときは
 // その選択肢も出す(出さないと現在の状態を表せなくなるため)。
-// チーム所属中の会員は「利用停止でない」状態が有料会員(紹介)になるので、
+// チーム所属中の会員は「利用停止でない」状態がチーム会員になるので、
 // 無料会員の代わりにそれを出す — 無料会員を選べても所属がある限り紹介のままになるため。
 const statusOptions = computed<UserStatus[]>(() => {
-  const base = SELECTABLE_USER_STATUSES.map((s) => (s === 'free' && selected.value?.teamId ? 'referral' : s))
+  const base = SELECTABLE_USER_STATUSES.map((s) => (s === 'free' && selected.value?.teamId ? 'team' : s))
   if (selected.value && !base.includes(selected.value.status)) base.unshift(selected.value.status)
   return base
 })
@@ -176,7 +176,7 @@ async function applyStatus() {
 function statusChip(status: UserStatus) {
   if (status === 'suspended') return 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400'
   if (status === 'paid') return 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400'
-  if (status === 'referral') return 'bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-400'
+  if (status === 'team') return 'bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-400'
   return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
 }
 
@@ -202,8 +202,8 @@ const { withLoading } = useGlobalLoading()
       <select v-model="statusFilter" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900">
         <option value="all">すべてのステータス</option>
         <option value="free">無料会員</option>
-        <option value="referral">有料会員(紹介)</option>
-        <option value="paid">有料会員(サブスク)</option>
+        <option value="team">チーム会員</option>
+        <option value="paid">有料会員</option>
         <option value="suspended">利用停止</option>
       </select>
     </div>
@@ -289,7 +289,7 @@ const { withLoading } = useGlobalLoading()
           </div>
           <p class="mb-3 text-[12px] leading-[1.8] text-slate-500 dark:text-slate-400">{{ USER_STATUS_NOTE[draftStatus] }}</p>
           <p v-if="!statusOptions.includes('paid')" class="mb-3 text-[11.5px] text-slate-400">
-            有料会員(サブスク)は決済機能の導入後に選択できるようになります。
+            有料会員は決済機能の導入後に選択できるようになります。
           </p>
           <div class="flex items-center gap-3">
             <button
@@ -308,7 +308,7 @@ const { withLoading } = useGlobalLoading()
         <p class="rounded-lg border border-slate-200 p-3.5 text-[12px] leading-[1.8] text-slate-500 dark:border-slate-800 dark:text-slate-400">
           所属チームの変更は
           <NuxtLink to="/admin/teams" class="font-semibold text-brass-700 hover:underline dark:text-gold-300">チーム管理</NuxtLink>
-          から行います。チームに所属している間は有料会員(紹介)として扱われ、チームから外すと無料会員に戻ります。
+          から行います。チームに所属している間はチーム会員として扱われ、チームから外すと無料会員に戻ります。
         </p>
 
         <div class="mt-5 flex justify-end">

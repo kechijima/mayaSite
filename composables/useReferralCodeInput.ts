@@ -99,7 +99,7 @@ export function useReferralCodeInput() {
   // users ドキュメントに書き込む紹介系フィールド。Firestoreのルールはこの5項目が
   // 揃っていること、かつ teamId/teamName がコードのドキュメントと一致することを
   // 要求する(firestore.rules の redeemsCode)。
-  // teamId が入ると有料会員(紹介)になる(utils/userAdmin.ts の userStatus)。
+  // teamId が入るとチーム会員になる(utils/userAdmin.ts の userStatus)。
   // teamName はコード文書の値を使う(publicTeams の値ではない)。ルールがコード文書との
   // 完全一致を要求するので、改名の同期中に publicTeams とずれていても登録が通るように。
   function redemptionFields() {

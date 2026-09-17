@@ -2,7 +2,7 @@
 import { buildSignupLink } from '~/utils/signupLink'
 
 // 通常の会員登録。登録すると無料会員になる。
-// 紹介コードでの登録は pages/signup/referral.vue に分けた(そちらはチーム所属 = 有料会員(紹介))。
+// 紹介コードでの登録は pages/signup/referral.vue に分けた(そちらはチーム所属 = チーム会員)。
 // フォームの状態と送信処理は composables/useSignupForm.ts に共通化している。
 const route = useRoute()
 const form = useSignupForm()
