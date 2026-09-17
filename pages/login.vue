@@ -16,7 +16,7 @@ function redirectTarget(): string {
 }
 // NuxtLinkのオブジェクト形式(:to="{ query }")はredirect値中の生の?/&を安全に
 // 再エンコードしてくれない(ネストしたクエリ文字列が壊れる)ため、文字列としてURLを
-// 自前で組み立てる — pages/result.vueのsignupRedirectToと同じ考え方。
+// 自前で組み立てる — utils/signupLink.ts と同じ考え方。
 const signupLink = computed(() =>
   typeof route.query.redirect === 'string' ? `/signup?redirect=${encodeURIComponent(route.query.redirect)}` : '/signup'
 )

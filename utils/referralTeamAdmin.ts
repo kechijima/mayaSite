@@ -14,8 +14,13 @@ import {
 } from 'firebase/firestore'
 import { generateCode, generateTeamId } from '~/utils/referralCode'
 
-// /admin/teams の書き込み処理。チーム作成はドキュメント2件(referralTeams と
-// referralCodes)の同時作成になるため、ページ側に散らさずここへまとめている。
+// /admin/teams の書き込み処理。チーム作成はドキュメント3件(referralTeams・
+// referralCodes・publicTeams)の同時作成になるため、ページ側に散らさずここへまとめている。
+//
+// publicTeams は /signup/referral と /account のチーム選択プルダウン用の公開コピー
+// ({ name, active } だけ)。referralTeams は管理者メモを含むため公開できない。
+// チームの作成・改名・コードの有効/無効切り替えの3か所で必ず一緒に更新する。
+// 既存チームぶんは scripts/backfillPublicTeams.ts で作る。
 // 読み取り権限は firestore.rules で管理者に限定されているので、ここでの操作は
 // すべて管理者セッションでのみ成功する。
 
@@ -62,8 +67,8 @@ export async function createTeam(firestore: Firestore, name: string): Promise<{ 
   const teamId = await pickUnused(firestore, 'referralTeams', generateTeamId)
   const code = await pickUnused(firestore, 'referralCodes', () => generateCode(teamId))
 
-  // 2件を1つのバッチで作る。片方だけ通ると「コードはあるがチームが無い」または
-  // 「チームはあるが誰も入会できない」という中途半端な状態が残るため。
+  // 3件を1つのバッチで作る。一部だけ通ると「コードはあるがチームが無い」「チームはあるが
+  // 誰も入会できない」「プルダウンに出ない」といった中途半端な状態が残るため。
   const batch = writeBatch(firestore)
   batch.set(doc(firestore, 'referralTeams', teamId), {
     name,
@@ -73,6 +78,7 @@ export async function createTeam(firestore: Firestore, name: string): Promise<{ 
     updatedAt: serverTimestamp()
   })
   batch.set(doc(firestore, 'referralCodes', code), { teamId, teamName: name, status: 'active' })
+  batch.set(doc(firestore, 'publicTeams', teamId), { name, active: true })
   await batch.commit()
   return { teamId, code }
 }
@@ -89,9 +95,16 @@ export async function fetchCodeStatus(firestore: Firestore, code: string): Promi
   return snap.exists() ? (snap.data() as ReferralCodeDoc) : null
 }
 
-export async function setCodeStatus(firestore: Firestore, code: string, status: 'active' | 'disabled') {
+// コードを無効にしたチームは、登録ページのプルダウンからも外す(publicTeams.active)。
+// publicTeams は update でなく merge 付き set — 移行前のチームにはまだ存在しないことがあるため。
+export async function setCodeStatus(
+  firestore: Firestore,
+  team: Pick<ReferralTeam, 'id' | 'name' | 'code'>,
+  status: 'active' | 'disabled'
+) {
   const batch = writeBatch(firestore)
-  batch.update(doc(firestore, 'referralCodes', code), { status })
+  batch.update(doc(firestore, 'referralCodes', team.code), { status })
+  batch.set(doc(firestore, 'publicTeams', team.id), { name: team.name, active: status === 'active' }, { merge: true })
   await batch.commit()
 }
 
@@ -135,9 +148,8 @@ export async function findUserByEmail(firestore: Firestore, email: string) {
 // 自分で入力した会員と区別する(この経路では referralCodeId は付けない — 管理者追加の
 // メンバーにコードを知らせないため)。referralRedeemedAt は「一度でも所属したか」の記録。
 //
-// 2026-09-09: チームの出し入れは「誰の紹介で入会したか」の付け替えであって、
-// 有料エリアの閲覧可否には影響しない。閲覧可否は plan/suspended 側で決まり、
-// /admin/users から操作する(utils/userAdmin.ts)。
+// チームに所属している間は有料会員(紹介)として扱われる(utils/userAdmin.ts の userStatus)。
+// 管理者が追加したメンバーも同じ扱い。
 export async function addMember(firestore: Firestore, uid: string, teamId: string, teamName: string) {
   const batch = writeBatch(firestore)
   batch.update(doc(firestore, 'users', uid), {
@@ -149,8 +161,8 @@ export async function addMember(firestore: Firestore, uid: string, teamId: strin
   await batch.commit()
 }
 
-// チームから外す。所属の解除だけで、有料エリアの閲覧可否は変わらない
-// (閲覧を止めたい場合は /admin/users で「利用停止」にする)。
+// チームから外す。外すと有料会員(紹介)ではなくなり、無料会員に戻る
+// (利用停止にしたい場合は /admin/users で「利用停止」にする)。
 // referralCodeId と referralRedeemedAt は「いつ・どのコードで所属したことがあるか」の
 // 履歴として残す。外された本人は、コードを知っていれば入力し直して再び所属できる。
 export async function removeMember(firestore: Firestore, uid: string) {
@@ -163,20 +175,25 @@ export async function removeMember(firestore: Firestore, uid: string) {
   await batch.commit()
 }
 
-// チーム名の変更。表示名は referralTeams・referralCodes・各メンバーの users に
-// 非正規化されているため、3か所すべてを揃える。放置すると /signup の確認表示や
+// チーム名の変更。表示名は referralTeams・referralCodes・publicTeams・各メンバーの users に
+// 非正規化されているため、すべてを揃える。放置すると登録ページのプルダウンや確認表示、
 // /account の所属表示に古い名前が残る。
 export async function renameTeam(firestore: Firestore, team: ReferralTeam, name: string) {
-  const members = await fetchMembers(firestore, team.id)
-  const writes: { ref: ReturnType<typeof doc>; data: Record<string, unknown> }[] = [
+  const [members, code] = await Promise.all([fetchMembers(firestore, team.id), fetchCodeStatus(firestore, team.code)])
+  const writes: { ref: ReturnType<typeof doc>; data: Record<string, unknown>; merge?: boolean }[] = [
     { ref: doc(firestore, 'referralTeams', team.id), data: { name, updatedAt: serverTimestamp() } },
     { ref: doc(firestore, 'referralCodes', team.code), data: { teamName: name } },
+    // 移行前のチームには publicTeams がまだ無いことがあるので merge 付き set。
+    { ref: doc(firestore, 'publicTeams', team.id), data: { name, active: code?.status === 'active' }, merge: true },
     ...members.map((m) => ({ ref: doc(firestore, 'users', m.uid), data: { teamName: name } }))
   ]
   // Firestoreのバッチ上限は500件。メンバー数によっては超えるので分割する。
   for (let start = 0; start < writes.length; start += 400) {
     const batch = writeBatch(firestore)
-    for (const w of writes.slice(start, start + 400)) batch.update(w.ref, w.data)
+    for (const w of writes.slice(start, start + 400)) {
+      if (w.merge) batch.set(w.ref, w.data, { merge: true })
+      else batch.update(w.ref, w.data)
+    }
     await batch.commit()
   }
 }

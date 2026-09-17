@@ -2,7 +2,7 @@
 import { type Firestore } from 'firebase/firestore'
 import dividerSrc from '~/assets/images/optimized/divider.webp'
 import { fetchPublishedDoc, fetchPremiumDoc } from '~/composables/useDiagnosisContent'
-import { kinInfo } from '~/utils/mayaCalc'
+import { destinyKins, kinInfo, parseKin } from '~/utils/mayaCalc'
 import { sealColor } from '~/utils/mayaData'
 import { formatCelebrityBirth } from '~/utils/kinCelebrities'
 
@@ -14,19 +14,24 @@ import { formatCelebrityBirth } from '~/utils/kinCelebrities'
 
 const route = useRoute()
 // 有料エリアの解放条件は composables/useEntitlement.ts に集約している(pages/result.vueと同じ)。
-// ログインだけでは解放されず、チームに所属していることが条件。entitlementSettled は
+// entitlementSettled は
 // 認証復元とusersドキュメント取得の両方が終わったかを表し、LockedVeilはこれが立つまで
 // 出さない — 所属済みの会員に読み込み中の一瞬だけ購入訴求が見えるのを避けるため。
 const { entitled: deepUnlocked, settled: entitlementSettled } = useEntitlement()
-// 有料エリアの各LockedVeilに渡す遷移先。未ログインなら/signup(登録フォームに紹介コード欄が
-// ある)、ログイン済みなら/account(後追い入力欄)へ — ログイン済みの人を/signupへ送ると
-// 「既にログイン済み」と判定されて即座に戻され、行き止まりになるため(composables/useUnlockLink.ts)。
-const signupRedirectTo = useUnlockLink()
 
-const targetKin = computed(() => {
-  const n = Number(route.params.kin)
-  return Number.isInteger(n) && n >= 1 && n <= 260 ? n : null
+const targetKin = computed(() => parseKin(route.params.kin))
+// 遷移元の診断結果ページのKIN(result.vue の運命数字リンクが ?from= に付ける)。
+// このページのKINが本当に from の運命数字5つのどれかである場合だけ採用する — URLは書き換え
+// られるので、検証しないと「購入したKINから来た」ことを装って無関係なKINを開けてしまう。
+// 決済導入後は「from のKINを単体購入済みなら、このページも解放」の判定に使う。現在は
+// 購入プラン選択(/plans)にどのKINの記事を案内するかにだけ使っている。
+const sourceKin = computed(() => {
+  const from = parseKin(route.query.from)
+  return from !== null && targetKin.value !== null && destinyKins(from).includes(targetKin.value) ? from : null
 })
+// 有料エリアのLockedVeilに渡す遷移先 = 購入プラン選択。単体購入の案内は遷移元のKIN、
+// 直接開いた場合はこのKIN自体(KIN N の単体購入で /kin/N/detail も読めるため)。
+const plansLink = usePlansLink(() => sourceKin.value ?? targetKin.value)
 const info = computed(() => (targetKin.value !== null ? kinInfo(targetKin.value) : null))
 const safeSealIndex = computed(() => info.value?.sealIndex ?? 0)
 
@@ -86,7 +91,7 @@ const kinCelebrities = computed(() => kinDoc.value?.free.kinCelebrities ?? [])
 
           <p v-if="kinLetterFree" class="kinletter">{{ kinLetterFree }}</p>
           <p v-else-if="!pending" class="kinletter">このKINの解説文は現在準備中です。</p>
-          <LockedVeil v-if="entitlementSettled && kinLetterLocked" class="kinletter-gate" :to="signupRedirectTo" :remaining-chars="kinPremiumChars" />
+          <LockedVeil v-if="entitlementSettled && kinLetterLocked" class="kinletter-gate" :to="plansLink" :total-chars="kinPremiumChars" />
 
           <div v-if="kinCelebrities.length" class="block">
             <div class="block__head"><svg><use href="#i-trophy" /></svg><h3>同じKINを持つ有名人</h3></div>

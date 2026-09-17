@@ -3,6 +3,7 @@ import { doc, getDoc, type Firestore } from 'firebase/firestore'
 import dividerSrc from '~/assets/images/optimized/divider.webp'
 import { fetchPremiumDoc, type DiagnosisContentDoc } from '~/composables/useDiagnosisContent'
 import { SEALS, sealColor } from '~/utils/mayaData'
+import { parseKin, relationSealIndices } from '~/utils/mayaCalc'
 import { iconFor, freeProfileSections, premiumProfileSections } from '~/utils/profileSections'
 import { RELATION_DESCRIPTION } from '~/utils/kinRelations'
 import { DEFAULT_GENDER, isGender } from '~/utils/gender'
@@ -14,20 +15,27 @@ import { DEFAULT_GENDER, isGender } from '~/utils/gender'
 
 const route = useRoute()
 // 有料エリアの解放条件は composables/useEntitlement.ts に集約している(pages/result.vueと同じ)。
-// ログインだけでは解放されず、チームに所属していることが条件。entitlementSettled は
+// entitlementSettled は
 // 認証復元とusersドキュメント取得の両方が終わったかを表し、LockedVeilはこれが立つまで
 // 出さない — 所属済みの会員に読み込み中の一瞬だけ購入訴求が見えるのを避けるため。
 const { entitled: deepUnlocked, settled: entitlementSettled } = useEntitlement()
-// 有料エリアの各LockedVeilに渡す遷移先。未ログインなら/signup(登録フォームに紹介コード欄が
-// ある)、ログイン済みなら/account(後追い入力欄)へ — ログイン済みの人を/signupへ送ると
-// 「既にログイン済み」と判定されて即座に戻され、行き止まりになるため(composables/useUnlockLink.ts)。
-const signupRedirectTo = useUnlockLink()
 
 const sealIndex = computed(() => {
   const n = Number(route.params.sealIndex)
   return Number.isInteger(n) && n >= 0 && n < SEALS.length ? n : null
 })
 const seal = computed(() => (sealIndex.value !== null ? SEALS[sealIndex.value] : null))
+// 遷移元の診断結果ページのKIN(result.vue の関係性カードが ?from= に付ける)。
+// この紋章が本当に from の関係性4つ(ガイド/神秘/反対/類似)のどれかである場合だけ採用する —
+// URLは書き換えられるので、検証しないと1つのKINの購入で任意の紋章を開けてしまう。
+// 決済導入後は「from のKINを単体購入済みなら、この関係性ページも解放」の判定に使う。現在は
+// 購入プラン選択(/plans)にどのKINの記事を案内するかにだけ使っている。紋章そのものは
+// 購入単位ではないので、from が無ければ単体購入は案内しない(有料会員のみ)。
+const sourceKin = computed(() => {
+  const from = parseKin(route.query.from)
+  return from !== null && sealIndex.value !== null && relationSealIndices(from).includes(sealIndex.value) ? from : null
+})
+const plansLink = usePlansLink(sourceKin)
 // v-ifで seal が存在する分岐でのみ使う、null不可版のインデックス。
 const safeSealIndex = computed(() => sealIndex.value ?? 0)
 
@@ -131,7 +139,7 @@ const premiumChars = computed(() => free.value?.premiumCharCount ?? 0)
           <ProfileBlocks :sections="otherFreeSections" />
 
           <ProfileBlocks v-if="deepUnlocked" :sections="premiumSections" />
-          <LockedVeil v-else-if="entitlementSettled && premiumChars" :to="signupRedirectTo" :remaining-chars="premiumChars" />
+          <LockedVeil v-else-if="entitlementSettled && premiumChars" :to="plansLink" :total-chars="premiumChars" />
         </section>
 
         <div class="mt-8 flex justify-center">

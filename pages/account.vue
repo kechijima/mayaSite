@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { doc, updateDoc, type Firestore } from 'firebase/firestore'
+import { safeRedirect } from '~/utils/signupLink'
 
-// 2026-09-07: 契約状況・解約のモック(useMembershipのlocalStorageフラグを使った
-// プラン表示・解約フロー)を全て削除し、紹介コードの入力専用ページにした。
-// 決済が未実装で「ご契約中のプラン」「次回請求日」「お支払い方法」はいずれも
-// 固定のダミー値であり、実データである紹介コードと並べると利用者が混乱するため。
-// 決済を導入する際は改めて設計する(useMembershipは/checkoutのモックにまだ残っている)。
+// 紹介コードの後追い入力ページ。既に会員登録済みの人がチームとコードを入力すると、
+// そのチームに所属し有料会員(紹介)になる。新規登録と同時に入力する場合は pages/signup/referral.vue。
+// 契約状況・解約の表示は決済導入時に改めて設計する。
 const { user, ready: authReady } = useAuth()
 const { profile, settled, suspended, refresh: refreshEntitlement } = useEntitlement()
 const referral = useReferralCodeInput()
@@ -14,15 +13,10 @@ const { withLoading } = useGlobalLoading()
 const submittingCode = ref(false)
 const codeError = ref('')
 
-// LockedVeilの「続きを購入する」から来た場合、コード登録後に読んでいたページへ戻す
-// (composables/useUnlockLink.ts)。検証は/signup・/loginと同じ — 外部サイトへ飛ばされ
-// ないよう、"/"で始まり"//"で始まらないものだけを受け付ける。
+// 読んでいたページから来た場合(/signup/referral のログイン導線など)、コード登録後にそこへ戻す。
+// 検証は/signup・/loginと同じ(utils/signupLink.ts の safeRedirect)。
 const route = useRoute()
-// LockedVeil から来た場合の戻り先。
-const requestedRedirect = computed(() => {
-  const target = route.query.redirect
-  return typeof target === 'string' && target.startsWith('/') && !target.startsWith('//') ? target : null
-})
+const requestedRedirect = computed(() => safeRedirect(route.query.redirect))
 // /account を直接開いた場合(ヘッダーやブックマークから)は redirect が無い。その場合でも
 // 登録して終わりでは解放されたことが伝わらないので、本人の診断結果ページへ送る。
 // 生年月日は会員登録時に必ず入れてもらっているので users ドキュメントから組み立てられる。
@@ -121,6 +115,9 @@ async function submitCode() {
               <span style="color: var(--gold-deep);">✓</span>
               {{ profile?.teamName || 'チーム' }}に所属しています
             </p>
+            <p class="mb-2 text-[13px]" style="color: var(--ink-soft);">
+              有料会員（紹介）として、すべての診断結果をご覧いただけます。
+            </p>
             <p class="text-[12.5px]" style="color: var(--ink-faint);">
               変更をご希望の場合はお問い合わせください。
             </p>
@@ -132,29 +129,14 @@ async function submitCode() {
               現在どのチームにも所属していません。紹介コードをお持ちの方はご登録ください。
             </p>
             <p v-else class="mb-3.5 text-[13.5px] leading-[1.9]" style="color: var(--ink-soft);">
-              ご紹介いただいた方からお受け取りの紹介コードをご登録いただけます。
+              ご紹介いただいたチームと紹介コードをご登録いただくと、有料会員としてすべての診断結果をご覧いただけます。
             </p>
             <form class="space-y-3" @submit.prevent="submitCode">
-              <input
-                v-model="referral.input.value"
-                type="text"
-                inputmode="latin"
-                autocapitalize="characters"
-                autocomplete="off"
-                placeholder="K7M3QP9XR"
-                class="formfield"
-                style="text-transform: uppercase;"
-                @blur="withLoading(() => referral.validate())"
-              />
-              <!-- 照合メッセージとエラーを1つの枠にまとめ、空でも1行分の高さを確保する。
-                   メッセージの出現でボタンが下へずれると、押した瞬間にクリックが外れる。 -->
-              <p
-                class="min-h-[1.5em] text-[12.5px] leading-[1.5]"
-                :style="{ color: codeError || !referral.isValid.value ? 'var(--seal-red)' : 'var(--gold-deep)' }"
-              >{{ codeError || referral.message.value }}</p>
+              <!-- 照合メッセージとエラーは部品内の1つの枠にまとめ、空でも1行分の高さを確保している。 -->
+              <ReferralCodeFields :referral="referral" :error="codeError" />
               <!-- 入力欄との間を広めに取る。form全体のspace-y-3だと照合メッセージとの間隔まで
                    広がってしまうので、ボタンだけ!mt-で上書きする(pages/index.vueと同じ手法)。 -->
-              <button type="submit" class="btn-gold !mt-7 w-full" :disabled="submittingCode || !referral.code.value">
+              <button type="submit" class="btn-gold !mt-7 w-full" :disabled="submittingCode || !referral.selectedTeamId.value || !referral.code.value">
                 {{ submittingCode ? '登録中…' : '登録する' }}
               </button>
             </form>

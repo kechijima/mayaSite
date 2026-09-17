@@ -6,7 +6,7 @@ import { doc, getDoc, type Firestore } from 'firebase/firestore'
 //
 // 集約しているのは、将来決済を導入したときに「チーム所属者」から「決済した人」へ
 // 切り替える変更を1行で済ませるため。entitled の中身と firestore.rules の
-// isEntitled() を対で書き換えるだけで切り替わる(仕様書10章)。
+// isEntitled() を対で書き換えるだけで切り替わる(CLAUDE.md「Payment roadmap (Phase 2)」)。
 //
 // 判定にはFirestoreの users/{uid} を1件読む必要があるため、useAuth() の ready
 // (Firebase Authの初期セッション復元が終わったか)だけでは足りない。settled が
@@ -18,8 +18,8 @@ export interface EntitlementProfile {
   name?: string
   birthdate?: string
   gender?: string
-  // 所属チーム。2026-09-09以降、これは「誰の紹介で入会したか」の記録であって
-  // 閲覧可否には影響しない。
+  // 所属チーム。所属中は有料会員(紹介)として扱われる(utils/userAdmin.ts)。
+  // 現在(決済導入前)は会員全員が有料エリアを閲覧できるので、閲覧可否にはまだ影響しない。
   teamId: string | null
   // 所属チーム名。referralTeams は管理者専用で、管理者に追加されたメンバーはコードも
   // 知らないため、非正規化しないと本人が自分の所属チーム名に到達できない(/accountの表示用)。
@@ -54,7 +54,7 @@ export function useEntitlement() {
   return {
     // 現在の条件は「会員登録していて、利用停止されていないこと」。決済導入時は
     // `&& profile.value?.plan === 'paid'` を足し、firestore.rules の isEntitled() と
-    // 対で切り替える(仕様書10章)。
+    // 対で切り替える(CLAUDE.md「Payment roadmap (Phase 2)」)。
     // 未確定(settled === false)の間は profile が null なので false を返す。判定が
     // 固まる前に有料本文が一瞬見えてしまうことはない。
     entitled: computed(() => !!profile.value && profile.value.suspended !== true),

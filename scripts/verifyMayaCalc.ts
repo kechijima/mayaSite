@@ -7,7 +7,7 @@
 // 期待値は mayadan.jp の生年月日フォームに実際に入力して得た値。増やす場合も
 // 必ず実測値を入れること — 他サイト(unkoi.com など)の早見表は mayadan.jp と
 // 一致しないため、そちらの worked example を根拠にしてはいけない。
-import { dateToKin } from '../utils/mayaCalc'
+import { dateToKin, destinyKins, kinInfo, parseKin, relationSealIndices } from '../utils/mayaCalc'
 
 // [日付, mayadan.jp が返したKIN]
 const EXPECTED: [string, number][] = [
@@ -56,6 +56,29 @@ if (breaks.length) {
   console.log(`\n  \x1b[31m✗\x1b[0m 日ごとの進み方が崩れている箇所が ${breaks.length} 件: ${breaks.slice(0, 5).join(', ')}${breaks.length > 5 ? ' …' : ''}`)
 } else {
   console.log('\n  \x1b[32m✓\x1b[0m 1900〜2050の全日付で進み方が正しい(うるう年の3/1だけ2/29と同値、他は+1)')
+}
+
+// ?from= の検証に使う relationSealIndices / destinyKins が、診断結果ページ(useDiagnosis)が
+// 表示している関係性・運命数字と同じ値を返すこと。ずれると、購入したKINのページから
+// 開いた関係性/運命数字ページが解放されない(または無関係なページが解放される)。
+const helperMismatches: number[] = []
+for (let kin = 1; kin <= 260; kin++) {
+  const i = kinInfo(kin)
+  const rel = relationSealIndices(kin)
+  const des = destinyKins(kin)
+  const relOk = rel.join() === [i.guideSealIndex, i.mysticSealIndex, i.antipodeSealIndex, i.analogSealIndex].join()
+    && rel.every((s) => Number.isInteger(s) && s >= 0 && s < 20)
+  const desOk = des.join() === [kin, i.prevKin, i.nextKin, i.mirrorKin, i.absoluteOppositeKin].join()
+    && des.every((k) => parseKin(k) === k)
+  if (!relOk || !desOk) helperMismatches.push(kin)
+}
+const parseOk = parseKin('1') === 1 && parseKin('260') === 260 && parseKin('0') === null
+  && parseKin('261') === null && parseKin('1.5') === null && parseKin('abc') === null && parseKin(undefined) === null
+if (helperMismatches.length || !parseOk) {
+  failed++
+  console.log(`\n  \x1b[31m✗\x1b[0m relationSealIndices/destinyKins/parseKin の不一致: ${helperMismatches.slice(0, 5).join(', ')}${parseOk ? '' : ' (parseKin)'}`)
+} else {
+  console.log('  \x1b[32m✓\x1b[0m 全260KINで relationSealIndices / destinyKins が kinInfo と一致、parseKin の境界値が正しい')
 }
 
 console.log(failed === 0 ? '\n\x1b[32mmayadan.jp と一致\x1b[0m\n' : `\n\x1b[31m${failed} 件の不一致\x1b[0m\n`)

@@ -25,6 +25,8 @@ import {
   getDoc,
   getDocs,
   collection,
+  query,
+  where,
   serverTimestamp,
   setDoc,
   updateDoc,
@@ -151,6 +153,8 @@ async function seed() {
   await adminDb.collection('referralTeams').doc(ACTIVE_TEAM).set({
     name: 'Aチーム', code: ACTIVE_CODE, note: '社外秘のメモ'
   })
+  await adminDb.collection('publicTeams').doc(ACTIVE_TEAM).set({ name: 'Aチーム', active: true })
+  await adminDb.collection('publicTeams').doc(DISABLED_TEAM).set({ name: 'Cチーム', active: false })
   await adminDb.collection('diagnosisContentPremium').doc('character-3').set({
     practicalTips: ['有料の本文'], type: 'character', index: 3
   })
@@ -268,6 +272,24 @@ async function main() {
       getDocs(collection(db, 'referralCodes')))
     await expectDeny('チーム(管理者メモを含む)は読めない', () =>
       getDoc(doc(db, 'referralTeams', ACTIVE_TEAM)))
+  }
+
+  console.log('\n▸ 公開チーム一覧(publicTeams)')
+  {
+    await signOut(auth).catch(() => {})
+    await expectAllow('未ログインでもチームを1件取得できる', () =>
+      getDoc(doc(db, 'publicTeams', ACTIVE_TEAM)))
+    await expectAllow('未ログインでも有効なチームの一覧を取得できる', () =>
+      getDocs(query(collection(db, 'publicTeams'), where('active', '==', true))))
+    await expectDeny('未ログインではチームを作れない', () =>
+      setDoc(doc(db, 'publicTeams', 'ZZZ'), { name: '偽チーム', active: true }))
+  }
+  {
+    await freshUser()
+    await expectDeny('会員はチーム名を書き換えられない', () =>
+      updateDoc(doc(db, 'publicTeams', ACTIVE_TEAM), { name: '乗っ取り' }))
+    await expectDeny('会員は無効なチームを有効にできない', () =>
+      updateDoc(doc(db, 'publicTeams', DISABLED_TEAM), { active: true }))
   }
 
   console.log('\n▸ 有料本文(diagnosisContentPremium)')

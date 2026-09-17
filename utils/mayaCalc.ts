@@ -108,6 +108,29 @@ export function kinInfo(kin: number): KinInfo {
   }
 }
 
+// KIN N の「KINの関係性」4つの紋章(ガイド/神秘/反対/類似)。重複しうる(音1・6・11ではガイドが
+// 自分の紋章と同じになる)ので、役割ではなく「集合に含まれるか」で判定に使うこと。
+// pages/kin/[sealIndex].vue が ?from=N を検証するのに使う — 記事(KIN N)の単体購入で、
+// そのKINのページから開いた関係性ページも読めるようにするため(決済導入後)。
+export function relationSealIndices(kin: number): number[] {
+  const info = kinInfo(kin)
+  return [info.guideSealIndex, info.mysticSealIndex, info.antipodeSealIndex, info.analogSealIndex]
+}
+
+// KIN N の「運命数字」5つのKIN(同じ/前/次/鏡の向こうの自分/絶対反対KIN)。「同じKIN」は N 自身。
+// pages/kin/[kin]/detail.vue が ?from=N を検証するのに使う(relationSealIndices と同じ目的)。
+export function destinyKins(kin: number): number[] {
+  const info = kinInfo(kin)
+  return [info.kin, info.prevKin, info.nextKin, info.mirrorKin, info.absoluteOppositeKin]
+}
+
+// KIN番号として正しい整数(1–260)なら数値を、そうでなければ null を返す。クエリの検証用。
+export function parseKin(value: unknown): number | null {
+  if (typeof value !== 'string' && typeof value !== 'number') return null
+  const n = Number(value)
+  return Number.isInteger(n) && n >= 1 && n <= 260 ? n : null
+}
+
 export function diagnoseBirthdate(birthdate: string, today: Date = new Date()) {
   const parsed = birthdate ? new Date(birthdate) : new Date(1992, 9, 16)
   const birth = kinInfo(dateToKin(parsed))

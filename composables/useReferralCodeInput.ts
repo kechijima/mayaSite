@@ -1,34 +1,39 @@
 import { doc, getDoc, serverTimestamp, type Firestore } from 'firebase/firestore'
 import { isCodeShaped, normalizeCode } from '~/utils/referralCode'
 
-// 紹介コード入力欄の共通ロジック。pages/signup.vue(会員登録時)と pages/account.vue
-// (後追い入力)が同じ挙動になるよう、照合と状態管理をここにまとめている。
+// 紹介コード入力欄の共通ロジック。pages/signup/referral.vue(紹介コード付き会員登録)と
+// pages/account.vue(後追い入力)が同じ挙動になるよう、照合と状態管理をここにまとめている。
+// 画面側の部品は components/ReferralCodeFields.vue。
+//
+// 入力は「チーム選択 + コード」の組。コードが有効でも、選んだチームのコードでなければ
+// 通さない。チーム一覧は公開の publicTeams から出している(composables/usePublicTeams.ts)。
 //
 // 照合は referralCodes/{コード} を1件 getDoc するだけ。コード文字列を知らなければ
 // 引けず、一覧の列挙は管理者に限られている(firestore.rules 参照)ので、この照合を
 // 公開しても全コードが漏れることはない。ただし照合はあくまで入力補助で、実際の
 // 検証はFirestoreのルールが users への書き込み時にもう一度行う。
 
-export type ReferralCodeState = 'empty' | 'checking' | 'valid' | 'invalid' | 'error'
+export type ReferralCodeState = 'empty' | 'team-required' | 'checking' | 'valid' | 'invalid' | 'error'
 
 export function useReferralCodeInput() {
   const { $firestore } = useNuxtApp()
 
   const input = ref('')
+  // プルダウンで選ばれたチーム。publicTeams のドキュメントID = teamId。
+  const selectedTeamId = ref('')
   const state = ref<ReferralCodeState>('empty')
   const teamId = ref('')
   const teamName = ref('')
 
   const code = computed(() => normalizeCode(input.value))
   const isValid = computed(() => state.value === 'valid')
-  // 入力があるのに有効になっていない状態。送信ボタンを止める条件に使う
-  // (空欄は任意入力なので止めない)。
-  const blocksSubmit = computed(() => code.value.length > 0 && state.value !== 'valid')
 
   const message = computed(() => {
     switch (state.value) {
       case 'valid': return `${teamName.value}からのご紹介として登録します`
-      case 'invalid': return 'このコードはご利用いただけません。お間違いがないかご確認ください'
+      case 'checking': return '確認しています…'
+      case 'team-required': return 'チームを選択してください'
+      case 'invalid': return 'このコードはご利用いただけません。チームとコードにお間違いがないかご確認ください'
       case 'error': return '確認できませんでした。通信環境をご確認のうえ、もう一度お試しください'
       default: return ''
     }
@@ -48,6 +53,12 @@ export function useReferralCodeInput() {
       reset()
       return false
     }
+    if (!selectedTeamId.value) {
+      state.value = 'team-required'
+      teamId.value = ''
+      teamName.value = ''
+      return false
+    }
     // 長さも文字種も合わないものは存在し得ないので、Firestoreを引かずにその場で弾く。
     if (!isCodeShaped(normalized)) {
       state.value = 'invalid'
@@ -62,14 +73,16 @@ export function useReferralCodeInput() {
       const data = snap.exists()
         ? (snap.data() as { teamId?: string; teamName?: string; status?: string })
         : null
-      if (data?.status === 'active' && data.teamId) {
+      // 選んだチームのコードであることまで確かめる。書き込み時のルール(redeemsCode)は
+      // コード文書の teamId との一致しか見ないので、この「選択と一致」は画面側だけの確認。
+      if (data?.status === 'active' && data.teamId && data.teamId === selectedTeamId.value) {
         teamId.value = data.teamId
         teamName.value = data.teamName ?? ''
         state.value = 'valid'
         return true
       }
-      // 存在しない場合と無効化されている場合を区別せず同じ文言にしている。
-      // 「そのコードは存在するが無効」と伝えると、総当たりの当たり判定に使えてしまうため。
+      // 存在しない・無効化されている・選んだチームのコードではない、の3つを区別せず同じ文言にしている。
+      // 「そのコードは存在するが無効/別チーム」と伝えると、総当たりの当たり判定に使えてしまうため。
       teamId.value = ''
       teamName.value = ''
       state.value = 'invalid'
@@ -86,8 +99,9 @@ export function useReferralCodeInput() {
   // users ドキュメントに書き込む紹介系フィールド。Firestoreのルールはこの5項目が
   // 揃っていること、かつ teamId/teamName がコードのドキュメントと一致することを
   // 要求する(firestore.rules の redeemsCode)。
-  // 2026-09-09以降、これらは「誰の紹介で入会したか」の記録であって閲覧可否には
-  // 影響しない — 閲覧可否は plan/suspended 側で決まる。
+  // teamId が入ると有料会員(紹介)になる(utils/userAdmin.ts の userStatus)。
+  // teamName はコード文書の値を使う(publicTeams の値ではない)。ルールがコード文書との
+  // 完全一致を要求するので、改名の同期中に publicTeams とずれていても登録が通るように。
   function redemptionFields() {
     return {
       teamId: teamId.value,
@@ -98,7 +112,7 @@ export function useReferralCodeInput() {
     }
   }
 
-  return { input, code, state, teamId, teamName, isValid, blocksSubmit, message, validate, reset, redemptionFields }
+  return { input, code, selectedTeamId, state, teamId, teamName, isValid, message, validate, reset, redemptionFields }
 }
 
 // コード未入力で会員登録する場合に書き込む初期値。フィールドを省略せず明示的に
