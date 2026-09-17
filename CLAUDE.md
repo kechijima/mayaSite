@@ -36,6 +36,7 @@ npm run admin:create:emulator -- --email=you@example.com --password=xxxx   # cre
 npm run admin:create -- --email=you@example.com --password=xxxx            # same, against the REAL project — requires FIREBASE_SERVICE_ACCOUNT_KEY in .env
 
 npm run verify:kin                 # dateToKin() が mayadan.jp と一致するかの検証。単体で動く(エミュレータ不要)
+npm run verify:compatibility       # 相性診断の判定が mayadan.jp の相性診断と一致するかの検証(エミュレータ不要)
 npm run verify:rules:emulator      # firestore.rules の検証(29項目)。エミュレータ起動中に実行する — 下記参照
 npm run migrate:premium:emulator   # 有料項目を diagnosisContentPremium へ切り出す移行。--dry-run で件数だけ確認できる
 npm run migrate:premium            # 同上、REAL project に対して。リリース時に一度だけ実行する(冪等)
@@ -109,8 +110,20 @@ Requires a JRE on PATH (the Firestore emulator is Java-based) — `brew install 
   "add" button. Untouched slots are excluded by "name entered **or** birthdate moved off the default",
   because `BirthdateSelect` always fills a default and so can never be empty — the known cost is that
   an anonymous person born exactly on `DEFAULT_BIRTHDATE` must type at least one character.
-  Compatibility itself is derived from seal indices only ([utils/compatibility.ts](utils/compatibility.ts),
-  [utils/destinyCompatibility.ts](utils/destinyCompatibility.ts)); it is a convention for this site, not a Dreamspell calculation.
+  The form always starts empty — result.vue's CTA no longer passes name/birth/gender (removed 2026-09-17 on request).
+  **Results cover every pair of participants** (自分×A, 自分×B, A×B …), and each pair shows both directions,
+  because the relations are directional. **The relations replicate mayadan.jp's 相性診断**
+  (https://mayadan.jp/congeniality/result), established by submitting real birthdates there — see
+  [utils/compatibility.ts](utils/compatibility.ts) `kinRelationMatches()`:
+  神秘/反対/類似KIN compare seals across all 4 sun/wavespell combinations; ガイドKIN compares X's guide seal
+  **only against Y's sun seal**; 鏡の向こうの自分KIN/絶対反対KIN compare KIN numbers. Only matches are shown,
+  a tone-1 KIN (sun seal = wavespell seal) produces the same relation twice exactly as mayadan does, and only
+  絶対反対KIN rows are red. The separate 運命数字 card ([utils/destinyCompatibility.ts](utils/destinyCompatibility.ts):
+  same/sequential/mirror/absoluteOpposite) is kept unchanged, so mirror/absolute-opposite appear in both places
+  by design. Explanations are shown once per relation type at the bottom, reusing
+  [utils/kinRelations.ts](utils/kinRelations.ts) and the 運命数字 texts.
+  `npm run verify:compatibility` ([scripts/verifyCompatibility.ts](scripts/verifyCompatibility.ts)) checks the rules
+  against result text captured from mayadan.jp — run it after touching `utils/compatibility.ts`.
 - **`/kin/[sealIndex]`** — the "詳しく見る" target from result.vue's KINの関係性 cards. A relation is a
   *seal*, not a KIN number, so this reads the same `character-{sealIndex}` document as 太陽の紋章 does
   and reuses the same free/paid layout. `?label=` is only honoured when it matches a known relation name.

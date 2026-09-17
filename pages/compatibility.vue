@@ -1,23 +1,25 @@
 <script setup lang="ts">
-import { MAX_OTHER_PEOPLE, type PersonInput, type SealAttribute } from '~/composables/useCompatibility'
-import { DEFAULT_GENDER, isGender } from '~/utils/gender'
+import { MAX_OTHER_PEOPLE, type PersonInput, type RelationRow } from '~/composables/useCompatibility'
+import { DEFAULT_GENDER } from '~/utils/gender'
 import { DEFAULT_BIRTHDATE } from '~/utils/birthdate'
-import { COMPATIBILITY_RELATION_CONTENT } from '~/utils/compatibility'
+import { isKinLevelRelation, KIN_RELATION_CONTENT, type SealAttribute } from '~/utils/compatibility'
 import { DESTINY_RELATION_CONTENT } from '~/utils/destinyCompatibility'
 
 function attributeLabel(attr: SealAttribute) {
   return attr === 'sun' ? '太陽の紋章' : 'ウェイブスペル'
 }
+// 行に出す紋章の補足。紋章同士の関係はどちらの紋章かを添える(音1のKINは太陽の紋章とウェイブスペルが
+// 同じ紋章で、同じ関係が2行出るため、ラベルが無いと同じ行が並んでいるように見える)。
+// 鏡の向こうの自分KIN・絶対反対KINはKIN番号同士の関係なので紋章名だけ。
+function sealNote(row: RelationRow, side: 'from' | 'to') {
+  const name = side === 'from' ? row.fromSealName : row.toSealName
+  if (isKinLevelRelation(row.type)) return name
+  return `${name}・${attributeLabel(side === 'from' ? row.fromAttribute : row.toAttribute)}`
+}
 
-const route = useRoute()
-
-const initialGenderQuery = route.query.gender as string | undefined
-const self = ref<PersonInput>({
-  id: 'self',
-  name: (route.query.name as string) || '',
-  birthdate: (route.query.birth as string) || '',
-  gender: initialGenderQuery && isGender(initialGenderQuery) ? initialGenderQuery : DEFAULT_GENDER
-})
+// 2026-09-17: 診断結果ページからの遷移時に名前・生年月日・性別を自動入力していたのをやめた
+// (要望による)。入力欄は常に空で始まる。
+const self = ref<PersonInput>({ id: 'self', name: '', birthdate: '', gender: DEFAULT_GENDER })
 
 // Deterministic IDs only — the initial `others` array is built during setup() on both server
 // and client, so a random ID generator here would cause a v-for :key hydration mismatch.
@@ -185,117 +187,81 @@ function editAgain() {
           </div>
         </section>
 
+        <!-- 相性: 参加者全員の全組み合わせ。1組ごとに両方向の関係と運命数字を出す。
+             関係の判定と並び順は mayadan.jp の相性診断に合わせている(utils/compatibility.ts)。 -->
         <section class="section">
           <SectionDivider label="相性" eyebrow="Compatibility" />
           <div class="mx-auto max-w-[340px] space-y-6 sm:max-w-[720px]">
-            <div v-for="pair in result.pairs" :key="pair.otherId" class="rounded-xl p-5" style="border: 1px solid var(--gold-line-soft); background: var(--paper-panel); box-shadow: var(--shadow);">
-              <h3 class="mb-4 font-display text-[17px]" :style="{ color: pair.destinyRelation ? 'var(--seal-red)' : 'var(--ink)' }">{{ result.self.name }} × {{ pair.otherName }}</h3>
+            <div v-for="pair in result.pairs" :key="pair.key" class="rounded-xl p-5" style="border: 1px solid var(--gold-line-soft); background: var(--paper-panel); box-shadow: var(--shadow);">
+              <h3 class="mb-4 font-display text-[17px]" style="color: var(--ink);">{{ pair.a.name }} × {{ pair.b.name }}</h3>
 
-              <div class="mb-2 text-[11px] font-bold tracking-[.08em]" style="color: var(--gold-deep);">{{ result.self.name }}さんから見た{{ pair.otherName }}さん</div>
-              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div v-for="c in pair.combinations.filter((c) => !c.reversed)" :key="`${c.selfAttribute}-${c.otherAttribute}-${c.reversed}`" class="rounded-lg px-3.5 py-4 text-center" style="border: 1px solid var(--gold-line-soft); background: var(--paper);">
-                  <span class="text-[10.5px] tracking-[.04em]" style="color: var(--ink-faint);">
-                    {{ attributeLabel(c.selfAttribute) }}（{{ result.self.name }}） × {{ attributeLabel(c.otherAttribute) }}（{{ pair.otherName }}）
-                  </span>
-
-                  <div class="mt-2 flex items-center justify-center gap-3">
-                    <div class="flex flex-col items-center gap-1">
-                      <MayaGlyph :seal-index="c.selfSealIndex" size="md" />
-                      <span class="text-[12px] font-semibold">{{ c.selfSealName }}</span>
-                    </div>
-                    <span class="text-[13px]" style="color: var(--gold-deep);">×</span>
-                    <div class="flex flex-col items-center gap-1">
-                      <MayaGlyph :seal-index="c.otherSealIndex" size="md" />
-                      <span class="text-[12px] font-semibold">{{ c.otherSealName }}</span>
-                    </div>
-                  </div>
-
-                  <span class="dossier__badge mt-2.5 inline-block">{{ c.relationLabel }}</span>
-                  <p class="mt-2 text-left text-[12px] leading-[1.7]" style="color: var(--ink-soft);">{{ COMPATIBILITY_RELATION_CONTENT[c.relation].text }}</p>
-                </div>
-
-                <div class="rounded-lg px-3.5 py-4 text-center" style="border: 1px solid var(--gold-line-soft); background: var(--paper);">
-                  <span class="text-[10.5px] tracking-[.04em]" style="color: var(--ink-faint);">運命数字</span>
-
-                  <div class="mt-2 flex items-center justify-center gap-3">
-                    <div class="flex flex-col items-center gap-1">
-                      <GoldMedal :value="result.self.kin" :size="68" :num-font-size="16" />
-                      <span class="text-[12px] font-semibold">{{ result.self.name }}</span>
-                    </div>
-                    <span class="text-[13px]" style="color: var(--gold-deep);">×</span>
-                    <div class="flex flex-col items-center gap-1">
-                      <GoldMedal :value="pair.otherKin" :size="68" :num-font-size="16" />
-                      <span class="text-[12px] font-semibold">{{ pair.otherName }}</span>
-                    </div>
-                  </div>
-
-                  <span
-                    class="mt-2.5 inline-block rounded-full px-2.5 py-1 text-[11.5px] font-bold"
-                    :style="pair.destinyRelation
-                      ? { background: 'var(--gold)', color: '#241a06' }
-                      : { border: '1px solid var(--gold-line-soft)', color: 'var(--ink-faint)' }"
+              <div v-for="dir in [pair.forward, pair.backward]" :key="`${dir.from.id}-${dir.to.id}`" class="mb-4">
+                <div class="mb-2 text-[11px] font-bold tracking-[.08em]" style="color: var(--gold-deep);">{{ dir.from.name }}さんから見た{{ dir.to.name }}さん</div>
+                <ul v-if="dir.rows.length" class="space-y-2">
+                  <!-- 絶対反対KINの行だけ赤で出す(要望による)。 -->
+                  <li
+                    v-for="(row, i) in dir.rows"
+                    :key="i"
+                    class="flex flex-col items-start gap-1.5 rounded-lg px-3.5 py-2.5 text-[12.5px] leading-[1.7] sm:flex-row sm:items-center sm:gap-3"
+                    :style="row.type === 'absoluteOpposite'
+                      ? { border: '1px solid color-mix(in srgb, var(--seal-red) 45%, transparent)', background: 'color-mix(in srgb, var(--seal-red) 6%, var(--paper))', color: 'var(--seal-red)' }
+                      : { border: '1px solid var(--gold-line-soft)', background: 'var(--paper)', color: 'var(--ink-soft)' }"
                   >
-                    {{ pair.destinyRelationLabel ?? '特になし' }}
-                  </span>
-                  <p v-if="pair.destinyRelation" class="mt-2 text-left text-[12px] leading-[1.7]" style="color: var(--ink-soft);">
-                    {{ DESTINY_RELATION_CONTENT[pair.destinyRelation].text }}
-                  </p>
-                </div>
+                    <span class="sm:min-w-0 sm:flex-1">
+                      KIN{{ dir.from.kin }} {{ dir.from.name }}さん（{{ sealNote(row, 'from') }}）から見て
+                      KIN{{ dir.to.kin }} {{ dir.to.name }}さん（{{ sealNote(row, 'to') }}）は
+                    </span>
+                    <span
+                      class="shrink-0 rounded-full px-2.5 py-0.5 text-[11.5px] font-bold"
+                      :style="row.type === 'absoluteOpposite'
+                        ? { background: 'var(--seal-red)', color: '#fff6f2' }
+                        : { border: '1px solid var(--gold)', color: 'var(--gold-deep)' }"
+                    >{{ row.label }}</span>
+                  </li>
+                </ul>
+                <p v-else class="rounded-lg px-3.5 py-2.5 text-[12.5px]" style="border: 1px dashed var(--gold-line-soft); color: var(--ink-faint);">該当なし</p>
               </div>
 
-              <div class="mb-2 mt-5 text-[11px] font-bold tracking-[.08em]" style="color: var(--gold-deep);">{{ pair.otherName }}さんから見た{{ result.self.name }}さん</div>
-              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div v-for="c in pair.combinations.filter((c) => c.reversed)" :key="`${c.selfAttribute}-${c.otherAttribute}-${c.reversed}`" class="rounded-lg px-3.5 py-4 text-center" style="border: 1px solid var(--gold-line-soft); background: var(--paper);">
-                  <span class="text-[10.5px] tracking-[.04em]" style="color: var(--ink-faint);">
-                    {{ attributeLabel(c.otherAttribute) }}（{{ pair.otherName }}） × {{ attributeLabel(c.selfAttribute) }}（{{ result.self.name }}）
-                  </span>
+              <div class="rounded-lg px-3.5 py-4 text-center" style="border: 1px solid var(--gold-line-soft); background: var(--paper);">
+                <span class="text-[10.5px] tracking-[.04em]" style="color: var(--ink-faint);">運命数字</span>
 
-                  <div class="mt-2 flex items-center justify-center gap-3">
-                    <div class="flex flex-col items-center gap-1">
-                      <MayaGlyph :seal-index="c.otherSealIndex" size="md" />
-                      <span class="text-[12px] font-semibold">{{ c.otherSealName }}</span>
-                    </div>
-                    <span class="text-[13px]" style="color: var(--gold-deep);">×</span>
-                    <div class="flex flex-col items-center gap-1">
-                      <MayaGlyph :seal-index="c.selfSealIndex" size="md" />
-                      <span class="text-[12px] font-semibold">{{ c.selfSealName }}</span>
-                    </div>
+                <div class="mt-2 flex items-center justify-center gap-3">
+                  <div class="flex flex-col items-center gap-1">
+                    <GoldMedal :value="pair.a.kin" :size="68" :num-font-size="16" />
+                    <span class="text-[12px] font-semibold">{{ pair.a.name }}</span>
                   </div>
-
-                  <span class="dossier__badge mt-2.5 inline-block">{{ c.relationLabel }}</span>
-                  <p class="mt-2 text-left text-[12px] leading-[1.7]" style="color: var(--ink-soft);">{{ COMPATIBILITY_RELATION_CONTENT[c.relation].text }}</p>
+                  <span class="text-[13px]" style="color: var(--gold-deep);">×</span>
+                  <div class="flex flex-col items-center gap-1">
+                    <GoldMedal :value="pair.b.kin" :size="68" :num-font-size="16" />
+                    <span class="text-[12px] font-semibold">{{ pair.b.name }}</span>
+                  </div>
                 </div>
 
-                <div class="rounded-lg px-3.5 py-4 text-center" style="border: 1px solid var(--gold-line-soft); background: var(--paper);">
-                  <span class="text-[10.5px] tracking-[.04em]" style="color: var(--ink-faint);">運命数字</span>
-
-                  <div class="mt-2 flex items-center justify-center gap-3">
-                    <div class="flex flex-col items-center gap-1">
-                      <GoldMedal :value="pair.otherKin" :size="68" :num-font-size="16" />
-                      <span class="text-[12px] font-semibold">{{ pair.otherName }}</span>
-                    </div>
-                    <span class="text-[13px]" style="color: var(--gold-deep);">×</span>
-                    <div class="flex flex-col items-center gap-1">
-                      <GoldMedal :value="result.self.kin" :size="68" :num-font-size="16" />
-                      <span class="text-[12px] font-semibold">{{ result.self.name }}</span>
-                    </div>
-                  </div>
-
-                  <span
-                    class="mt-2.5 inline-block rounded-full px-2.5 py-1 text-[11.5px] font-bold"
-                    :style="pair.destinyRelation
-                      ? { background: 'var(--gold)', color: '#241a06' }
-                      : { border: '1px solid var(--gold-line-soft)', color: 'var(--ink-faint)' }"
-                  >
-                    {{ pair.destinyRelationLabel ?? '特になし' }}
-                  </span>
-                  <p v-if="pair.destinyRelation" class="mt-2 text-left text-[12px] leading-[1.7]" style="color: var(--ink-soft);">
-                    {{ DESTINY_RELATION_CONTENT[pair.destinyRelation].text }}
-                  </p>
-                </div>
+                <span
+                  class="mt-2.5 inline-block rounded-full px-2.5 py-1 text-[11.5px] font-bold"
+                  :style="pair.destinyRelation
+                    ? { background: 'var(--gold)', color: '#241a06' }
+                    : { border: '1px solid var(--gold-line-soft)', color: 'var(--ink-faint)' }"
+                >
+                  {{ pair.destinyRelationLabel ?? '特になし' }}
+                </span>
+                <p v-if="pair.destinyRelation" class="mt-2 text-left text-[12px] leading-[1.7]" style="color: var(--ink-soft);">
+                  {{ DESTINY_RELATION_CONTENT[pair.destinyRelation].text }}
+                </p>
               </div>
             </div>
           </div>
+        </section>
+
+        <!-- 結果に出てきた関係の説明を1回ずつ。行ごとに付けると人数が多いとき長くなりすぎるため。 -->
+        <section v-if="result.relationTypes.length" class="section">
+          <SectionDivider label="関係の説明" eyebrow="Guide" />
+          <dl class="mx-auto max-w-[340px] space-y-3 sm:max-w-[720px]">
+            <div v-for="t in result.relationTypes" :key="t" class="rounded-lg px-4 py-3.5" style="border: 1px solid var(--gold-line-soft); background: var(--paper-panel);">
+              <dt class="mb-1 text-[13px] font-bold" :style="{ color: t === 'absoluteOpposite' ? 'var(--seal-red)' : 'var(--gold-deep)' }">{{ KIN_RELATION_CONTENT[t].label }}</dt>
+              <dd class="text-[12.5px] leading-[1.8]" style="color: var(--ink-soft);">{{ KIN_RELATION_CONTENT[t].text }}</dd>
+            </div>
+          </dl>
         </section>
 
         <div class="mt-8 flex justify-center">

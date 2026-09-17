@@ -526,7 +526,7 @@ async function shareResult() {
           <div class="mb-2 font-display text-[17px]" style="color: var(--gold-deep);">身近な人との相性を無料で診断</div>
           <p class="mb-4 text-[13px]" style="color: var(--ink-soft);">パートナーや友人の生年月日を入れるだけで、紋章の組み合わせから相性を読み解きます。</p>
           <NuxtLink
-            :to="{ path: '/compatibility', query: { name: result.name, birth: input.birthdate, gender: result.gender } }"
+            to="/compatibility"
             class="inline-block rounded-full px-6.5 py-2.5 text-[13.5px] font-semibold"
             style="border: 1px solid var(--gold); color: var(--gold-deep);"
           >
