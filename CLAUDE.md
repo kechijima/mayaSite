@@ -116,7 +116,7 @@ Requires a JRE on PATH (the Firestore emulator is Java-based) — `brew install 
   (https://mayadan.jp/congeniality/result), established by submitting real birthdates there — see
   [utils/compatibility.ts](utils/compatibility.ts) `kinRelationMatches()`:
   神秘/反対/類似KIN compare seals across all 4 sun/wavespell combinations; ガイドKIN compares X's guide seal
-  **only against Y's sun seal**; 鏡の向こうの自分KIN/絶対反対KIN compare KIN numbers. Only matches are shown, each as a card with the two archetype icons and a relation chip,
+  **only against Y's sun seal**; 鏡の向こうの自分KIN/絶対反対KIN compare KIN numbers. Only matches are shown, each as a card with the two archetype icons and a relation chip (a direction with no match is omitted, the 運命数字 card only appears when it matches, and a pair with nothing at all shows a "no relation" note),
   a tone-1 KIN (sun seal = wavespell seal) produces the same relation twice exactly as mayadan does, and only
   絶対反対KIN rows are red. The separate 運命数字 card ([utils/destinyCompatibility.ts](utils/destinyCompatibility.ts):
   same/sequential/mirror/absoluteOpposite) is kept unchanged, so mirror/absolute-opposite appear in both places
