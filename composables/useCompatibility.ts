@@ -1,6 +1,12 @@
 import { diagnoseBirthdate } from '~/utils/mayaCalc'
 import { buildKinProfileText, type KinProfileText } from '~/utils/kinProfile'
-import { compatibilityRelation, COMPATIBILITY_RELATION_CONTENT, type CompatibilityRelation } from '~/utils/compatibility'
+import {
+  kinRelationMatches,
+  KIN_RELATION_CONTENT,
+  KIN_RELATION_ORDER,
+  type KinRelationMatch,
+  type KinRelationType
+} from '~/utils/compatibility'
 import { destinyRelation, DESTINY_RELATION_CONTENT, type DestinyRelation } from '~/utils/destinyCompatibility'
 import { SEALS, type Seal } from '~/utils/mayaData'
 import type { Gender } from '~/utils/gender'
@@ -35,33 +41,27 @@ export interface PersonProfile {
   }
 }
 
-// 太陽の紋章とウェイブスペルは両方とも「その人を表す紋章」なので、自分の太陽/ウェイブスペルと
-// 相手の太陽/ウェイブスペルの全4通りの組み合わせを見せる(ペア単位で1つの代表紋章に集約しない)。
-// compatibilityRelation() 自体はsealIndexの差分だけで決まる対称な判定(自分→相手でも相手→自分
-// でも同じ結果)なので、"自分から見た/相手から見た"という向きの違いは、どちらの紋章同士を比較
-// するかという組み合わせの違いとして表現される。
-export type SealAttribute = 'sun' | 'wavespell'
-export interface SealCombinationRelation {
-  selfAttribute: SealAttribute
-  selfSealIndex: number
-  selfSealName: string
-  otherAttribute: SealAttribute
-  otherSealIndex: number
-  otherSealName: string
-  relation: CompatibilityRelation
-  relationLabel: string
-  // Display-order flag only — compatibilityRelation() is symmetric, so this never changes
-  // `relation`/`relationLabel`, only which side (self/other) renders on the left of the card.
-  // Every base pair is shown both ways so a card reading "相手→自分" exists alongside "自分→相手".
-  reversed: boolean
+// 相性は参加者全員の全組み合わせ(自分×A、自分×B、A×B…)で出す。判定は向きがあるので
+// 1組につき「a から見た b」「b から見た a」の両方を持つ(utils/compatibility.ts)。
+export interface RelationRow extends KinRelationMatch {
+  fromSealName: string
+  toSealName: string
+  label: string
+}
+
+export interface DirectionalRelations {
+  from: PersonProfile
+  to: PersonProfile
+  // 当てはまる関係だけ。空なら「該当なし」
+  rows: RelationRow[]
 }
 
 export interface PairCompatibility {
-  otherId: string
-  otherName: string
-  otherKin: number
-  // 太陽/ウェイブスペル全4通りの組み合わせ
-  combinations: SealCombinationRelation[]
+  key: string
+  a: PersonProfile
+  b: PersonProfile
+  forward: DirectionalRelations
+  backward: DirectionalRelations
   // 運命数字(同じ番号/連番/鏡の向こうの自分/絶対反対KIN)によるKIN番号同士の相性。該当なしならnull
   destinyRelation: DestinyRelation | null
   destinyRelationLabel: string | null
@@ -71,6 +71,8 @@ export interface CompatibilityResult {
   self: PersonProfile
   others: PersonProfile[]
   pairs: PairCompatibility[]
+  // 結果のどこかに出てきた関係の種類(表示順)。説明文をまとめて出すのに使う
+  relationTypes: KinRelationType[]
 }
 
 // Free acquisition feature — kept small enough that the form/results stay easy to scan and a
@@ -103,51 +105,47 @@ function buildProfile(person: PersonInput): PersonProfile {
   }
 }
 
+function directional(from: PersonProfile, to: PersonProfile): DirectionalRelations {
+  return {
+    from,
+    to,
+    rows: kinRelationMatches(from.kin, to.kin).map((m) => ({
+      ...m,
+      fromSealName: SEALS[m.fromSealIndex].name,
+      toSealName: SEALS[m.toSealIndex].name,
+      label: KIN_RELATION_CONTENT[m.type].label
+    }))
+  }
+}
+
 export function useCompatibility(input: Ref<{ self: PersonInput; others: PersonInput[] }>) {
   const result = computed<CompatibilityResult>(() => {
     const self = buildProfile(input.value.self)
     const others = input.value.others.map(buildProfile)
+    const people = [self, ...others]
 
-    const pairs: PairCompatibility[] = others.map((other) => {
-      const combinations: SealCombinationRelation[] = (
-        [
-          ['sun', 'sun', self.sealIndex, other.sealIndex],
-          ['sun', 'wavespell', self.sealIndex, other.wavespellSealIndex],
-          ['wavespell', 'sun', self.wavespellSealIndex, other.sealIndex],
-          ['wavespell', 'wavespell', self.wavespellSealIndex, other.wavespellSealIndex]
-        ] as const
-      ).flatMap(([selfAttribute, otherAttribute, selfSeal, otherSeal]) => {
-        const combinationRelation = compatibilityRelation(selfSeal, otherSeal)
-        const base = {
-          selfAttribute,
-          selfSealIndex: selfSeal,
-          selfSealName: SEALS[selfSeal].name,
-          otherAttribute,
-          otherSealIndex: otherSeal,
-          otherSealName: SEALS[otherSeal].name,
-          relation: combinationRelation,
-          relationLabel: COMPATIBILITY_RELATION_CONTENT[combinationRelation].label
-        }
-        return [
-          { ...base, reversed: false },
-          { ...base, reversed: true }
-        ]
-      })
-
-      const destiny = destinyRelation(self.kin, other.kin)
-      const destinyContent = destiny ? DESTINY_RELATION_CONTENT[destiny] : null
-
-      return {
-        otherId: other.id,
-        otherName: other.name,
-        otherKin: other.kin,
-        combinations,
-        destinyRelation: destiny,
-        destinyRelationLabel: destinyContent?.label ?? null
+    const pairs: PairCompatibility[] = []
+    for (let i = 0; i < people.length; i++) {
+      for (let j = i + 1; j < people.length; j++) {
+        const a = people[i]
+        const b = people[j]
+        const destiny = destinyRelation(a.kin, b.kin)
+        pairs.push({
+          key: `${a.id}-${b.id}`,
+          a,
+          b,
+          forward: directional(a, b),
+          backward: directional(b, a),
+          destinyRelation: destiny,
+          destinyRelationLabel: destiny ? DESTINY_RELATION_CONTENT[destiny].label : null
+        })
       }
-    })
+    }
 
-    return { self, others, pairs }
+    const present = new Set(pairs.flatMap((p) => [...p.forward.rows, ...p.backward.rows].map((r) => r.type)))
+    const relationTypes = KIN_RELATION_ORDER.filter((t) => present.has(t))
+
+    return { self, others, pairs, relationTypes }
   })
 
   return { result }

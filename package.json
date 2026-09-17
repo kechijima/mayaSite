@@ -29,6 +29,7 @@
     "migrate:premium": "tsx --env-file=.env scripts/splitPremiumContent.ts",
     "migrate:premium:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/splitPremiumContent.ts",
     "verify:kin": "tsx scripts/verifyMayaCalc.ts",
+    "verify:compatibility": "tsx scripts/verifyCompatibility.ts",
     "verify:rules:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 tsx scripts/verifyReferralRules.ts",
     "admin:create": "tsx --env-file=.env scripts/createAdminUser.ts",
     "admin:create:emulator": "FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 tsx scripts/createAdminUser.ts"
