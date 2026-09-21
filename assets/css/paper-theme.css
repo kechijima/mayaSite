@@ -489,6 +489,13 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .relcard__cta { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; padding: 4px 16px 4px 4px; border-radius: 999px; background: var(--paper); border: 1px solid var(--gold-line-soft); box-shadow: var(--shadow); font-size: 12px; font-weight: 700; color: var(--gold-deep); letter-spacing: .02em; }
 .relcard__cta-icon { position: relative; display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--gold-line-soft); background: var(--paper-panel-2); flex: none; color: var(--gold-deep); }
 .relcard__cta-icon svg { width: 14px; height: 14px; }
+/* カード全体がリンク(pages/result.vue)。リンク既定の下線と文字色を打ち消し、押せることが分かるよう
+   ホバーで少し持ち上げ、「詳しく見る」を強調する。 */
+.relcard--link { color: inherit; text-decoration: none; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
+.relcard--link:hover { transform: translateY(-2px); box-shadow: 0 18px 32px -18px rgba(60, 42, 10, .45); }
+.relcard--link:hover .relcard__cta { border-color: var(--gold); }
+.relcard--link:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .relcard--link, .relcard--link:hover { transition: none; transform: none; } }
 @media (max-width: 560px) {
   /* Extra breathing room below the section title, beyond .section__title's own margin-bottom. */
   .relwrap { margin-top: 14px; }

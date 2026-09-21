@@ -489,18 +489,23 @@ async function shareResult() {
       <section id="relations" class="section">
         <SectionDivider label="KINの関係性" eyebrow="周囲の紋章とのつながり" />
         <div class="relwrap">
-          <div v-for="r in relations" :key="r.label" class="relcard" :class="`relcard--${sealColor(r.seal.index)}`">
+          <!-- カード全体をリンクにする(「詳しく見る」だけでなくどこを押しても遷移する)。
+               「詳しく見る」はリンクの中に入れ子にできないので、見た目だけのspanにしている。 -->
+          <NuxtLink
+            v-for="r in relations"
+            :key="r.label"
+            :to="{ path: `/kin/${r.seal.index}`, query: { label: r.label, from: result.kin, name: result.name, birth: input.birthdate, gender: result.gender } }"
+            class="relcard relcard--link"
+            :class="`relcard--${sealColor(r.seal.index)}`"
+          >
             <div class="relcard__figure"><MayaBust :seal-index="r.seal.index" :alt="r.seal.name" :gender="result.gender" /></div>
             <div class="relcard__body">
               <span class="relcard__label">{{ r.label }}</span>
               <h3 class="font-display relcard__name">{{ r.seal.name }}</h3>
               <p class="relcard__desc">{{ RELATION_DESCRIPTION[r.label] }}</p>
-              <NuxtLink
-                :to="{ path: `/kin/${r.seal.index}`, query: { label: r.label, from: result.kin, name: result.name, birth: input.birthdate, gender: result.gender } }"
-                class="relcard__cta"
-              ><span class="relcard__cta-icon"><svg><use href="#i-search" /></svg></span>詳しく見る</NuxtLink>
+              <span class="relcard__cta"><span class="relcard__cta-icon"><svg><use href="#i-search" /></svg></span>詳しく見る</span>
             </div>
-          </div>
+          </NuxtLink>
         </div>
       </section>
 
