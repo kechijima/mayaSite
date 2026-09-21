@@ -1,15 +1,10 @@
 <script setup lang="ts">
-import { buildSignupLink } from '~/utils/signupLink'
-
 // 通常の会員登録。登録すると無料会員になる。
 // 紹介コードでの登録は pages/signup/referral.vue に分けた(そちらはチーム所属 = チーム会員)。
+// このページから /signup/referral への導線は置かない(要望により 2026-09-17 に削除。URL を直接案内する運用)。
 // フォームの状態と送信処理は composables/useSignupForm.ts に共通化している。
-const route = useRoute()
 const form = useSignupForm()
 const { submitting, errorMessage, loginLink } = form
-
-// 紹介コード付き登録への導線。戻り先と入力済みの name/birth/gender を引き継ぐ。
-const referralLink = computed(() => buildSignupLink(form.redirect.value, route.query, '/signup/referral'))
 </script>
 
 <template>
@@ -31,10 +26,6 @@ const referralLink = computed(() => buildSignupLink(form.redirect.value, route.q
         </form>
 
         <p class="mt-4 text-center text-[12.5px]" style="color: var(--ink-faint);">
-          紹介コードをお持ちの方は
-          <NuxtLink :to="referralLink" class="hover:underline" style="color: var(--gold-deep);">こちらから登録</NuxtLink>
-        </p>
-        <p class="mt-2 text-center text-[12.5px]" style="color: var(--ink-faint);">
           すでに会員登録済みの方は
           <NuxtLink :to="loginLink" class="hover:underline" style="color: var(--gold-deep);">こちらからログイン</NuxtLink>
         </p>

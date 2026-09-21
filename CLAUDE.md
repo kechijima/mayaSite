@@ -290,7 +290,7 @@ After a successful redemption `/account` always navigates somewhere: the `redire
 Every LockedVeil's 「続きを購入する」 goes to [pages/plans.vue](pages/plans.vue) regardless of sign-in state, via
 [composables/usePlansLink.ts](composables/usePlansLink.ts): `/plans?kin=N&redirect=<current page>&name&birth&gender`.
 `/plans` shows 有料会員 ￥5,500/月(税込), highlighted as おすすめ, and この記事のみ ￥550(税込) for `kin` (hidden
-when there is no `kin`), plus a login link for signed-out visitors (no referral-signup link here — that lives on `/signup`). **Until payment ships both buttons do the
+when there is no `kin`), plus a login link for signed-out visitors (no link to `/signup/referral` here or on `/signup` — that page is reached only by its URL, which is shared with referred members directly). **Until payment ships both buttons do the
 same thing**: signed out → `/signup` (with `redirect` and the prefill query), signed in → `redirect`.
 `planAction()` is the single place to switch to Stripe Checkout.
 
