@@ -63,6 +63,27 @@ PAD = 6
 # 264 CSS px × DPR3 = 792px)とほぼ一致しているので縮小しない。
 MAX_CUTOUT_WIDTH = 640
 
+# 全身像(cutout)は「帽子の先からつま先まで」を全員同じ高さに揃えているため、頭の上に大きな
+# 装飾があるキャラクターほど、顔が小さく・低く見える(2026-09-21 報告: 白い魔法使い(女性))。
+# 揃えているのは外形なので、絵そのものの構成に起因する差はこの仕組みでは吸収できない。
+# そこで、該当するキャラクターだけ人物を拡大し、枠からはみ出した上側(装飾側)を切って
+# 同じ寸法に戻す。足元は動かさない(下寄せで表示しているため、動かすと並んだときにずれる)。
+# キーは (sealIndex, suffix)。'' が女性、'-male' が男性。
+# 1.08 は白い魔法使い(女性)の顔の高さが他のキャラクターと揃う値(帽子はほぼ切れない)。
+CUTOUT_ZOOM = {
+    (13, ''): 1.08,  # 白い魔法使い(女性) — つば広帽子・翼・長い裾で人物が小さく描かれている
+}
+
+
+def zoom_cutout(im: Image.Image, zoom: float) -> Image.Image:
+    if zoom == 1:
+        return im
+    w, h = im.size
+    big = im.resize((round(w * zoom), round(h * zoom)), Image.LANCZOS)
+    left = (big.width - w) // 2
+    top = big.height - h  # 足元を残し、上(装飾側)を切る
+    return big.crop((left, top, left + w, top + h))
+
 
 def limit_width(im: Image.Image, max_w: int) -> Image.Image:
     if im.width <= max_w:
@@ -185,6 +206,7 @@ def main():
         print(f'[{seal_index:2d}]{suffix or " (female)"} {name}')
 
         full = pad_to_ar(full, target_cutout_ar)
+        full = zoom_cutout(full, CUTOUT_ZOOM.get((seal_index, suffix), 1))
         full_path = os.path.join(OUT_DIR, f'seal-{seal_index}-cutout{suffix}.webp')
         limit_width(full, MAX_CUTOUT_WIDTH).save(full_path, 'WEBP', quality=88, method=6)
 
