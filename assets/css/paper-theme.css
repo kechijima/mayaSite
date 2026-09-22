@@ -297,8 +297,8 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
   .dossier .block__head svg { width: 14px; height: 14px; }
   .dossier .block__head h3 { font-size: 13px; }
   .dossier .block p { font-size: 13px; line-height: 1.8; margin-bottom: 9px; }
-  .dossier .checklist { gap: 5.5px; }
-  .dossier .checklist li { font-size: 13px; line-height: 1.65; gap: 6.5px; }
+  .dossier .checklist { gap: 3px; }
+  .dossier .checklist li { font-size: 13px; line-height: 1.5; gap: 6.5px; }
   .dossier .checklist li svg { width: 12px; height: 12px; margin-top: 2px; }
 }
 
@@ -329,9 +329,11 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
    sense for spacing between two block-level chunks, but here it's the row-to-row gap *within*
    one list, which needs to read like consecutive lines of the same paragraph (no extra margin
    between wrapped lines there), not like separate paragraphs. */
-.checklist { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; }
+/* 項目の間隔は詰めめ(2026-09-22に 6px から 3px へ)。行そのものは line-height 1.7 で
+   読みやすさを確保しているので、項目間まで空けると箇条書きが間延びして見えるため。 */
+.checklist { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 3px; }
 .checklist:last-child { margin-bottom: 0; }
-.checklist li { display: flex; gap: 9px; font-size: 13.5px; line-height: 1.7; }
+.checklist li { display: flex; gap: 9px; font-size: 13.5px; line-height: 1.55; }
 .checklist li svg { width: 14px; height: 14px; flex: none; margin-top: 3px; color: var(--gold); }
 
 .twocol { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
@@ -435,9 +437,9 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
   .tonecard__body { flex: 1; }
 }
 
-.celeblist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; grid-template-columns: 1fr; }
+.celeblist { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; grid-template-columns: 1fr; }
 @media (min-width: 560px) { .celeblist { grid-template-columns: 1fr 1fr; } }
-.celeblist li { font-size: 13px; line-height: 1.7; }
+.celeblist li { font-size: 13px; line-height: 1.55; }
 .celeblist li span { color: var(--ink-faint); }
 /* KIN別の有名人は「分野｜生年月日」を添えるため1行に収まらない。名前を1行目、補足を2行目に
    分けて、名前の並びが読み取りやすいようにする(銀河の音側の1行表示はそのまま)。 */
