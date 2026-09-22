@@ -256,20 +256,20 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 /* column-gap/row-gap split deliberately (not the `gap` shorthand) — the row gap between
    dossier__main and dossier__strength must stay near-zero since dossier__strength (being a
    .block) already carries its own margin-top; using `gap` for both made the two stack. */
-.dossier { display: grid; grid-template-columns: minmax(160px, 260px) 1fr; column-gap: 30px; row-gap: 0; align-items: start; max-width: 720px; margin-left: auto; margin-right: auto; }
-@media (min-width: 1000px) { .dossier { grid-template-columns: minmax(220px, 320px) 1fr; column-gap: 44px; } }
-/* Portrait spans both rows of the 2-row grid (dossier__main in row 1, dossier__strength in row
-   2) so 性格の強み sits to the right of the image like dossier__main above it, not full-width —
-   grid-column:2 on dossier__strength is what keeps it out of the (portrait-occupied) first
-   column, since without it auto-placement would wrap back to column 1 in the next row. */
+.dossier { display: flow-root; max-width: 720px; margin-left: auto; margin-right: auto; }
+/* 全身像は左に回り込ませ(float)、本文はその右から始まって画像の下まで続く。2カラムの
+   グリッドだった頃は本文の列の方が縦に長く、その差がそのまま画像の下の余白になっていた
+   (2026-09-22指摘。モバイルで約345px・PCで約123px)。回り込みなら余白が出ない。
+   .dossier に display:flow-root を入れているのは、float した画像の高さを親に伝えるため
+   (本文が短いKINで画像が次のセクションへはみ出すのを防ぐ)。 */
 /* 枠の縦横比をカットアウト画像そのものに合わせる(全キャラクター共通の 640:925 =
    scripts/generateSealCutouts.py が揃えている比率)。以前は高さを固定値(347/454/559px)で
    与えていたが、画像は幅で頭打ちになるため高さが余り、その余白が常にキャラクターの「上側」に
    出ていた(2026-09-22指摘。モバイルで約103px、PCで約97px)。比率を合わせれば contain でも
    余白が生じない。全キャラクターが同じ比率なので、「どの絵も同じ箱に収まる」性質は変わらない。 */
-.dossier__portrait { grid-row: 1 / span 2; aspect-ratio: 640 / 925; overflow: hidden; }
+.dossier__portrait { float: left; width: 36%; margin: 0 30px 12px 0; aspect-ratio: 640 / 925; overflow: hidden; }
+@media (min-width: 1000px) { .dossier__portrait { width: 44%; margin-right: 44px; } }
 .dossier__portrait img { width: 100%; height: 100%; object-fit: contain; object-position: bottom center; display: block; }
-.dossier__strength { grid-column: 2; }
 .dossier__headrow { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .dossier__name { font-size: 27px; }
 .dossier__badge { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; padding: 3px 11px; border-radius: 999px; border: 1px solid var(--gold); color: var(--gold-deep); white-space: nowrap; }
@@ -281,10 +281,14 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 @media (max-width: 600px) {
   /* Extra breathing room below the section title, beyond .section's own padding-top — same
      treatment as .relwrap's mobile margin-top for KINの関係性. */
-  .dossier { grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
-  /* 高さは上の aspect-ratio 任せ(画像と同じ比率)。ここでは配置だけ変える。 */
-  .dossier__portrait { grid-row: 1; }
-  .dossier__strength { grid-column: 1 / -1; }
+  /* スマホは2カラムのグリッドをやめ、全身像を左に回り込ませる(float)。グリッドのままだと
+     本文の列の方が縦に長く、その差がそのまま画像の下の余白になっていた(2026-09-22指摘。
+     モバイルで約345px)。回り込みなら本文が画像の下まで続くので、上にも下にも余白が出ない。 */
+  .dossier { margin-top: 14px; }
+  .dossier__portrait { width: 48%; margin: 0 14px 8px 0; }
+  /* スマホだけ「あなたの性格の強み」の回り込みを解除して全幅に戻す(横幅が狭く、
+     画像の横に置くと1行が数文字になってしまうため)。 */
+  .dossier__strength { clear: both; }
   .dossier__name { font-size: 20px; }
   .dossier__badge { font-size: 9.5px; padding: 2px 8.5px; }
   .dossier__catch { font-size: 12.5px; line-height: 1.75; margin: 5px 0 16px; }
