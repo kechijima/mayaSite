@@ -262,15 +262,13 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
    2) so 性格の強み sits to the right of the image like dossier__main above it, not full-width —
    grid-column:2 on dossier__strength is what keeps it out of the (portrait-occupied) first
    column, since without it auto-placement would wrap back to column 1 in the next row. */
-/* Portrait is a fixed-size box (column width × fixed height) and the image is object-fit:contain
-   inside it, so neither dimension grows with the source image's own aspect ratio — every
-   character is bounded by the same box regardless of whether its art is tall-and-narrow or a
-   wide flared-cape pose. contain means the image scales down to fit fully (never cropped, never
-   overflowing), bottom-anchored so figures stand on the same baseline. Portrait spans both grid
-   rows for its vertical position; its height is this fixed value, not the rows' content height. */
-.dossier__portrait { grid-row: 1 / span 2; height: 454px; overflow: hidden; }
+/* 枠の縦横比をカットアウト画像そのものに合わせる(全キャラクター共通の 640:925 =
+   scripts/generateSealCutouts.py が揃えている比率)。以前は高さを固定値(347/454/559px)で
+   与えていたが、画像は幅で頭打ちになるため高さが余り、その余白が常にキャラクターの「上側」に
+   出ていた(2026-09-22指摘。モバイルで約103px、PCで約97px)。比率を合わせれば contain でも
+   余白が生じない。全キャラクターが同じ比率なので、「どの絵も同じ箱に収まる」性質は変わらない。 */
+.dossier__portrait { grid-row: 1 / span 2; aspect-ratio: 640 / 925; overflow: hidden; }
 .dossier__portrait img { width: 100%; height: 100%; object-fit: contain; object-position: bottom center; display: block; }
-@media (min-width: 1000px) { .dossier__portrait { height: 559px; } }
 .dossier__strength { grid-column: 2; }
 .dossier__headrow { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .dossier__name { font-size: 27px; }
@@ -284,10 +282,8 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
   /* Extra breathing room below the section title, beyond .section's own padding-top — same
      treatment as .relwrap's mobile margin-top for KINの関係性. */
   .dossier { grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
-  /* Same fixed-box + object-fit:contain treatment as desktop above (just a shorter height and a
-     grid-row:1 instead of spanning two rows) — bounds both dimensions so no character's art
-     renders larger than this box regardless of its source aspect ratio. */
-  .dossier__portrait { grid-row: 1; height: 347px; }
+  /* 高さは上の aspect-ratio 任せ(画像と同じ比率)。ここでは配置だけ変える。 */
+  .dossier__portrait { grid-row: 1; }
   .dossier__strength { grid-column: 1 / -1; }
   .dossier__name { font-size: 20px; }
   .dossier__badge { font-size: 9.5px; padding: 2px 8.5px; }
@@ -876,7 +872,11 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
     margin: 0 auto; padding-bottom: 2vw;
     grid-template-rows: auto auto;
   }
-  .hero .kinduo__art { height: 31vh; aspect-ratio: auto; }
+  /* 高さのvh指定をやめ、基本ルールの aspect-ratio(画像と同じ 128:185 = 640:925)に戻す。
+     vhで与えた高さは列幅で頭打ちになる分が余白になり、それが常にキャラクターの上側に出ていた
+     (2026-09-22指摘)。列幅から決まる高さ(97vw÷2 ÷ 0.692 ≒ 31vh 相当)は従来の指定とほぼ同じで、
+     余白だけが無くなる。 */
+  .hero .kinduo__art { height: auto; align-self: start; }
   /* object-position: bottom — 列幅で頭打ちになり42vhより低く描画される場合、余白を
      アート枠の下ではなく上に集める。これでキャラが名前(すぐ下の行)に密着し続ける
      (2026-08-21の「名前だけ孤立して浮く」修正をここでも維持)。 */
@@ -932,7 +932,9 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
      再設定している。40vhまで一度試したが、この幅では検証用バー
      (padding-bottom:170pxの余白)との間隔が数px単位まで詰まったため、
      安全マージン(約20px)を残して36vhに戻した。 */
-  .hero .kinduo__art { height: 36vh; }
+  /* 高さのvh指定はやめ、上のブレークポイントと同じく aspect-ratio 任せにする
+     (列幅で頭打ちになった分が上側の余白になっていたため。2026-09-22)。 */
+  .hero .kinduo__art { height: auto; }
   .hero .sharebar { margin-top: 0.5vh; }
 }
 
