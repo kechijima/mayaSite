@@ -297,12 +297,13 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .dossier__name { font-size: 27px; line-height: 1.2; color: var(--ink); }
 /* 帯はその紋章の色(--seal-accent、上の section[data-seal] で決まる)。金〜茶系は読みづらい/暗いと
    指摘されたため(2026-09-23)、紋章色にした。文字色はコントラスト比で決める:
-   赤 #be402d・青 #1c517f は紙色の文字(5.1 / 7.9)、黄 #c99a1f は明るいので墨色(7.3)。
-   白 #8a8368 は白文字にしたいとの要望(2026-09-23)で紙色の文字にし、そのままだと 3.6 と薄いので
-   帯だけ同系色で 15% 濃くして 4.8 にしている。 */
+   赤 #be402d・青 #1c517f は紙色の文字(5.1 / 7.9)。白 #8a8368・黄 #c99a1f は当初墨色にしていたが
+   全色白文字にしたいとの要望(2026-09-23)で紙色の文字にし、そのままだと 3.6 / 2.5 と薄いので
+   帯だけ同系色で濃くしている(白 15% → 4.8、黄 25% → 4.2。黄は色味を保つ範囲ではこれが上限で、
+   文字の影で輪郭を補う)。 */
 .dossier__type { display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 5px 14px 5px 12px; border-radius: 6px; background: var(--seal-accent); color: var(--paper); font-family: "Shippori Mincho", serif; font-weight: 700; font-size: 14px; letter-spacing: .12em; line-height: 1.4; text-shadow: 0 1px 0 rgba(0, 0, 0, .18); }
 .section[data-seal="white"] .dossier__type { background: color-mix(in srgb, var(--seal-white) 85%, black); }
-.section[data-seal="yellow"] .dossier__type { color: var(--ink); text-shadow: none; }
+.section[data-seal="yellow"] .dossier__type { background: color-mix(in srgb, var(--seal-yellow) 75%, black); text-shadow: 0 1px 1px rgba(0, 0, 0, .3); }
 .dossier__type::before { content: ""; flex: none; width: 6px; height: 6px; background: currentColor; opacity: .9; transform: rotate(45deg); }
 .dossier__catch { font-size: 13.5px; line-height: 1.85; color: var(--ink-soft); margin: 10px 0 22px; font-family: "Shippori Mincho", serif; }
 .dossier__blocks .block:first-child { margin-top: 0; }
