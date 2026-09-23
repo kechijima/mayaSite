@@ -353,7 +353,10 @@ is `hidden lg:block` with a `lg:hidden` card list beside it built from
 [components/AdminRecordCard.vue](components/AdminRecordCard.vue) (horizontal-scrolling tables were rejected as unreadable
 on phones); tablets 768–1023px get cards too because the sidebar leaves no room for 7 columns. Modals get
 `max-h-[calc(100vh-2rem)] overflow-y-auto` so their footer buttons stay reachable. The mobile top bar and the
-search/filter rows on `/admin/users` and `/admin/content` are `position: sticky`; that only works because the layout
+search bars on `/admin/users` and `/admin/content` ([components/AdminSearchBar.vue](components/AdminSearchBar.vue):
+one keyword input plus a 詳細検索 icon that opens a modal holding the other conditions as
+[components/AdminFilterChips.vue](components/AdminFilterChips.vue) — a row of several controls was too tall to pin on a
+phone) are `position: sticky`; that only works because the layout
 adds `html.admin-shell` via `useHead` and [assets/css/main.css](assets/css/main.css) switches `paper-theme.css`'s
 `html, body { overflow-x: hidden }` (the public pages' iPhone bounce guard, which turns `body` into a scroll container
 and silently disables sticky) to `overflow-x: clip` for admin only.
