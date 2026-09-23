@@ -60,7 +60,7 @@ const title = computed(() => (copied.value ? 'コピーしました' : props.lab
 <template>
   <button
     type="button"
-    class="inline-flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-colors hover:border-slate-300 hover:text-brass-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass-700 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-gold-300"
+    class="inline-flex h-10 w-10 flex-none items-center justify-center sm:h-8 sm:w-8 rounded-lg border border-slate-200 text-slate-500 transition-colors hover:border-slate-300 hover:text-brass-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass-700 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-gold-300"
     :class="copied ? '!border-emerald-500/60 !text-emerald-600 dark:!text-emerald-400' : ''"
     :title="title"
     :aria-label="title"

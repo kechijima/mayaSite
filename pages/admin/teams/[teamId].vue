@@ -221,7 +221,7 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
             <input v-model="draftNote" type="text" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800" />
           </div>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
           <button type="button" class="rounded-lg bg-brass-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-50" :disabled="savingMeta" @click="saveMeta">
             {{ savingMeta ? '保存中…' : '保存する' }}
           </button>
@@ -231,7 +231,7 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
 
       <!-- メンバー -->
       <div class="rounded-xl border border-slate-200 bg-white p-5.5 dark:border-slate-800 dark:bg-slate-900">
-        <div class="mb-3 flex items-baseline justify-between">
+        <div class="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <p class="text-sm font-bold">メンバー（{{ members.length }}名）</p>
           <span v-if="members.length >= MEMBER_LIST_LIMIT" class="text-[11px] text-slate-500 dark:text-slate-400">先頭{{ MEMBER_LIST_LIMIT }}名のみ表示</span>
         </div>
@@ -246,9 +246,9 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
               v-model="addEmail"
               type="email"
               placeholder="メールアドレス（完全一致）"
-              class="min-w-[240px] flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+              class="w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm sm:min-w-[240px] sm:flex-1 dark:border-slate-700 dark:bg-slate-800"
             />
-            <button type="submit" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold disabled:opacity-50 dark:border-slate-700" :disabled="addBusy || !addEmail.trim()">
+            <button type="submit" class="w-full rounded-lg border sm:w-auto border-slate-200 px-4 py-2 text-sm font-semibold disabled:opacity-50 dark:border-slate-700" :disabled="addBusy || !addEmail.trim()">
               検索
             </button>
           </form>
@@ -268,7 +268,7 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
             <button
               v-if="addCandidate.teamId !== teamId"
               type="button"
-              class="ml-auto rounded-lg bg-brass-700 px-3.5 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+              class="w-full rounded-lg bg-brass-700 px-3.5 py-2 text-xs font-bold text-white disabled:opacity-50 sm:ml-auto sm:w-auto sm:py-1.5"
               :disabled="addBusy"
               @click="confirmAdd"
             >
@@ -278,35 +278,54 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
         </div>
 
         <p v-if="!members.length" class="py-3 text-center text-sm text-slate-500 dark:text-slate-400">まだメンバーがいません。</p>
-        <div v-else class="max-h-[70vh] overflow-auto">
-          <table class="w-full text-[13px]">
-            <thead class="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-white [&_th]:pt-2.5 [&_th]:shadow-[inset_0_-1px_0_#e2e8f0] dark:[&_th]:bg-slate-900 dark:[&_th]:shadow-[inset_0_-1px_0_#1e293b]">
-              <tr class="text-left text-[11px] uppercase tracking-wide text-slate-400">
-                <th class="pb-2.5 pr-3">氏名</th>
-                <th class="pb-2.5 pr-3">メール</th>
-                <th class="pb-2.5 pr-3">所属経路</th>
-                <th class="pb-2.5 pr-3">所属日</th>
-                <th class="pb-2.5"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="m in members" :key="m.uid" class="border-b border-slate-100 last:border-0 dark:border-slate-800/60">
-                <td class="py-2.5 pr-3">{{ m.name || '—' }}</td>
-                <td class="py-2.5 pr-3 text-slate-500 dark:text-slate-400">{{ m.email }}</td>
-                <td class="py-2.5 pr-3">{{ sourceLabel(m.entitlementSource) }}</td>
-                <td class="py-2.5 pr-3 tabular-nums text-slate-500 dark:text-slate-400">{{ formatDate(m.joinedAt) }}</td>
-                <td class="py-2.5">
-                  <button type="button" class="text-xs font-semibold text-red-600 hover:underline dark:text-red-400" @click="removeTarget = m">外す</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <template v-else>
+          <!-- lg 未満はテーブルの代わりにカード一覧(AdminRecordCard 参照) -->
+          <ul class="lg:hidden">
+            <AdminRecordCard
+              v-for="m in members"
+              :key="m.uid"
+              :title="m.name || '—'"
+              :subtitle="m.email"
+              :fields="[
+                { label: '所属経路', value: sourceLabel(m.entitlementSource) },
+                { label: '所属日', value: formatDate(m.joinedAt) }
+              ]"
+            >
+              <template #actions>
+                <button type="button" class="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 dark:border-red-900 dark:text-red-400" @click="removeTarget = m">チームから外す</button>
+              </template>
+            </AdminRecordCard>
+          </ul>
+          <div class="hidden max-h-[70vh] overflow-auto lg:block">
+            <table class="w-full text-[13px]">
+              <thead class="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-white [&_th]:pt-2.5 [&_th]:shadow-[inset_0_-1px_0_#e2e8f0] dark:[&_th]:bg-slate-900 dark:[&_th]:shadow-[inset_0_-1px_0_#1e293b]">
+                <tr class="text-left text-[11px] uppercase tracking-wide text-slate-400">
+                  <th class="pb-2.5 pr-3">氏名</th>
+                  <th class="pb-2.5 pr-3">メール</th>
+                  <th class="pb-2.5 pr-3">所属経路</th>
+                  <th class="pb-2.5 pr-3">所属日</th>
+                  <th class="pb-2.5"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="m in members" :key="m.uid" class="border-b border-slate-100 last:border-0 dark:border-slate-800/60">
+                  <td class="py-2.5 pr-3">{{ m.name || '—' }}</td>
+                  <td class="py-2.5 pr-3 text-slate-500 dark:text-slate-400">{{ m.email }}</td>
+                  <td class="py-2.5 pr-3">{{ sourceLabel(m.entitlementSource) }}</td>
+                  <td class="py-2.5 pr-3 tabular-nums text-slate-500 dark:text-slate-400">{{ formatDate(m.joinedAt) }}</td>
+                  <td class="py-2.5">
+                    <button type="button" class="text-xs font-semibold text-red-600 hover:underline dark:text-red-400" @click="removeTarget = m">外す</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </template>
       </div>
 
       <!-- 除外の確認 -->
       <div v-if="removeTarget" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" @click.self="removeTarget = null">
-        <div class="w-full max-w-[440px] rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+        <div class="max-h-[calc(100vh-2rem)] w-full max-w-[440px] overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900">
           <h2 class="mb-3 text-base font-bold">{{ removeTarget.name || removeTarget.email }} をチームから外しますか？</h2>
           <p class="mb-5 text-[13px] leading-[1.8] text-slate-600 dark:text-slate-300">
             この会員の<strong>所属が解除され、チーム会員から無料会員に戻ります</strong>。

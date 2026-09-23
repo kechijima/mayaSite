@@ -75,7 +75,28 @@ function closeDetail() {
     </div>
 
     <div class="rounded-xl border border-slate-200 bg-white p-5.5 dark:border-slate-800 dark:bg-slate-900">
-      <div class="max-h-[70vh] overflow-auto">
+      <!-- lg 未満はテーブルの代わりにカード一覧。タップで詳細モーダル(AdminRecordCard 参照) -->
+      <ul class="lg:hidden">
+        <li v-if="!loading && !rows.length" class="py-6 text-center text-[13px] text-slate-400">診断履歴はまだありません</li>
+        <AdminRecordCard
+          v-for="r in rows"
+          :key="r.id"
+          :title="r.primaryName"
+          :subtitle="formatDateTime(r.createdAt)"
+          :fields="[
+            { label: '生年月日', value: r.birthdate },
+            { label: '性別', value: r.gender },
+            { label: '太陽の紋章', value: r.sealName }
+          ]"
+          clickable
+          @click="openDetail(r)"
+        >
+          <template #badge>
+            <span class="rounded-full px-2.5 py-0.5 text-[11.5px] font-bold" :class="historyTypeChipClass(r.type)">{{ historyTypeLabel(r.type) }}</span>
+          </template>
+        </AdminRecordCard>
+      </ul>
+      <div class="hidden max-h-[70vh] overflow-auto lg:block">
         <table class="w-full text-[13px]">
           <thead class="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-white [&_th]:pt-2.5 [&_th]:shadow-[inset_0_-1px_0_#e2e8f0] dark:[&_th]:bg-slate-900 dark:[&_th]:shadow-[inset_0_-1px_0_#1e293b]">
             <tr class="text-left text-[11px] uppercase tracking-wide text-slate-400">
@@ -120,7 +141,7 @@ function closeDetail() {
 
     <!-- Detail modal (read-only — history is an immutable log, no edit section) -->
     <div v-if="selected" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" @click.self="closeDetail">
-      <div class="w-full max-w-[560px] rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+      <div class="w-full max-w-[560px] rounded-xl border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900">
         <div class="mb-5 flex items-start justify-between">
           <div>
             <h2 class="text-base font-bold">{{ historyTypeLabel(selected.type) }}</h2>
@@ -135,7 +156,7 @@ function closeDetail() {
               {{ selected.type === 'compatibility' ? (i === 0 ? 'あなた' : `相手${i}`) : p.name }}
               <span v-if="selected.type === 'compatibility'" class="ml-1 font-normal">（{{ p.name }}）</span>
             </p>
-            <dl class="grid grid-cols-2 gap-y-2.5 text-[13px]">
+            <dl class="grid grid-cols-1 gap-y-2.5 text-[13px] sm:grid-cols-2">
               <div><dt class="text-slate-400">生年月日</dt><dd class="font-semibold">{{ p.birthdate }}</dd></div>
               <div><dt class="text-slate-400">性別</dt><dd class="font-semibold">{{ genderLabel(p.gender) }}</dd></div>
               <div><dt class="text-slate-400">KIN番号</dt><dd class="font-semibold tabular-nums">KIN {{ p.kin }}</dd></div>

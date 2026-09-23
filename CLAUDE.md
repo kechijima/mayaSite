@@ -345,6 +345,19 @@ The app deliberately uses two unrelated design systems, matching the mockup:
 
 Tailwind `darkMode` is `'media'` (follows OS preference), not a manual toggle.
 
+**Admin on phones** (2026-09-23). [layouts/admin.vue](layouts/admin.vue) turns the sidebar into a left drawer below `md`
+(768px) with a hamburger top bar, mirroring `SiteHeader.vue`'s drawer (scrim, html+body scroll lock, Esc/route-change
+close). The same `<aside>` is the permanent sidebar from `md` up, so `inert` is applied only when "below md **and** closed"
+(via `matchMedia`) — copying SiteHeader's unconditional `!open` would freeze the desktop sidebar. Every admin list table
+is `hidden lg:block` with a `lg:hidden` card list beside it built from
+[components/AdminRecordCard.vue](components/AdminRecordCard.vue) (horizontal-scrolling tables were rejected as unreadable
+on phones); tablets 768–1023px get cards too because the sidebar leaves no room for 7 columns. Modals get
+`max-h-[calc(100vh-2rem)] overflow-y-auto` so their footer buttons stay reachable.
+**Do not put Tailwind's `block` class on admin elements**: [assets/css/paper-theme.css](assets/css/paper-theme.css)
+defines a public-page `.block { margin-top: 26px; max-width: 720px; margin: auto }` that wins over it (it's loaded after
+Tailwind), which is how the hamburger bars first rendered at 0px tall. Existing `mb-1.5 block` labels in admin carry
+that stray margin today; use `flex`/`w-full` instead of `block` for anything new.
+
 `/plans`, `/signup`, `/signup/referral`, `/login` and `/account` render **no footer** (`FOOTERLESS_PATHS` in [layouts/default.vue](layouts/default.vue))
 and use `.paper-page--focus`, which fills the viewport and centres the content vertically so they fit on one screen
 without scrolling. The signup forms go two-column from 768px (`.signupform .formgrid`) for the same reason. On phones

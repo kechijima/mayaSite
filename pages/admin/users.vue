@@ -197,9 +197,9 @@ const { withLoading } = useGlobalLoading()
         v-model="keyword"
         type="text"
         placeholder="氏名・メールアドレス・チーム名で検索"
-        class="min-w-[240px] flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900"
+        class="w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm sm:min-w-[240px] sm:flex-1 dark:border-slate-800 dark:bg-slate-900"
       />
-      <select v-model="statusFilter" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900">
+      <select v-model="statusFilter" class="w-full rounded-lg sm:w-auto border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900">
         <option value="all">すべてのステータス</option>
         <option value="free">無料会員</option>
         <option value="team">チーム会員</option>
@@ -217,40 +217,64 @@ const { withLoading } = useGlobalLoading()
       <p v-else-if="!filtered.length" class="py-4 text-center text-sm text-slate-500 dark:text-slate-400">
         {{ rows.length ? '条件に一致する会員はいません。' : 'まだ登録会員がいません。' }}
       </p>
-      <div v-else class="max-h-[70vh] overflow-auto">
-        <table class="w-full text-[13px]">
-          <thead class="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-white [&_th]:pt-2.5 [&_th]:shadow-[inset_0_-1px_0_#e2e8f0] dark:[&_th]:bg-slate-900 dark:[&_th]:shadow-[inset_0_-1px_0_#1e293b]">
-            <tr class="text-left text-[11px] uppercase tracking-wide text-slate-400">
-              <th class="pb-2.5 pr-3">名前</th>
-              <th class="pb-2.5 pr-3">メール</th>
-              <th class="pb-2.5 pr-3">ステータス</th>
-              <th class="pb-2.5 pr-3">所属チーム</th>
-              <th class="pb-2.5 pr-3">所属経路</th>
-              <th class="pb-2.5 pr-3">登録日</th>
-              <th class="pb-2.5"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="u in filtered" :key="u.uid" class="border-b border-slate-100 last:border-0 dark:border-slate-800/60">
-              <td class="py-2.5 pr-3">{{ u.name || '—' }}</td>
-              <td class="py-2.5 pr-3 text-slate-500 dark:text-slate-400">{{ u.email }}</td>
-              <td class="py-2.5 pr-3">
-                <span class="rounded-full px-2.5 py-0.5 text-[11.5px] font-bold" :class="statusChip(u.status)">{{ USER_STATUS_LABEL[u.status] }}</span>
-              </td>
-              <td class="py-2.5 pr-3">{{ u.teamName || '—' }}</td>
-              <td class="py-2.5 pr-3 text-slate-500 dark:text-slate-400">{{ u.source }}</td>
-              <td class="py-2.5 pr-3 tabular-nums text-slate-500 dark:text-slate-400">{{ u.joined }}</td>
-              <td class="py-2.5">
-                <button class="text-xs font-semibold text-brass-700 hover:underline dark:text-gold-300" @click="openDetail(u)">詳細</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <template v-else>
+        <!-- lg 未満はテーブルの代わりにカード一覧。タップで詳細モーダル(AdminRecordCard 参照) -->
+        <ul class="lg:hidden">
+          <AdminRecordCard
+            v-for="u in filtered"
+            :key="u.uid"
+            :title="u.name || '—'"
+            :subtitle="u.email"
+            :fields="[
+              { label: '所属チーム', value: u.teamName || '—' },
+              { label: '所属経路', value: u.source },
+              { label: '登録日', value: u.joined }
+            ]"
+            clickable
+            @click="openDetail(u)"
+          >
+            <template #badge>
+              <span class="rounded-full px-2.5 py-0.5 text-[11.5px] font-bold" :class="statusChip(u.status)">{{ USER_STATUS_LABEL[u.status] }}</span>
+            </template>
+          </AdminRecordCard>
+        </ul>
+        <div class="hidden max-h-[70vh] overflow-auto lg:block">
+          <table class="w-full text-[13px]">
+            <thead class="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-white [&_th]:pt-2.5 [&_th]:shadow-[inset_0_-1px_0_#e2e8f0] dark:[&_th]:bg-slate-900 dark:[&_th]:shadow-[inset_0_-1px_0_#1e293b]">
+              <tr class="text-left text-[11px] uppercase tracking-wide text-slate-400">
+                <th class="pb-2.5 pr-3">名前</th>
+                <th class="pb-2.5 pr-3">メール</th>
+                <th class="pb-2.5 pr-3">ステータス</th>
+                <th class="pb-2.5 pr-3">所属チーム</th>
+                <th class="pb-2.5 pr-3">所属経路</th>
+                <th class="pb-2.5 pr-3">登録日</th>
+                <th class="pb-2.5"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="u in filtered" :key="u.uid" class="border-b border-slate-100 last:border-0 dark:border-slate-800/60">
+                <td class="py-2.5 pr-3">{{ u.name || '—' }}</td>
+                <td class="py-2.5 pr-3 text-slate-500 dark:text-slate-400">{{ u.email }}</td>
+                <td class="py-2.5 pr-3">
+                  <span class="rounded-full px-2.5 py-0.5 text-[11.5px] font-bold" :class="statusChip(u.status)">{{ USER_STATUS_LABEL[u.status] }}</span>
+                </td>
+                <td class="py-2.5 pr-3">{{ u.teamName || '—' }}</td>
+                <td class="py-2.5 pr-3 text-slate-500 dark:text-slate-400">{{ u.source }}</td>
+                <td class="py-2.5 pr-3 tabular-nums text-slate-500 dark:text-slate-400">{{ u.joined }}</td>
+                <td class="py-2.5">
+                  <button class="text-xs font-semibold text-brass-700 hover:underline dark:text-gold-300" @click="openDetail(u)">詳細</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
     </div>
 
+    <!-- max-h + overflow-y-auto はスマホ用。内容が画面より高いと、items-center の中央寄せで上下が
+         画面外に出て届かなくなるため(history の詳細モーダルと同じ扱い)。 -->
     <div v-if="selected" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" @click.self="selected = null">
-      <div class="w-full max-w-[480px] rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+      <div class="max-h-[calc(100vh-2rem)] w-full max-w-[480px] overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900">
         <div class="mb-5 flex items-start justify-between">
           <div>
             <h2 class="text-base font-bold">{{ selected.name || '（氏名未登録）' }}</h2>
@@ -259,7 +283,7 @@ const { withLoading } = useGlobalLoading()
           <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label="閉じる" @click="selected = null">✕</button>
         </div>
 
-        <dl class="mb-5 grid grid-cols-2 gap-y-3 text-[13px]">
+        <dl class="mb-5 grid grid-cols-1 gap-y-3 text-[13px] sm:grid-cols-2">
           <div><dt class="text-slate-400">生年月日</dt><dd class="font-semibold">{{ selected.birthdate || '—' }}</dd></div>
           <div><dt class="text-slate-400">性別</dt><dd class="font-semibold">{{ selected.gender }}</dd></div>
           <div><dt class="text-slate-400">KIN番号</dt><dd class="font-semibold tabular-nums">{{ selected.kin ? `KIN ${selected.kin}` : '—' }}</dd></div>
@@ -291,7 +315,7 @@ const { withLoading } = useGlobalLoading()
           <p v-if="!statusOptions.includes('paid')" class="mb-3 text-[11.5px] text-slate-400">
             有料会員は決済機能の導入後に選択できるようになります。
           </p>
-          <div class="flex items-center gap-3">
+          <div class="flex flex-wrap items-center gap-3">
             <button
               type="button"
               class="rounded-lg bg-brass-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"

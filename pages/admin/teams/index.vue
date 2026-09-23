@@ -106,11 +106,11 @@ function statusLabel(status: TeamRow['status']) {
           v-model="newTeamName"
           type="text"
           placeholder="チーム名（例：Aチーム）"
-          class="min-w-[220px] flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900"
+          class="w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm sm:min-w-[220px] sm:flex-1 dark:border-slate-800 dark:bg-slate-900"
         />
         <button
           type="submit"
-          class="rounded-lg bg-brass-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
+          class="w-full rounded-lg bg-brass-700 sm:w-auto px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
           :disabled="creating || !newTeamName.trim()"
         >
           {{ creating ? '作成中…' : '作成する' }}
@@ -142,34 +142,54 @@ function statusLabel(status: TeamRow['status']) {
       <p v-else-if="!rows.length" class="py-4 text-center text-sm text-slate-500 dark:text-slate-400">
         まだチームがありません。上のフォームから作成してください。
       </p>
-      <div v-else class="max-h-[70vh] overflow-auto">
-        <table class="w-full text-[13px]">
-          <thead class="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-white [&_th]:pt-2.5 [&_th]:shadow-[inset_0_-1px_0_#e2e8f0] dark:[&_th]:bg-slate-900 dark:[&_th]:shadow-[inset_0_-1px_0_#1e293b]">
-            <tr class="text-left text-[11px] uppercase tracking-wide text-slate-400">
-              <th class="pb-2.5 pr-3">チーム名</th>
-              <th class="pb-2.5 pr-3">コード</th>
-              <th class="pb-2.5 pr-3">状態</th>
-              <th class="pb-2.5 pr-3 text-right">メンバー</th>
-              <th class="pb-2.5 pr-3">作成日</th>
-              <th class="pb-2.5"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in rows" :key="row.id" class="border-b border-slate-100 last:border-0 dark:border-slate-800/60">
-              <td class="py-2.5 pr-3 font-semibold">{{ row.name }}</td>
-              <td class="py-2.5 pr-3 font-mono tracking-[.05em]">{{ row.code }}</td>
-              <td class="py-2.5 pr-3">
-                <span class="rounded-full px-2.5 py-0.5 text-[11.5px] font-bold" :class="statusChip(row.status)">{{ statusLabel(row.status) }}</span>
-              </td>
-              <td class="py-2.5 pr-3 text-right tabular-nums">{{ row.members }}</td>
-              <td class="py-2.5 pr-3 tabular-nums text-slate-500 dark:text-slate-400">{{ formatDate(row) }}</td>
-              <td class="py-2.5">
-                <NuxtLink :to="`/admin/teams/${row.id}`" class="text-xs font-semibold text-brass-700 hover:underline dark:text-gold-300">詳細</NuxtLink>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <template v-else>
+        <!-- lg 未満はテーブルの代わりにカード一覧。タップで詳細へ(AdminRecordCard 参照) -->
+        <ul class="lg:hidden">
+          <AdminRecordCard
+            v-for="row in rows"
+            :key="row.id"
+            :title="row.name"
+            :subtitle="row.code"
+            :fields="[
+              { label: 'メンバー', value: `${row.members}名` },
+              { label: '作成日', value: formatDate(row) }
+            ]"
+            :to="`/admin/teams/${row.id}`"
+          >
+            <template #badge>
+              <span class="rounded-full px-2.5 py-0.5 text-[11.5px] font-bold" :class="statusChip(row.status)">{{ statusLabel(row.status) }}</span>
+            </template>
+          </AdminRecordCard>
+        </ul>
+        <div class="hidden max-h-[70vh] overflow-auto lg:block">
+          <table class="w-full text-[13px]">
+            <thead class="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-white [&_th]:pt-2.5 [&_th]:shadow-[inset_0_-1px_0_#e2e8f0] dark:[&_th]:bg-slate-900 dark:[&_th]:shadow-[inset_0_-1px_0_#1e293b]">
+              <tr class="text-left text-[11px] uppercase tracking-wide text-slate-400">
+                <th class="pb-2.5 pr-3">チーム名</th>
+                <th class="pb-2.5 pr-3">コード</th>
+                <th class="pb-2.5 pr-3">状態</th>
+                <th class="pb-2.5 pr-3 text-right">メンバー</th>
+                <th class="pb-2.5 pr-3">作成日</th>
+                <th class="pb-2.5"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in rows" :key="row.id" class="border-b border-slate-100 last:border-0 dark:border-slate-800/60">
+                <td class="py-2.5 pr-3 font-semibold">{{ row.name }}</td>
+                <td class="py-2.5 pr-3 font-mono tracking-[.05em]">{{ row.code }}</td>
+                <td class="py-2.5 pr-3">
+                  <span class="rounded-full px-2.5 py-0.5 text-[11.5px] font-bold" :class="statusChip(row.status)">{{ statusLabel(row.status) }}</span>
+                </td>
+                <td class="py-2.5 pr-3 text-right tabular-nums">{{ row.members }}</td>
+                <td class="py-2.5 pr-3 tabular-nums text-slate-500 dark:text-slate-400">{{ formatDate(row) }}</td>
+                <td class="py-2.5">
+                  <NuxtLink :to="`/admin/teams/${row.id}`" class="text-xs font-semibold text-brass-700 hover:underline dark:text-gold-300">詳細</NuxtLink>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
     </div>
   </div>
 </template>
