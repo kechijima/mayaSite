@@ -4,6 +4,13 @@ import { signOut, type Auth } from 'firebase/auth'
 const route = useRoute()
 const { user } = useAdminAuth()
 
+// paper-theme.css の html,body{overflow-x:hidden}(公開ページの iPhone 横バウンス対策)は body を
+// スクロールコンテナにしてしまい、このレイアウト内の position:sticky(トップバー・検索バー)が
+// 効かなくなる。管理画面が表示されている間だけ html にクラスを付け、assets/css/main.css 側で
+// overflow-x を clip に切り替える(clip はスクロールコンテナを作らない)。useHead はレイアウトの
+// unmount で外れるので、公開ページに戻れば元の hidden に戻る。
+useHead({ htmlAttrs: { class: 'admin-shell' } })
+
 const navItems = [
   { to: '/admin', label: 'ダッシュボード', icon: 'grid' },
   { to: '/admin/content', label: '診断コンテンツ管理', icon: 'doc' },

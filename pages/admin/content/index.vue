@@ -53,7 +53,7 @@ function openRow(id: string) {
       {{ loadError }}
     </div>
 
-    <div class="mb-4 flex flex-wrap gap-2.5">
+    <div class="sticky top-14 z-20 -mx-4 -mt-3 mb-1 flex flex-wrap gap-2.5 bg-[#f4f5f3] px-4 py-3 md:top-0 md:-mx-8 md:px-8 dark:bg-[#0e1512]">
       <input type="text" placeholder="紋章名・音名で検索" class="w-full min-w-0 rounded-lg sm:min-w-[180px] sm:flex-1 border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900" />
       <select class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm sm:w-auto dark:border-slate-800 dark:bg-slate-900">
         <option>すべての種別</option><option v-for="t in CONTENT_TYPES" :key="t.type">{{ t.label }}</option>

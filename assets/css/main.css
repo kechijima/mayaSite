@@ -11,6 +11,14 @@
   color: #1a1208;
 }
 
+/* 管理画面(layouts/admin.vue が useHead で html.admin-shell を付ける)では、paper-theme.css の
+   html,body{overflow-x:hidden} を clip に置き換える。hidden は body をスクロールコンテナにして
+   position:sticky を無効にするため。詳細指定度で勝つので読み込み順には依存しない。 */
+html.admin-shell,
+html.admin-shell body {
+  overflow-x: clip;
+}
+
 /* Shippori Mincho B1 has no italic face; font-style:italic below intentionally
    triggers the browser's synthetic oblique, matching mayadan.jp's technique. */
 .font-eyebrow-italic {

@@ -25,7 +25,7 @@ defineEmits<{ click: [] }>()
       :to="to || undefined"
       :type="!to && clickable ? 'button' : undefined"
       class="flex w-full flex-col py-3 text-left text-[13px]"
-      :class="to || clickable ? 'active:bg-slate-50 dark:active:bg-slate-800/40' : ''"
+      :class="to || clickable ? '-mx-2 w-[calc(100%+1rem)] rounded-lg px-2 hover:bg-slate-50 active:bg-slate-100 dark:hover:bg-slate-800/40 dark:active:bg-slate-800/70' : ''"
       @click="clickable && !to ? $emit('click') : undefined"
     >
       <div class="flex items-start justify-between gap-3">
@@ -36,6 +36,10 @@ defineEmits<{ click: [] }>()
         <div v-if="$slots.badge" class="flex flex-none flex-wrap justify-end gap-1.5">
           <slot name="badge" />
         </div>
+        <!-- タップで開けるカードの目印。テーブル側の「詳細」ボタンに相当する -->
+        <svg v-if="to || clickable" width="16" height="16" viewBox="0 0 24 24" fill="none" class="-mr-0.5 flex-none self-center text-slate-400" aria-hidden="true">
+          <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
       </div>
       <dl v-if="fields?.length" class="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12px]">
         <div v-for="f in fields" :key="f.label" class="min-w-0">

@@ -192,7 +192,7 @@ const { withLoading } = useGlobalLoading()
       </span>
     </div>
 
-    <div class="mb-4 flex flex-wrap gap-2.5">
+    <div class="sticky top-14 z-20 -mx-4 -mt-3 mb-1 flex flex-wrap gap-2.5 bg-[#f4f5f3] px-4 py-3 md:top-0 md:-mx-8 md:px-8 dark:bg-[#0e1512]">
       <input
         v-model="keyword"
         type="text"
