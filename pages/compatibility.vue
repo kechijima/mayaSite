@@ -212,12 +212,12 @@ function editAgain() {
 
                     <div class="mt-2 flex items-center justify-center gap-3">
                       <div class="flex flex-col items-center gap-1">
-                        <MayaGlyph :seal-index="row.fromSealIndex" size="md" />
+                        <MayaGlyph :seal-index="row.fromSealIndex" :gender="dir.from.gender" size="md" />
                         <span class="text-[12px] font-semibold">{{ row.fromSealName }}</span>
                       </div>
                       <span class="text-[13px]" style="color: var(--gold-deep);">×</span>
                       <div class="flex flex-col items-center gap-1">
-                        <MayaGlyph :seal-index="row.toSealIndex" size="md" />
+                        <MayaGlyph :seal-index="row.toSealIndex" :gender="dir.to.gender" size="md" />
                         <span class="text-[12px] font-semibold">{{ row.toSealName }}</span>
                       </div>
                     </div>

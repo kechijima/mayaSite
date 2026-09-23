@@ -27,12 +27,12 @@ const displayGender = computed(() => genderLabel(props.profile.gender))
          既に存在し、Tailwindの`block`ユーティリティと名前衝突してmargin-topが乗ってしまうため。 -->
     <div class="grid grid-cols-3 gap-1 text-center">
       <div>
-        <MayaGlyph :seal-index="profile.sealIndex" class="mx-auto" style="display: block;" />
+        <MayaGlyph :seal-index="profile.sealIndex" :gender="profile.gender" class="mx-auto" style="display: block;" />
         <div class="mt-1.5 text-[10px] tracking-[.08em]" style="color: var(--ink-faint);">太陽の紋章</div>
         <h4 class="font-display text-[13px] leading-tight">{{ profile.sun.seal.name }}</h4>
       </div>
       <div class="px-1">
-        <MayaGlyph :seal-index="profile.wavespellSealIndex" class="mx-auto" style="display: block;" />
+        <MayaGlyph :seal-index="profile.wavespellSealIndex" :gender="profile.gender" class="mx-auto" style="display: block;" />
         <div class="mt-1.5 text-[10px] tracking-[.08em]" style="color: var(--ink-faint);">ウェイブスペル</div>
         <h4 class="font-display text-[13px] leading-tight">{{ profile.wavespell.seal.name }}</h4>
       </div>
