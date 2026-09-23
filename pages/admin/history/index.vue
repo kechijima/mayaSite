@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { collection, getDocs, limit, orderBy, query, startAfter, type DocumentData, type Firestore, type QueryDocumentSnapshot } from 'firebase/firestore'
 import { buildHistoryRow, formatDateTime, historyTypeChipClass, historyTypeLabel, type HistoryDoc, type HistoryRow } from '~/utils/diagnosisHistoryAdmin'
-import { genderLabel } from '~/utils/gender'
 
 definePageMeta({ layout: 'admin' })
 
@@ -54,13 +53,7 @@ function prevPage() {
   if (currentPage.value > 0) loadPage(currentPage.value - 1)
 }
 
-const selected = ref<HistoryRow | null>(null)
-function openDetail(row: HistoryRow) {
-  selected.value = row
-}
-function closeDetail() {
-  selected.value = null
-}
+// 詳細は /admin/history/[id](2026-09-23 にモーダルからページへ)。
 </script>
 
 <template>
@@ -88,8 +81,7 @@ function closeDetail() {
             { label: '性別', value: r.gender },
             { label: '太陽の紋章', value: r.sealName }
           ]"
-          clickable
-          @click="openDetail(r)"
+          :to="`/admin/history/${r.id}`"
         >
           <template #badge>
             <span class="rounded-full px-2.5 py-0.5 text-[11.5px] font-bold" :class="historyTypeChipClass(r.type)">{{ historyTypeLabel(r.type) }}</span>
@@ -114,7 +106,7 @@ function closeDetail() {
               <td class="py-2.5 pr-3 text-slate-500 dark:text-slate-400">{{ r.gender }}</td>
               <td class="py-2.5 pr-3">{{ r.sealName }}</td>
               <td class="py-2.5 pr-3 tabular-nums text-slate-500 dark:text-slate-400">{{ formatDateTime(r.createdAt) }}</td>
-              <td class="py-2.5"><button class="text-xs font-semibold text-brass-700 hover:underline dark:text-gold-300" @click="openDetail(r)">詳細</button></td>
+              <td class="py-2.5"><NuxtLink :to="`/admin/history/${r.id}`" class="text-xs font-semibold text-brass-700 hover:underline dark:text-gold-300">詳細</NuxtLink></td>
             </tr>
           </tbody>
         </table>
@@ -136,40 +128,6 @@ function closeDetail() {
         >
           次へ
         </button>
-      </div>
-    </div>
-
-    <!-- Detail modal (read-only — history is an immutable log, no edit section) -->
-    <div v-if="selected" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" @click.self="closeDetail">
-      <div class="w-full max-w-[560px] rounded-xl border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900">
-        <div class="mb-5 flex items-start justify-between">
-          <div>
-            <h2 class="text-base font-bold">{{ historyTypeLabel(selected.type) }}</h2>
-            <span class="text-xs text-slate-500 dark:text-slate-400">{{ formatDateTime(selected.createdAt) }}</span>
-          </div>
-          <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label="閉じる" @click="closeDetail">✕</button>
-        </div>
-
-        <div class="max-h-[60vh] space-y-4 overflow-y-auto">
-          <div v-for="(p, i) in selected.people" :key="i" class="rounded-lg border border-slate-200 p-4 dark:border-slate-800">
-            <p class="mb-2.5 text-xs font-bold text-slate-500 dark:text-slate-400">
-              {{ selected.type === 'compatibility' ? (i === 0 ? 'あなた' : `相手${i}`) : p.name }}
-              <span v-if="selected.type === 'compatibility'" class="ml-1 font-normal">（{{ p.name }}）</span>
-            </p>
-            <dl class="grid grid-cols-1 gap-y-2.5 text-[13px] sm:grid-cols-2">
-              <div><dt class="text-slate-400">生年月日</dt><dd class="font-semibold">{{ p.birthdate }}</dd></div>
-              <div><dt class="text-slate-400">性別</dt><dd class="font-semibold">{{ genderLabel(p.gender) }}</dd></div>
-              <div><dt class="text-slate-400">KIN番号</dt><dd class="font-semibold tabular-nums">KIN {{ p.kin }}</dd></div>
-              <div><dt class="text-slate-400">太陽の紋章</dt><dd class="font-semibold">{{ p.sealName }}</dd></div>
-              <div><dt class="text-slate-400">銀河の音</dt><dd class="font-semibold">{{ p.toneName }}</dd></div>
-              <div><dt class="text-slate-400">ウェイブスペル</dt><dd class="font-semibold">{{ p.wavespellSealName }}</dd></div>
-            </dl>
-          </div>
-        </div>
-
-        <div class="mt-5 flex justify-end">
-          <button class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold dark:border-slate-700" @click="closeDetail">閉じる</button>
-        </div>
       </div>
     </div>
   </div>
