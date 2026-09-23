@@ -292,7 +292,19 @@ Every LockedVeil's 「続きを購入する」 goes to [pages/plans.vue](pages/p
 `/plans` shows 有料会員 ￥5,500/月(税込), highlighted as おすすめ, and この記事のみ ￥550(税込) for `kin` (hidden
 when there is no `kin`), plus a login link for signed-out visitors (no link to `/signup/referral` here or on `/signup` — that page is reached only by its URL, which is shared with referred members directly). **Until payment ships both buttons do the
 same thing**: signed out → `/signup` (with `redirect` and the prefill query), signed in → `redirect`.
-`planAction()` is the single place to switch to Stripe Checkout.
+**The checkout screens exist but no money moves** (2026-09-23): signed in → `/checkout` (order summary,
+[pages/checkout/index.vue](pages/checkout/index.vue)) → `/checkout/pay` (a stand-in for Stripe's hosted page,
+[pages/checkout/pay.vue](pages/checkout/pay.vue) — delete it when Stripe lands) → `/checkout/success`
+([pages/checkout/success.vue](pages/checkout/success.vue), the future `success_url`); cancel goes back to
+`/plans?canceled=1`. Signed out → `/signup` with `redirect=/checkout?…` so registration lands on the order. Plan
+names/prices and the query plumbing live in [utils/checkout.ts](utils/checkout.ts); every screen shows
+[components/CheckoutMockNotice.vue](components/CheckoutMockNotice.vue). Nothing is written anywhere — `plan` is
+server-only in the rules, and the deleted localStorage flag was deliberately not revived. `/checkout` refuses
+suspended members, tells team members they need not pay, and tells paid members they already have it, per the Phase 2
+rules. `/account` (now titled マイページ) shows the derived plan and a disabled お支払いの管理 button (Customer Portal
+later). [pages/legal/tokushoho.vue](pages/legal/tokushoho.vue) is the 特定商取引法 skeleton linked from `/checkout`.
+In Phase 2, `/checkout`'s お支払いへ進む calls the Cloud Function and `/checkout/success` polls
+`useEntitlement().refresh()` until the webhook has written `plan` / `purchases`.
 
 LockedVeil's 「有料エリア 合計○○文字」 is the **sum over every veil currently shown on the page**, and every
 veil shows the same number. On `/result` that is `lockedTotalChars` (sun + wavespell when not unlocked — both
@@ -462,4 +474,7 @@ Prices are tax-included.
   what the UI unlocks; that was accepted.
 - **Also needed then**: add `'paid'` to `SELECTABLE_USER_STATUSES`, replace `planAction()` in `/plans`,
   change the free tier to "free area + purchased KINs" in copy.
-- **Still undecided**: behaviour after cancelling (e.g. readable until period end), 特定商取引法に基づく表記, refund policy.
+- **Screens already built** (2026-09-23): `/checkout`, `/checkout/pay` (mock, to be deleted), `/checkout/success`,
+  `/legal/tokushoho` (skeleton), plan display on `/account` — see "Purchase plans and the paywall CTA".
+- **Still undecided**: behaviour after cancelling (e.g. readable until period end), the contents of
+  特定商取引法に基づく表記 (the page exists with placeholders), refund policy.

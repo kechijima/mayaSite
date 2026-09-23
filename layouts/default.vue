@@ -13,7 +13,7 @@ const HOME_LINKS = [
 // vue-routerを経由しない(query の name/birth/gender を保ったまま素直にハッシュジャンプする)。
 // フッターを出さないページ。フォーム1枚・プラン選択だけの画面で、スクロールさせずに
 // 1画面に収めて中央に置くため(.paper-page--focus と対)。
-const FOOTERLESS_PATHS = ['/plans', '/signup', '/signup/referral', '/login', '/account']
+const FOOTERLESS_PATHS = ['/plans', '/signup', '/signup/referral', '/login', '/account', '/checkout', '/checkout/pay', '/checkout/success']
 
 const RESULT_LINKS = [
   { to: '#sun', label: '太陽の紋章' },

@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { doc, updateDoc, type Firestore } from 'firebase/firestore'
 import { safeRedirect } from '~/utils/signupLink'
+import { USER_STATUS_LABEL, userStatus } from '~/utils/userAdmin'
 
 // 紹介コードの後追い入力ページ。既に会員登録済みの人がチームとコードを入力すると、
 // そのチームに所属しチーム会員になる。新規登録と同時に入力する場合は pages/signup/referral.vue。
-// 契約状況・解約の表示は決済導入時に改めて設計する。
+// 2026-09-23: 「現在のプラン」の表示と「お支払いの管理」の導線を追加(決済フローの画面だけを
+// 先に作った段階)。「お支払いの管理」は Phase 2 で Stripe の Customer Portal へ送る。
 const { user, ready: authReady } = useAuth()
 const { profile, settled, suspended, refresh: refreshEntitlement } = useEntitlement()
 const referral = useReferralCodeInput()
@@ -45,6 +47,20 @@ const membership = computed(() => {
   if (suspended.value) return 'suspended'
   return profile.value.teamId ? 'joined' : 'unaffiliated'
 })
+// 現在のプラン。管理画面と同じ導出(utils/userAdmin.ts): 利用停止 > 有料会員 > チーム会員 > 無料会員。
+const planLabel = computed(() => (profile.value ? USER_STATUS_LABEL[userStatus(profile.value)] : ''))
+const planNote = computed(() => {
+  if (!profile.value) return ''
+  switch (userStatus(profile.value)) {
+    case 'suspended': return '現在このアカウントはご利用いただけません。'
+    case 'paid': return 'すべての診断結果をご覧いただけます。'
+    case 'team': return 'チーム会員として、すべての診断結果をご覧いただけます。'
+    default: return '診断結果の続きをご覧いただくにはプランのご購入が必要です。'
+  }
+})
+const isPaid = computed(() => !!profile.value && userStatus(profile.value) === 'paid')
+const isFree = computed(() => !!profile.value && userStatus(profile.value) === 'free')
+const plansLink = computed(() => (requestedRedirect.value ? `/plans?redirect=${encodeURIComponent(requestedRedirect.value)}` : '/plans'))
 // 一度どこかに所属したことがあるか。文言を「登録」と「再登録」で出し分けるだけに使う。
 const hasJoinedBefore = computed(() => !!profile.value?.referralRedeemedAt)
 
@@ -85,11 +101,23 @@ async function submitCode() {
     <div class="sheet">
       <div class="masthead masthead--plain">
         <span class="masthead__eyebrow">MY ACCOUNT</span>
-        <h1 class="font-display masthead__title">紹介コード入力</h1>
+        <h1 class="font-display masthead__title">マイページ</h1>
       </div>
 
-      <div class="mx-auto mt-10 max-w-[560px]">
+      <div class="mx-auto mt-10 max-w-[560px] space-y-4">
+        <!-- 現在のプラン。決済導入後は「お支払いの管理」が Stripe の Customer Portal(解約・カード変更)へ送る。 -->
+        <section v-if="authReady && user && settled && profile" class="panel panel--plan">
+          <p class="formlabel">現在のプラン</p>
+          <p class="text-[17px] font-bold">{{ planLabel }}</p>
+          <p class="mt-1 text-[12.5px] leading-[1.8]" style="color: var(--ink-soft);">{{ planNote }}</p>
+          <div class="mt-4 flex flex-col gap-2 sm:flex-row">
+            <NuxtLink v-if="isFree" :to="plansLink" class="btn-gold">プランを見る</NuxtLink>
+            <button v-if="isPaid" type="button" class="btn-outline" disabled title="決済機能の導入後にご利用いただけます">お支払いの管理（準備中）</button>
+          </div>
+        </section>
+
         <section class="panel">
+          <p class="formlabel">紹介コード</p>
           <p v-if="!authReady" class="text-[13.5px]" style="color: var(--ink-faint);">読み込み中…</p>
 
           <template v-else-if="!user">
@@ -143,7 +171,7 @@ async function submitCode() {
           </template>
         </section>
 
-        <NuxtLink to="/" class="mt-4 block text-center text-[12px] hover:underline" style="color: var(--ink-faint);">
+        <NuxtLink to="/" class="!mt-6 block text-center text-[12px] hover:underline" style="color: var(--ink-faint);">
           トップへ戻る
         </NuxtLink>
       </div>
