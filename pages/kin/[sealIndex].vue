@@ -107,7 +107,7 @@ const premiumChars = computed(() => free.value?.premiumCharCount ?? 0)
             <div class="dossier__main">
               <div class="dossier__headrow">
                 <h3 class="font-display dossier__name">{{ seal.name }}</h3>
-                <span v-if="free?.archetype" class="dossier__badge">{{ free.archetype }}</span>
+                <p v-if="free?.archetype" class="dossier__type">{{ free.archetype }}</p>
               </div>
               <p v-if="free?.catchphrase" class="dossier__catch">{{ free.catchphrase }}</p>
 

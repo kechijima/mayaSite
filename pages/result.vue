@@ -356,7 +356,7 @@ async function shareResult() {
           <div class="dossier__main">
             <div class="dossier__headrow">
               <h3 class="font-display dossier__name">{{ result.sun.seal.name }}</h3>
-              <span v-if="sunProfile?.archetype" class="dossier__badge">{{ sunProfile.archetype }}</span>
+              <p v-if="sunProfile?.archetype" class="dossier__type">{{ sunProfile.archetype }}</p>
             </div>
             <p v-if="sunProfile?.catchphrase" class="dossier__catch">{{ sunProfile.catchphrase }}</p>
 
@@ -401,7 +401,7 @@ async function shareResult() {
           <div class="dossier__main">
             <div class="dossier__headrow">
               <h3 class="font-display dossier__name">{{ result.wavespell.seal.name }}</h3>
-              <span v-if="wavespellProfile?.archetype" class="dossier__badge">{{ wavespellProfile.archetype }}</span>
+              <p v-if="wavespellProfile?.archetype" class="dossier__type">{{ wavespellProfile.archetype }}</p>
             </div>
             <p v-if="wavespellProfile?.catchphrase" class="dossier__catch">{{ wavespellProfile.catchphrase }}</p>
 
