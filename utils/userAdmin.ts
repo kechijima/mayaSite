@@ -1,4 +1,7 @@
-import { doc, updateDoc, type Firestore } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, type Firestore, type Timestamp } from 'firebase/firestore'
+import { diagnoseBirthdate } from '~/utils/mayaCalc'
+import { SEALS } from '~/utils/mayaData'
+import { genderLabel, isGender } from '~/utils/gender'
 
 // 会員ステータスの読み替えと変更。/admin/users から使う。
 //
@@ -54,4 +57,85 @@ export async function setUserStatus(firestore: Firestore, uid: string, status: U
     suspended: status === 'suspended',
     plan: status === 'paid' ? 'paid' : 'free'
   })
+}
+
+// ---- 一覧(/admin/users)と詳細(/admin/users/[uid])で共有する行の組み立て ----
+// 2026-09-23: 詳細をモーダルからページにしたので、users.vue のローカル関数だったものをここへ移した。
+
+export interface UserDoc extends UserStatusFields {
+  name?: string
+  email?: string
+  phone?: string
+  birthdate?: string
+  gender?: string
+  teamName?: string | null
+  entitlementSource?: 'code' | 'admin' | null
+  createdAt?: Timestamp
+}
+
+export interface UserRow {
+  uid: string
+  name: string
+  email: string
+  phone: string
+  birthdate: string
+  gender: string
+  kin: number | null
+  seal: string
+  teamId: string | null
+  teamName: string
+  source: string
+  status: UserStatus
+  joined: string
+  joinedAt: number
+}
+
+export function formatUserDate(ts?: Timestamp) {
+  const d = ts?.toDate()
+  if (!d) return '—'
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+export function buildUserRow(uid: string, data: UserDoc): UserRow {
+  // KIN・太陽の紋章は保存せず生年月日から都度算出する(診断本体と同じ計算式を使うため、
+  // 保存しておくと計算式を直した時に古い値が残ってしまう)。
+  let kin: number | null = null
+  let seal = '—'
+  if (data.birthdate) {
+    try {
+      const { birth } = diagnoseBirthdate(data.birthdate)
+      kin = birth.kin
+      seal = SEALS[birth.sealIndex]?.name ?? '—'
+    } catch {
+      kin = null
+    }
+  }
+  return {
+    uid,
+    name: data.name ?? '',
+    email: data.email ?? '',
+    phone: data.phone ?? '',
+    birthdate: data.birthdate ?? '',
+    gender: data.gender && isGender(data.gender) ? genderLabel(data.gender) : '—',
+    kin,
+    seal,
+    teamId: data.teamId ?? null,
+    teamName: data.teamId ? (data.teamName || data.teamId) : '',
+    source: data.entitlementSource === 'admin' ? '管理者追加' : data.entitlementSource === 'code' ? 'コード入力' : '—',
+    status: userStatus(data),
+    joined: formatUserDate(data.createdAt),
+    joinedAt: data.createdAt?.toMillis() ?? 0
+  }
+}
+
+export async function fetchUserRow(firestore: Firestore, uid: string): Promise<UserRow | null> {
+  const snap = await getDoc(doc(firestore, 'users', uid))
+  return snap.exists() ? buildUserRow(snap.id, snap.data() as UserDoc) : null
+}
+
+export function userStatusChipClass(status: UserStatus) {
+  if (status === 'suspended') return 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400'
+  if (status === 'paid') return 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400'
+  if (status === 'team') return 'bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-400'
+  return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
 }

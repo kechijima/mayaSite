@@ -12,7 +12,7 @@ The paid area is unlocked by **being a signed-in member who has not been suspend
 
 **Membership tiers are already modelled for payment** (2026-09-17): 無料会員 / チーム会員 / 有料会員 / 利用停止 (チーム会員 was called 有料会員(紹介) until 2026-09-17 — renamed because those members don't pay). A member who belongs to a team (joined with a referral code, or added by an admin) is **チーム会員** for as long as they stay in the team. Today that label changes nothing about access — every non-suspended member can already read the paid area — but it is what Phase 2 will gate on.
 
-Real and Firestore-backed: the diagnosis, 相性診断 ([pages/compatibility.vue](pages/compatibility.vue)), the per-seal and per-KIN detail pages ([pages/kin/[sealIndex].vue](pages/kin/%5BsealIndex%5D.vue), [pages/kin/[kin]/detail.vue](pages/kin/%5Bkin%5D/detail.vue)), the CMS ([pages/admin/content/**](pages/admin/content)), 診断履歴 ([pages/admin/history/index.vue](pages/admin/history/index.vue)), チーム管理 ([pages/admin/teams/**](pages/admin/teams)), ユーザー管理 ([pages/admin/users.vue](pages/admin/users.vue)) and 紹介コード入力 ([pages/account.vue](pages/account.vue)).
+Real and Firestore-backed: the diagnosis, 相性診断 ([pages/compatibility.vue](pages/compatibility.vue)), the per-seal and per-KIN detail pages ([pages/kin/[sealIndex].vue](pages/kin/%5BsealIndex%5D.vue), [pages/kin/[kin]/detail.vue](pages/kin/%5Bkin%5D/detail.vue)), the CMS ([pages/admin/content/**](pages/admin/content)), 診断履歴 ([pages/admin/history/index.vue](pages/admin/history/index.vue)), チーム管理 ([pages/admin/teams/**](pages/admin/teams)), ユーザー管理 ([pages/admin/users/index.vue](pages/admin/users/index.vue)) and 紹介コード入力 ([pages/account.vue](pages/account.vue)).
 
 Still a mock: [pages/admin/index.vue](pages/admin/index.vue) (dashboard stats, hardcoded `ref()` arrays). The old `/checkout` prototype and its `localStorage`-only `useMembership` flag were deleted on 2026-09-17; [pages/plans.vue](pages/plans.vue) replaced them.
 
@@ -202,7 +202,7 @@ Checked in this order:
 | チーム会員 | `teamId != null` | unlocked |
 | 無料会員 | anything else | unlocked (until Phase 2) |
 
-`/admin/users` offers 無料会員 / 利用停止 (`SELECTABLE_USER_STATUSES`); for a member in a team the modal shows
+`/admin/users/[uid]` offers 無料会員 / 利用停止 (`SELECTABLE_USER_STATUSES`); for a member in a team the page shows
 チーム会員 in place of 無料会員, because choosing 無料会員 would change nothing while the team is set.
 有料会員 is withheld until payment ships — add `'paid'` to that array to release it. After a
 change the row's status is re-derived with `userStatus()`, not copied from the radio. Both `plan` and
@@ -391,10 +391,14 @@ Two things about that component are load-bearing:
 Real and Firestore-backed: [pages/admin/content/**](pages/admin/content) (see above),
 [pages/admin/history/index.vue](pages/admin/history/index.vue) (`diagnosisHistory` — every diagnosis/compatibility submission,
 logged fire-and-forget from the public site; cursor-paginated),
-[pages/admin/teams/**](pages/admin/teams) (see "Admin: teams") and [pages/admin/users.vue](pages/admin/users.vue).
+[pages/admin/teams/**](pages/admin/teams) (see "Admin: teams") and [pages/admin/users/index.vue](pages/admin/users/index.vue).
 
-`/admin/users` lists real members with their status, team and how they joined, and its detail modal is
-where a member is suspended or reinstated (see "Member status" above). It deliberately **dropped** two
+`/admin/users` lists real members with their status, team and how they joined; `/admin/users/[uid]`
+([pages/admin/users/[uid].vue](pages/admin/users/%5Buid%5D.vue)) is where a member is suspended or reinstated (see
+"Member status" above). Likewise `/admin/history/[id]` shows one diagnosis record. Both were modals until 2026-09-23;
+every admin detail is now a page. The list lives in `users/index.vue`, not `users.vue`, for the same parent-route reason
+as `pages/signup/index.vue`. Row building shared by list and detail is in [utils/userAdmin.ts](utils/userAdmin.ts)
+(`buildUserRow`, `fetchUserRow`, `userStatusChipClass`). It deliberately **dropped** two
 columns the mockup had: 最終ログイン (Firebase Auth's `lastSignInTime` for another user is
 Admin-SDK-only, unreachable from a serverless client) and 支払い方法 (no payment yet).
 
