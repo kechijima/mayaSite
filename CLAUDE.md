@@ -209,7 +209,7 @@ member**. The rules allow this through the users `update` 4th branch (`plan` ∈
 only, not while suspended) and owner `create` on `purchases/*` / `unlocks/*` (never update/delete). **Everything a member
 writes this way must carry the marker** `paidSource: 'mock'` / `source: 'mock'` — the rules refuse it otherwise — so that
 [scripts/resetMockPurchases.ts](scripts/resetMockPurchases.ts) can later undo exactly these and nothing the webhook wrote.
-`npm run verify:rules:emulator` covers all of it (49 checks).
+`npm run verify:rules:emulator` covers all of it (48 checks).
 
 **Status is derived, not stored** ([utils/userAdmin.ts](utils/userAdmin.ts)):
 
