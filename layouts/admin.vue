@@ -56,11 +56,16 @@ function toggle() {
 
 watch(() => route.fullPath, close)
 
+// 背面スクロールの固定。html と body の両方に掛けるのは SiteHeader と同じ(iOS Safari は body
+// だけの overflow:hidden を無視する)が、body 側は hidden ではなく clip にする。hidden だと body が
+// スクロールコンテナになり、sticky のトップバー・検索バーが「固定」を失って元の位置(スクロール
+// 済みなら画面外)へ戻ってしまい、ドロワーの上に 56px の隙間が空く(2026-09-23 に実際に起きた)。
+// clip はスクロールコンテナを作らないので sticky はそのまま効く。スクロール自体は html 側の
+// hidden で止まる。
 watch(open, (isOpen) => {
   if (!import.meta.client) return
-  const value = isOpen ? 'hidden' : ''
-  document.documentElement.style.overflow = value
-  document.body.style.overflow = value
+  document.documentElement.style.overflow = isOpen ? 'hidden' : ''
+  document.body.style.overflow = isOpen ? 'clip' : ''
   if (isOpen) {
     nextTick(() => drawerEl.value?.querySelector<HTMLElement>('a, button')?.focus())
   } else {
