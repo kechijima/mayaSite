@@ -4,7 +4,14 @@ import { buildHistoryRow, formatDateTime, historyTypeChipClass, historyTypeLabel
 
 definePageMeta({ layout: 'admin' })
 
-const PAGE_SIZE = 100
+// 1回に取得する件数。PC はページ送りで 100 件、スマホは無限スクロールで継ぎ足すので 20 件。
+// どちらで動くかは mount 時の画面幅(Tailwind の lg 未満 = スマホ)で決めて固定する —
+// カーソルのページ割りが件数に依存するので、途中で切り替えると崩れる。表示側の切り替え
+// (カード一覧 <ul> と テーブル)は CSS なので、読み込み後に画面幅が lg をまたいだ場合は
+// スマホ側が読み込み済みのページだけ・PC 側が 20 件ページになるが、リロードで揃う。
+const MOBILE_QUERY = '(max-width: 1023px)'
+const isMobile = ref(false)
+const pageSize = ref(100)
 
 // Cursor-based pagination: pagesCache[i] holds the already-fetched rows for page i (so paging
 // back never re-fetches), cursors[i] is the doc to startAfter to fetch page i, and
@@ -28,11 +35,11 @@ async function loadPage(index: number) {
     const { $firestore } = useNuxtApp()
     const base = collection($firestore as Firestore, 'diagnosisHistory')
     const cursor = cursors.value[index]
-    const constraints = [orderBy('createdAt', 'desc'), ...(cursor ? [startAfter(cursor)] : []), limit(PAGE_SIZE + 1)]
+    const constraints = [orderBy('createdAt', 'desc'), ...(cursor ? [startAfter(cursor)] : []), limit(pageSize.value + 1)]
     const snap = await getDocs(query(base, ...constraints))
     const docs = snap.docs
-    pageHasNext.value[index] = docs.length > PAGE_SIZE
-    const pageDocs = docs.slice(0, PAGE_SIZE)
+    pageHasNext.value[index] = docs.length > pageSize.value
+    const pageDocs = docs.slice(0, pageSize.value)
     pagesCache.value[index] = pageDocs.map((d) => buildHistoryRow(d.id, d.data() as HistoryDoc))
     if (pageDocs.length) cursors.value[index + 1] = pageDocs[pageDocs.length - 1]
     currentPage.value = index
@@ -43,9 +50,20 @@ async function loadPage(index: number) {
   }
 }
 
-onMounted(() => loadPage(0))
+onMounted(() => {
+  isMobile.value = window.matchMedia(MOBILE_QUERY).matches
+  pageSize.value = isMobile.value ? ADMIN_MOBILE_PAGE_SIZE : 100
+  loadPage(0)
+})
 
-const rows = computed(() => pagesCache.value[currentPage.value] ?? [])
+// PC(テーブル)は現在のページだけ、スマホ(カード)は読み込み済みの全ページを続けて出す。
+const rows = computed(() => (isMobile.value ? pagesCache.value.flat() : pagesCache.value[currentPage.value] ?? []))
+const loadedPages = computed(() => pagesCache.value.length)
+const mobileHasMore = computed(() => loadedPages.value > 0 && pageHasNext.value[loadedPages.value - 1] === true)
+const { sentinel } = useInfiniteScroll({
+  hasMore: () => !loading.value && mobileHasMore.value,
+  loadMore: () => loadPage(loadedPages.value)
+})
 function nextPage() {
   if (pageHasNext.value[currentPage.value]) loadPage(currentPage.value + 1)
 }
@@ -87,6 +105,10 @@ function prevPage() {
             <span class="rounded-full px-2.5 py-0.5 text-[11.5px] font-bold" :class="historyTypeChipClass(r.type)">{{ historyTypeLabel(r.type) }}</span>
           </template>
         </AdminRecordCard>
+        <!-- 無限スクロールの番兵(useInfiniteScroll)。この <ul> は lg 未満だけ表示される -->
+        <li ref="sentinel" aria-hidden="true" />
+        <li v-if="loading" class="py-4 text-center text-[13px] text-slate-400">読み込み中…</li>
+        <li v-else-if="rows.length && !mobileHasMore" class="py-4 text-center text-[11.5px] text-slate-400">すべて表示しました</li>
       </ul>
       <div class="hidden max-h-[70vh] overflow-auto lg:block">
         <table class="w-full text-[13px]">
@@ -112,7 +134,8 @@ function prevPage() {
         </table>
       </div>
 
-      <div class="mt-4 flex items-center justify-between text-sm">
+      <!-- ページ送りは PC だけ。スマホは上のカード一覧が無限スクロールで継ぎ足す -->
+      <div class="mt-4 hidden items-center justify-between text-sm lg:flex">
         <button
           class="rounded-lg border border-slate-200 px-4 py-2 font-semibold disabled:opacity-40 dark:border-slate-700"
           :disabled="currentPage === 0 || loading"

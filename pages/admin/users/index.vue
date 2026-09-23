@@ -55,6 +55,21 @@ const filtered = computed(() => {
     return r.name.toLowerCase().includes(kw) || r.email.toLowerCase().includes(kw) || r.teamName.toLowerCase().includes(kw)
   })
 })
+
+// スマホのカード一覧は ADMIN_MOBILE_PAGE_SIZE 件ずつ継ぎ足す(全件を一度に描画しない)。
+// PC のテーブルは従来どおり全件。絞り込みが変わったら先頭から出し直す。
+const visibleCount = ref(ADMIN_MOBILE_PAGE_SIZE)
+const visibleCards = computed(() => filtered.value.slice(0, visibleCount.value))
+const { sentinel, fill } = useInfiniteScroll({
+  hasMore: () => visibleCount.value < filtered.value.length,
+  loadMore: () => {
+    visibleCount.value += ADMIN_MOBILE_PAGE_SIZE
+  }
+})
+watch(filtered, () => {
+  visibleCount.value = ADMIN_MOBILE_PAGE_SIZE
+  nextTick(fill)
+})
 </script>
 
 <template>
@@ -88,7 +103,7 @@ const filtered = computed(() => {
         <!-- lg 未満はテーブルの代わりにカード一覧。タップで詳細ページへ(AdminRecordCard 参照) -->
         <ul class="lg:hidden">
           <AdminRecordCard
-            v-for="u in filtered"
+            v-for="u in visibleCards"
             :key="u.uid"
             :title="u.name || '—'"
             :subtitle="u.email"
@@ -103,6 +118,9 @@ const filtered = computed(() => {
               <span class="rounded-full px-2.5 py-0.5 text-[11.5px] font-bold" :class="userStatusChipClass(u.status)">{{ USER_STATUS_LABEL[u.status] }}</span>
             </template>
           </AdminRecordCard>
+        <!-- 継ぎ足しの番兵(useInfiniteScroll)。この <ul> は lg 未満だけ表示される -->
+        <li ref="sentinel" aria-hidden="true" />
+        <li v-if="visibleCount < filtered.length" class="py-4 text-center text-[13px] text-slate-400">読み込み中…</li>
         </ul>
         <div class="hidden max-h-[70vh] overflow-auto lg:block">
           <table class="w-full text-[13px]">
