@@ -58,6 +58,10 @@ const loading = ref(true)
 const loadError = ref('')
 const keyword = ref('')
 const statusFilter = ref<'all' | UserStatus>('all')
+const STATUS_FILTER_OPTIONS = [
+  { value: 'all', label: 'すべて' },
+  ...(Object.keys(USER_STATUS_LABEL) as UserStatus[]).map((s) => ({ value: s, label: USER_STATUS_LABEL[s] }))
+]
 
 function formatDate(ts?: Timestamp) {
   const d = ts?.toDate()
@@ -192,21 +196,14 @@ const { withLoading } = useGlobalLoading()
       </span>
     </div>
 
-    <div class="sticky top-14 z-20 -mx-4 -mt-3 mb-1 flex flex-wrap gap-2.5 bg-[#f4f5f3] px-4 py-3 md:top-0 md:-mx-8 md:px-8 dark:bg-[#0e1512]">
-      <input
-        v-model="keyword"
-        type="text"
-        placeholder="氏名・メールアドレス・チーム名で検索"
-        class="w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm sm:min-w-[240px] sm:flex-1 dark:border-slate-800 dark:bg-slate-900"
-      />
-      <select v-model="statusFilter" class="w-full rounded-lg sm:w-auto border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900">
-        <option value="all">すべてのステータス</option>
-        <option value="free">無料会員</option>
-        <option value="team">チーム会員</option>
-        <option value="paid">有料会員</option>
-        <option value="suspended">利用停止</option>
-      </select>
-    </div>
+    <AdminSearchBar
+      v-model="keyword"
+      placeholder="氏名・メールアドレス・チーム名で検索"
+      :active-filters="statusFilter === 'all' ? 0 : 1"
+      @reset="statusFilter = 'all'"
+    >
+      <AdminFilterChips v-model="statusFilter" label="会員ステータス" :options="STATUS_FILTER_OPTIONS" />
+    </AdminSearchBar>
 
     <div v-if="loadError" class="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-2.5 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
       {{ loadError }}

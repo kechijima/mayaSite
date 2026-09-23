@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { collection, getDocs, type Firestore } from 'firebase/firestore'
-import { CONTENT_TYPES, CHARACTER_PROFILE_FIELDS, TONE_PROFILE_FIELDS, buildContentRows, typeLabel, type ContentRow } from '~/utils/diagnosisContentAdmin'
+import { CONTENT_TYPES, CHARACTER_PROFILE_FIELDS, TONE_PROFILE_FIELDS, buildContentRows, typeLabel, type ContentRow, type ContentType } from '~/utils/diagnosisContentAdmin'
 
 definePageMeta({ layout: 'admin' })
 
@@ -33,6 +33,31 @@ onMounted(async () => {
   }
 })
 
+// 検索と絞り込み。Firestore からは全件(20+13+260)取得済みなので、クライアント側で絞る。
+const keyword = ref('')
+const typeFilter = ref<'all' | ContentType>('all')
+const statusFilter = ref<'all' | ContentRow['status']>('all')
+const TYPE_FILTER_OPTIONS = [{ value: 'all', label: 'すべて' }, ...CONTENT_TYPES.map((t) => ({ value: t.type, label: t.label }))]
+const STATUS_FILTER_OPTIONS = [
+  { value: 'all', label: 'すべて' },
+  { value: '公開', label: '公開' },
+  { value: '下書き', label: '下書き' }
+]
+const activeFilters = computed(() => (typeFilter.value === 'all' ? 0 : 1) + (statusFilter.value === 'all' ? 0 : 1))
+function resetFilters() {
+  typeFilter.value = 'all'
+  statusFilter.value = 'all'
+}
+const filtered = computed(() => {
+  const kw = keyword.value.trim().toLowerCase()
+  return rows.value.filter((r) => {
+    if (typeFilter.value !== 'all' && r.type !== typeFilter.value) return false
+    if (statusFilter.value !== 'all' && r.status !== statusFilter.value) return false
+    if (!kw) return true
+    return r.name.toLowerCase().includes(kw) || typeLabel(r.type).includes(kw)
+  })
+})
+
 function charCount(text: string) {
   return text ? `${text.length}字` : '—'
 }
@@ -53,21 +78,17 @@ function openRow(id: string) {
       {{ loadError }}
     </div>
 
-    <div class="sticky top-14 z-20 -mx-4 -mt-3 mb-1 flex flex-wrap gap-2.5 bg-[#f4f5f3] px-4 py-3 md:top-0 md:-mx-8 md:px-8 dark:bg-[#0e1512]">
-      <input type="text" placeholder="紋章名・音名で検索" class="w-full min-w-0 rounded-lg sm:min-w-[180px] sm:flex-1 border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900" />
-      <select class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm sm:w-auto dark:border-slate-800 dark:bg-slate-900">
-        <option>すべての種別</option><option v-for="t in CONTENT_TYPES" :key="t.type">{{ t.label }}</option>
-      </select>
-      <select class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm sm:w-auto dark:border-slate-800 dark:bg-slate-900">
-        <option>すべてのステータス</option><option>公開</option><option>下書き</option>
-      </select>
-    </div>
+    <AdminSearchBar v-model="keyword" placeholder="紋章名・音名・KIN番号で検索" :active-filters="activeFilters" @reset="resetFilters">
+      <AdminFilterChips v-model="typeFilter" label="種別" :options="TYPE_FILTER_OPTIONS" />
+      <AdminFilterChips v-model="statusFilter" label="ステータス" :options="STATUS_FILTER_OPTIONS" />
+    </AdminSearchBar>
 
     <div class="rounded-xl border border-slate-200 bg-white p-5.5 dark:border-slate-800 dark:bg-slate-900">
+      <p v-if="!filtered.length" class="py-4 text-center text-sm text-slate-500 dark:text-slate-400">条件に一致するコンテンツはありません。</p>
       <!-- lg 未満はテーブルの代わりにカード一覧。タップで編集画面へ(AdminRecordCard 参照) -->
-      <ul class="lg:hidden">
+      <ul v-else class="lg:hidden">
         <AdminRecordCard
-          v-for="r in rows"
+          v-for="r in filtered"
           :key="r.id"
           :title="r.name"
           :subtitle="typeLabel(r.type)"
@@ -86,7 +107,7 @@ function openRow(id: string) {
           </template>
         </AdminRecordCard>
       </ul>
-      <div class="hidden max-h-[70vh] overflow-auto lg:block">
+      <div v-if="filtered.length" class="hidden max-h-[70vh] overflow-auto lg:block">
         <table class="w-full text-[13px]">
           <thead class="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-white [&_th]:pt-2.5 [&_th]:shadow-[inset_0_-1px_0_#e2e8f0] dark:[&_th]:bg-slate-900 dark:[&_th]:shadow-[inset_0_-1px_0_#1e293b]">
             <tr class="text-left text-[11px] uppercase tracking-wide text-slate-400">
@@ -95,7 +116,7 @@ function openRow(id: string) {
           </thead>
           <tbody>
             <tr
-              v-for="r in rows"
+              v-for="r in filtered"
               :key="r.id"
               class="cursor-pointer border-b border-slate-100 last:border-0 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/40"
               @click="openRow(r.id)"
