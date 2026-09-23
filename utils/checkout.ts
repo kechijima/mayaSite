@@ -110,8 +110,10 @@ export function unlockDocIdsForKin(kin: number): string[] {
 //   この記事のみ → users/{uid}/purchases/kin-{N}(記録)と users/{uid}/unlocks/{docId}(解放)を1バッチで
 // Stripe 導入後はこの関数を呼ばず、Webhook がサーバー側で同じ書き込みをする。
 export async function applyMockPurchase(firestore: Firestore, uid: string, order: CheckoutParams & { plan: PlanId }) {
+  // source / paidSource の 'mock' は「仮の決済で付いた」印。firestore.rules が本人の書き込みに必ず
+  // 要求し、本番決済の導入時に scripts/resetMockPurchases.ts がこれだけを消す。
   if (order.plan === 'subscription') {
-    await updateDoc(doc(firestore, 'users', uid), { plan: 'paid', paidAt: serverTimestamp() })
+    await updateDoc(doc(firestore, 'users', uid), { plan: 'paid', paidAt: serverTimestamp(), paidSource: 'mock' })
     return
   }
   const kin = order.kin as number
@@ -121,15 +123,16 @@ export async function applyMockPurchase(firestore: Firestore, uid: string, order
     kin,
     price: PLANS.single.price,
     unlocks,
+    source: 'mock',
     createdAt: serverTimestamp()
   })
   for (const id of unlocks) {
-    batch.set(doc(firestore, 'users', uid, 'unlocks', id), { kin, purchasedAt: serverTimestamp() })
+    batch.set(doc(firestore, 'users', uid, 'unlocks', id), { kin, source: 'mock', purchasedAt: serverTimestamp() })
   }
   await batch.commit()
 }
 
 // 【決済モック期間限定】マイページの「解約する(仮)」。Stripe 導入後は Customer Portal に置き換わる。
 export async function cancelMockSubscription(firestore: Firestore, uid: string) {
-  await updateDoc(doc(firestore, 'users', uid), { plan: 'free', paidAt: null })
+  await updateDoc(doc(firestore, 'users', uid), { plan: 'free', paidAt: null, paidSource: null })
 }

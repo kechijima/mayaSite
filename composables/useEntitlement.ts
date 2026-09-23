@@ -36,6 +36,8 @@ export interface EntitlementProfile {
   plan: 'free' | 'paid'
   // 有料会員になった日時(決済モックでは仮の決済画面が書く)。
   paidAt?: unknown
+  // 'mock' なら仮の決済で付いた有料会員(本番決済の導入時に無料会員へ戻す対象)。本物には付かない。
+  paidSource?: 'mock' | null
   // 利用停止。true の間だけ有料エリアが閲覧できなくなる。無料部分は使える。
   // 変更できるのは管理者のみで、本人は解除できない(firestore.rules)。
   suspended?: boolean
@@ -45,6 +47,7 @@ export interface EntitlementProfile {
 export interface UnlockDoc {
   kin: number
   purchasedAt: unknown
+  source?: 'mock'
 }
 
 interface EntitlementData {

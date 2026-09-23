@@ -28,6 +28,8 @@
     "migrate:bulletFields:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/migrateBulletFields.ts",
     "migrate:premium": "tsx --env-file=.env scripts/splitPremiumContent.ts",
     "migrate:premium:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/splitPremiumContent.ts",
+    "reset:mock-purchases": "tsx --env-file=.env scripts/resetMockPurchases.ts",
+    "reset:mock-purchases:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/resetMockPurchases.ts",
     "verify:kin": "tsx scripts/verifyMayaCalc.ts",
     "verify:compatibility": "tsx scripts/verifyCompatibility.ts",
     "verify:rules:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 tsx scripts/verifyReferralRules.ts",

@@ -42,6 +42,8 @@ npm run migrate:premium:emulator   # 有料項目を diagnosisContentPremium へ
 npm run migrate:premium            # 同上、REAL project に対して。リリース時に一度だけ実行する(冪等)
 npm run backfill:public-teams:emulator  # 既存チームぶんの publicTeams を作る(冪等、--dry-run 可)
 npm run backfill:public-teams           # 同上、REAL project に対して。publicTeams 導入時に一度だけ
+npm run reset:mock-purchases:emulator   # 仮の決済で付いた有料会員・単体購入を無料会員に戻す(冪等、--dry-run 可)
+npm run reset:mock-purchases            # 同上、REAL project に対して。本番決済(Stripe)導入時に一度だけ — 下記 Phase 2 参照
 ```
 
 No linter or formatter is configured in this repo. There are two automated checks:
@@ -203,10 +205,11 @@ also sees the 太陽の紋章 section of any other KIN with the same seal — ac
 
 **【決済モック期間限定】** Until Stripe lands, `/checkout/pay`'s 支払う calls `applyMockPurchase` (plan → 'paid', or the
 purchases/unlocks batch) and `/account`'s 解約する（仮） calls `cancelMockSubscription` (plan → 'free'), both **as the
-member**. The rules allow this through the users `update` 4th branch (`plan` ∈ {paid, free} + `paidAt` only, not while
-suspended) and owner `create` on `purchases/*` / `unlocks/*` (never update/delete). When the webhook exists, delete that
-branch and make those creates admin-only; nothing else changes. `npm run verify:rules:emulator` covers all of it (45
-checks).
+member**. The rules allow this through the users `update` 4th branch (`plan` ∈ {paid, free} + `paidAt` + `paidSource`
+only, not while suspended) and owner `create` on `purchases/*` / `unlocks/*` (never update/delete). **Everything a member
+writes this way must carry the marker** `paidSource: 'mock'` / `source: 'mock'` — the rules refuse it otherwise — so that
+[scripts/resetMockPurchases.ts](scripts/resetMockPurchases.ts) can later undo exactly these and nothing the webhook wrote.
+`npm run verify:rules:emulator` covers all of it (49 checks).
 
 **Status is derived, not stored** ([utils/userAdmin.ts](utils/userAdmin.ts)):
 
@@ -487,8 +490,15 @@ Prices are tax-included.
   `users/{uid}.plan = 'paid'` and purchase records `users/{uid}/purchases/kin-{N}`.
 - **Rules / client gate: done** (2026-09-23) — `isEntitledFor(docId)` + `users/{uid}/unlocks/{docId}` + `canRead(docId)`,
   see "Member status and the paid-area gate". What remains is moving the *writes* server-side: the webhook writes
-  `plan`/`paidAt` and the `purchases`/`unlocks` batch exactly as `applyMockPurchase` does today, and the
-  【決済モック期間限定】 rules branch goes away.
+  `plan`/`paidAt` and the `purchases`/`unlocks` batch exactly as `applyMockPurchase` does today (without the `mock`
+  markers), and the 【決済モック期間限定】 rules branch goes away.
+- **Go-live order** (agreed 2026-09-23 — nobody paid for what the mock granted, so it must all be revoked):
+  1. `npx firebase deploy --only firestore:rules` with the 【決済モック期間限定】 branch and the owner `create`s on
+     `purchases`/`unlocks` removed (members can no longer grant themselves anything).
+  2. `npm run reset:mock-purchases -- --dry-run`, then `npm run reset:mock-purchases`: every `paidSource == 'mock'` member
+     goes back to 無料会員 and every `source == 'mock'` purchase/unlock is deleted. Team members are untouched
+     (`teamId`), and so is anything without the marker.
+  3. `npm run generate && npx firebase deploy --only hosting` with the webhook-backed checkout.
 - **Also done**: `'paid'` is selectable in admin, `/plans` routes into `/checkout`.
 - **Screens already built** (2026-09-23): `/checkout`, `/checkout/pay` (mock, to be deleted), `/checkout/success`,
   `/legal/tokushoho` (skeleton), plan display on `/account` — see "Purchase plans and the paywall CTA".
