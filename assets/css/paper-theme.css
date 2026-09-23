@@ -667,6 +667,28 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 /* ---------------- 汎用パーツ (マイページ / 会員登録 / プラン選択) ---------------- */
 /* 注意書き・エラー表示。金系だと本文に埋もれるので、少しだけ赤みを足した警告色。 */
 .notice { border: 1px solid color-mix(in srgb, var(--seal-red) 40%, transparent); background: color-mix(in srgb, var(--seal-red) 7%, transparent); color: color-mix(in srgb, var(--seal-red) 82%, var(--ink)); border-radius: 10px; padding: 10px 14px; text-align: center; font-size: 12.5px; line-height: 1.7; }
+/* 赤ではない案内(決済フローの「仮表示です」など)。CheckoutMockNotice.vue から使う。 */
+.notice--info { border-color: var(--gold-line); background: color-mix(in srgb, var(--gold) 8%, transparent); color: var(--gold-deep); }
+
+/* ---------------- 決済フロー(/checkout 系)と法定表示 ---------------- */
+/* 注文内容: 左にラベル、右に値。合計行だけ上に線を引いて大きく。 */
+.orderlist { margin: 0; display: grid; gap: 10px; font-size: 13.5px; }
+.orderlist > div { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; }
+.orderlist dt { flex: none; font-size: 11.5px; letter-spacing: .08em; color: var(--ink-soft); }
+.orderlist dd { margin: 0; text-align: right; color: var(--ink); }
+.orderlist__total { margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--gold-line-soft); }
+.orderlist__total dd { font-family: "Shippori Mincho", serif; color: var(--gold-deep); }
+.orderlist__total strong { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.orderlist__total small { margin-left: 4px; font-size: 12px; color: var(--ink-soft); }
+/* 特定商取引法に基づく表記: 項目名と内容を1行ずつ。スマホは縦積み。 */
+.legallist { margin: 0; display: grid; gap: 14px; font-size: 13px; line-height: 1.8; }
+.legallist > div { display: grid; grid-template-columns: 1fr; gap: 2px; }
+.legallist dt { font-size: 11.5px; letter-spacing: .08em; color: var(--ink-soft); }
+.legallist dd { margin: 0; color: var(--ink); }
+@media (min-width: 640px) {
+  .legallist > div { grid-template-columns: 180px 1fr; gap: 16px; }
+  .legallist dt { padding-top: 2px; }
+}
 
 .panel { border: 1px solid var(--gold-line-soft); background: var(--paper-panel); box-shadow: var(--shadow); border-radius: 12px; padding: 24px; }
 .panel--plan { border-color: var(--gold-line); background: radial-gradient(140% 170% at 30% 0%, var(--paper-panel) 0%, var(--paper-panel-2) 100%); padding: 16px 18px; }
