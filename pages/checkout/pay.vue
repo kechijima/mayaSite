@@ -38,11 +38,12 @@ async function pay() {
       <div class="masthead masthead--plain">
         <span class="masthead__eyebrow">PAYMENT</span>
         <h1 class="font-display masthead__title">お支払い</h1>
+        <p class="masthead__sub">（仮の決済画面 — 導入後は Stripe のお支払いページに置き換わります）</p>
       </div>
 
-      <!-- この画面には「準備中」の断り書きを出さない(2026-09-23 要望)。本物の決済画面に
-           近い見た目で確認したいため。仮であることはファイル冒頭のコメントに書いてある。 -->
       <div class="mx-auto mt-8 max-w-[480px] space-y-4">
+        <CheckoutMockNotice />
+
         <section v-if="!order || !plan" class="panel text-center">
           <p class="mb-4 text-[13.5px] leading-[1.9]" style="color: var(--ink-soft);">ご注文内容を確認できませんでした。</p>
           <NuxtLink :to="buildPlansLink(null, params.redirect)" class="btn-gold">プランを選ぶ</NuxtLink>
