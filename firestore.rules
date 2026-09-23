@@ -114,23 +114,30 @@ service cloud.firestore {
             && redeemsCode(request.resource.data))
         // 4本目【決済モック期間限定】: 本人が plan を 'paid' / 'free' に切り替える。
         //   仮の決済画面(/checkout/pay)の「支払う」とマイページの「解約する(仮)」が使う。
+        //   paid にするときは paidSource == 'mock' を必ず伴う — 本番決済の導入時に
+        //   scripts/resetMockPurchases.ts が「仮で付いた有料会員」だけを無料会員へ戻せるように
+        //   (Webhook が付ける本物には付かない)。
         //   Stripe 導入後はサーバー(Webhook)だけが書くので、この分岐は削除すること。
         //   利用停止中は不可(停止は購入より優先 — Phase 2 の合意)。
         || (isOwner(uid)
             && resource.data.get('suspended', false) != true
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['plan', 'paidAt'])
-            && request.resource.data.plan in ['paid', 'free']);
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['plan', 'paidAt', 'paidSource'])
+            && ((request.resource.data.plan == 'paid' && request.resource.data.paidSource == 'mock')
+                || (request.resource.data.plan == 'free' && request.resource.data.get('paidSource', null) == null)));
 
       allow delete: if false;
 
       // 記事の単体購入。purchases/kin-{N} が購入の記録(マイページの一覧用)、
       // unlocks/{contentDocId} が解放されたドキュメント 1 件ずつ(isEntitledFor が exists() で引く)。
-      // 【決済モック期間限定】本人が作れる。Stripe 導入後はサーバーだけが書くので create を
-      // isAdmin() に戻すこと。読むのは本人と管理者。消せない(返金の扱いは未決定)。
+      // 【決済モック期間限定】本人が作れる — ただし source == 'mock' を必ず付けさせる
+      // (本番決済の導入時に scripts/resetMockPurchases.ts が仮のものだけを消せるように)。
+      // Stripe 導入後はサーバーだけが書くので create を isAdmin() に戻すこと。
+      // 読むのは本人と管理者。消せない(返金の扱いは未決定)。
       match /purchases/{purchaseId} {
         allow read: if isOwner(uid) || isAdmin();
         allow create: if isOwner(uid)
           && get(/databases/$(database)/documents/users/$(uid)).data.get('suspended', false) != true
+          && request.resource.data.source == 'mock'
           && request.resource.data.createdAt == request.time;
         allow update, delete: if false;
       }
@@ -138,6 +145,7 @@ service cloud.firestore {
         allow read: if isOwner(uid) || isAdmin();
         allow create: if isOwner(uid)
           && get(/databases/$(database)/documents/users/$(uid)).data.get('suspended', false) != true
+          && request.resource.data.source == 'mock'
           && request.resource.data.purchasedAt == request.time;
         allow update, delete: if false;
       }
