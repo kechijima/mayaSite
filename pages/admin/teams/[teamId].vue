@@ -42,6 +42,21 @@ const removeTarget = ref<TeamMember | null>(null)
 
 const { withLoading } = useGlobalLoading()
 
+// スマホのメンバーカードは ADMIN_MOBILE_PAGE_SIZE 件ずつ継ぎ足す(最大 MEMBER_LIST_LIMIT 件を
+// 一度に描画しない)。PC のテーブルは従来どおり全件。メンバーの追加・除外で一覧が変わったら先頭から。
+const visibleCount = ref(ADMIN_MOBILE_PAGE_SIZE)
+const visibleMembers = computed(() => members.value.slice(0, visibleCount.value))
+const { sentinel, fill } = useInfiniteScroll({
+  hasMore: () => visibleCount.value < members.value.length,
+  loadMore: () => {
+    visibleCount.value += ADMIN_MOBILE_PAGE_SIZE
+  }
+})
+watch(members, () => {
+  visibleCount.value = ADMIN_MOBILE_PAGE_SIZE
+  nextTick(fill)
+})
+
 function firestore() {
   const { $firestore } = useNuxtApp()
   return $firestore as Firestore
@@ -282,7 +297,7 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
           <!-- lg 未満はテーブルの代わりにカード一覧(AdminRecordCard 参照) -->
           <ul class="lg:hidden">
             <AdminRecordCard
-              v-for="m in members"
+              v-for="m in visibleMembers"
               :key="m.uid"
               :title="m.name || '—'"
               :subtitle="m.email"
@@ -295,6 +310,9 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
                 <button type="button" class="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 dark:border-red-900 dark:text-red-400" @click="removeTarget = m">チームから外す</button>
               </template>
             </AdminRecordCard>
+            <!-- 継ぎ足しの番兵(useInfiniteScroll)。この <ul> は lg 未満だけ表示される -->
+            <li ref="sentinel" aria-hidden="true" />
+            <li v-if="visibleCount < members.length" class="py-4 text-center text-[13px] text-slate-400">読み込み中…</li>
           </ul>
           <div class="hidden max-h-[70vh] overflow-auto lg:block">
             <table class="w-full text-[13px]">
