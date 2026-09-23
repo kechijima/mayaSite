@@ -352,7 +352,12 @@ close). The same `<aside>` is the permanent sidebar from `md` up, so `inert` is 
 is `hidden lg:block` with a `lg:hidden` card list beside it built from
 [components/AdminRecordCard.vue](components/AdminRecordCard.vue) (horizontal-scrolling tables were rejected as unreadable
 on phones); tablets 768–1023px get cards too because the sidebar leaves no room for 7 columns. Modals get
-`max-h-[calc(100vh-2rem)] overflow-y-auto` so their footer buttons stay reachable. The mobile top bar and the
+`max-h-[calc(100vh-2rem)] overflow-y-auto` so their footer buttons stay reachable. Card lists load incrementally
+through [composables/useInfiniteScroll.ts](composables/useInfiniteScroll.ts) (`ADMIN_MOBILE_PAGE_SIZE` = 20 per step; a
+sentinel `<li>` at the end of the `lg:hidden` list, so it is inert on desktop): `/admin/history` fetches 20-row Firestore
+pages on phones and shows all loaded pages stacked, while desktop keeps its 100-row 前へ/次へ pagination — the page size
+is fixed at mount from `matchMedia` because cursor pages can't change size mid-way. `/admin/users` and `/admin/content`
+have everything in memory and just reveal 20 more cards at a time. The mobile top bar and the
 search bars on `/admin/users` and `/admin/content` ([components/AdminSearchBar.vue](components/AdminSearchBar.vue):
 one keyword input plus a 詳細検索 icon that opens a modal holding the other conditions as
 [components/AdminFilterChips.vue](components/AdminFilterChips.vue) — a row of several controls was too tall to pin on a
