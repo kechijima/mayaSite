@@ -39,12 +39,12 @@ function statusChip(status: string) {
 
 <template>
   <div>
-    <div class="mb-5.5 flex items-baseline justify-between">
+    <div class="mb-5.5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
       <h1 class="text-xl font-bold">ダッシュボード</h1>
       <span class="text-xs tabular-nums text-slate-500 dark:text-slate-400">2026年7月14日（火）時点</span>
     </div>
 
-    <div class="mb-5.5 grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+    <div class="mb-5.5 grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
       <div v-for="s in stats" :key="s.label" class="rounded-xl border border-slate-200 bg-white px-4.5 py-4 dark:border-slate-800 dark:bg-slate-900">
         <div class="mb-2 text-xs text-slate-500 dark:text-slate-400">{{ s.label }}</div>
         <div class="text-2xl font-bold tracking-tight tabular-nums">{{ s.value }}</div>
@@ -56,7 +56,7 @@ function statusChip(status: string) {
 
     <div class="mb-5 rounded-xl border border-slate-200 bg-white p-5.5 dark:border-slate-800 dark:bg-slate-900">
       <h2 class="mb-4 text-sm font-bold">月次売上推移</h2>
-      <div class="flex h-[150px] items-end gap-4.5 pt-2.5">
+      <div class="flex h-[150px] items-end gap-2 pt-2.5 sm:gap-4.5">
         <div v-for="m in monthly" :key="m.label" class="flex h-full flex-1 flex-col items-center justify-end gap-2">
           <span class="text-[11px] tabular-nums text-slate-500 dark:text-slate-400">{{ m.val }}</span>
           <div class="w-full max-w-[38px] rounded-t-md bg-gradient-to-b from-brass-700 to-brass-700/60" :style="{ height: m.h + '%' }"></div>
@@ -67,7 +67,22 @@ function statusChip(status: string) {
 
     <div class="rounded-xl border border-slate-200 bg-white p-5.5 dark:border-slate-800 dark:bg-slate-900">
       <h2 class="mb-4 text-sm font-bold">最近登録したユーザー</h2>
-      <div class="overflow-x-auto">
+      <!-- lg 未満はテーブルの代わりにカード一覧(AdminRecordCard 参照) -->
+      <ul class="lg:hidden">
+        <AdminRecordCard
+          v-for="u in recentUsers"
+          :key="u.email"
+          :title="u.name"
+          :subtitle="u.email"
+          :fields="[{ label: '登録日', value: u.date }]"
+        >
+          <template #badge>
+            <span class="rounded-full px-2.5 py-0.5 text-[11.5px] font-bold" :class="planChip(u.plan)">{{ u.plan }}</span>
+            <span class="rounded-full px-2.5 py-0.5 text-[11.5px] font-bold" :class="statusChip(u.status)">{{ u.status }}</span>
+          </template>
+        </AdminRecordCard>
+      </ul>
+      <div class="hidden overflow-x-auto lg:block">
         <table class="w-full text-[13px]">
           <thead>
             <tr class="border-b border-slate-200 text-left text-[11px] uppercase tracking-wide text-slate-400 dark:border-slate-800">

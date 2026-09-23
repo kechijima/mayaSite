@@ -179,7 +179,7 @@ async function save() {
         {{ loadError }}
       </div>
 
-      <div class="rounded-xl border border-slate-200 bg-white p-5.5 dark:border-slate-800 dark:bg-slate-900">
+      <div class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5.5 dark:border-slate-800 dark:bg-slate-900">
         <div class="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <div class="mb-1.5 block text-xs font-bold text-slate-600 dark:text-slate-300">種別</div>
@@ -223,7 +223,7 @@ async function save() {
             :value="celebritiesText"
             readonly
             spellcheck="false"
-            class="min-h-[260px] w-full cursor-default rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-[12.5px] leading-relaxed text-slate-600 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-300"
+            class="min-h-[260px] w-full cursor-default overflow-x-auto whitespace-pre rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-[12.5px] leading-relaxed text-slate-600 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-300"
           ></textarea>
         </template>
 
@@ -251,11 +251,13 @@ async function save() {
                   <input
                     v-model="listOf(f.key)[i]"
                     type="text"
-                    class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900"
+                    class="w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900"
                   />
-                  <button type="button" class="rounded-lg border border-slate-200 px-2 py-2 text-xs text-slate-500 disabled:opacity-30 dark:border-slate-700 dark:text-slate-400" :disabled="i === 0" @click="moveListItem(f.key, i, -1)">↑</button>
-                  <button type="button" class="rounded-lg border border-slate-200 px-2 py-2 text-xs text-slate-500 disabled:opacity-30 dark:border-slate-700 dark:text-slate-400" :disabled="i === listOf(f.key).length - 1" @click="moveListItem(f.key, i, 1)">↓</button>
-                  <button type="button" class="rounded-lg border border-red-200 px-2.5 py-2 text-xs font-semibold text-red-600 dark:border-red-900 dark:text-red-400" @click="removeListItem(f.key, i)">削除</button>
+                  <div class="flex flex-none gap-1.5">
+                    <button type="button" class="rounded-lg border border-slate-200 px-2 py-2 text-xs text-slate-500 disabled:opacity-30 dark:border-slate-700 dark:text-slate-400" :disabled="i === 0" @click="moveListItem(f.key, i, -1)">↑</button>
+                    <button type="button" class="rounded-lg border border-slate-200 px-2 py-2 text-xs text-slate-500 disabled:opacity-30 dark:border-slate-700 dark:text-slate-400" :disabled="i === listOf(f.key).length - 1" @click="moveListItem(f.key, i, 1)">↓</button>
+                    <button type="button" class="rounded-lg border border-red-200 px-2.5 py-2 text-xs font-semibold text-red-600 dark:border-red-900 dark:text-red-400" @click="removeListItem(f.key, i)">削除</button>
+                  </div>
                 </div>
                 <button type="button" class="rounded-lg border border-dashed border-slate-300 px-3 py-2 text-xs font-semibold text-brass-700 dark:border-slate-700 dark:text-gold-300" @click="addListItem(f.key)">+ 項目を追加</button>
               </div>
@@ -287,11 +289,13 @@ async function save() {
                   <input
                     v-model="listOf(f.key)[i]"
                     type="text"
-                    class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900"
+                    class="w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900"
                   />
-                  <button type="button" class="rounded-lg border border-slate-200 px-2 py-2 text-xs text-slate-500 disabled:opacity-30 dark:border-slate-700 dark:text-slate-400" :disabled="i === 0" @click="moveListItem(f.key, i, -1)">↑</button>
-                  <button type="button" class="rounded-lg border border-slate-200 px-2 py-2 text-xs text-slate-500 disabled:opacity-30 dark:border-slate-700 dark:text-slate-400" :disabled="i === listOf(f.key).length - 1" @click="moveListItem(f.key, i, 1)">↓</button>
-                  <button type="button" class="rounded-lg border border-red-200 px-2.5 py-2 text-xs font-semibold text-red-600 dark:border-red-900 dark:text-red-400" @click="removeListItem(f.key, i)">削除</button>
+                  <div class="flex flex-none gap-1.5">
+                    <button type="button" class="rounded-lg border border-slate-200 px-2 py-2 text-xs text-slate-500 disabled:opacity-30 dark:border-slate-700 dark:text-slate-400" :disabled="i === 0" @click="moveListItem(f.key, i, -1)">↑</button>
+                    <button type="button" class="rounded-lg border border-slate-200 px-2 py-2 text-xs text-slate-500 disabled:opacity-30 dark:border-slate-700 dark:text-slate-400" :disabled="i === listOf(f.key).length - 1" @click="moveListItem(f.key, i, 1)">↓</button>
+                    <button type="button" class="rounded-lg border border-red-200 px-2.5 py-2 text-xs font-semibold text-red-600 dark:border-red-900 dark:text-red-400" @click="removeListItem(f.key, i)">削除</button>
+                  </div>
                 </div>
                 <button type="button" class="rounded-lg border border-dashed border-slate-300 px-3 py-2 text-xs font-semibold text-brass-700 dark:border-slate-700 dark:text-gold-300" @click="addListItem(f.key)">+ 項目を追加</button>
               </div>
@@ -321,11 +325,13 @@ async function save() {
                   <input
                     v-model="listOf(f.key)[i]"
                     type="text"
-                    class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900"
+                    class="w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900"
                   />
-                  <button type="button" class="rounded-lg border border-slate-200 px-2 py-2 text-xs text-slate-500 disabled:opacity-30 dark:border-slate-700 dark:text-slate-400" :disabled="i === 0" @click="moveListItem(f.key, i, -1)">↑</button>
-                  <button type="button" class="rounded-lg border border-slate-200 px-2 py-2 text-xs text-slate-500 disabled:opacity-30 dark:border-slate-700 dark:text-slate-400" :disabled="i === listOf(f.key).length - 1" @click="moveListItem(f.key, i, 1)">↓</button>
-                  <button type="button" class="rounded-lg border border-red-200 px-2.5 py-2 text-xs font-semibold text-red-600 dark:border-red-900 dark:text-red-400" @click="removeListItem(f.key, i)">削除</button>
+                  <div class="flex flex-none gap-1.5">
+                    <button type="button" class="rounded-lg border border-slate-200 px-2 py-2 text-xs text-slate-500 disabled:opacity-30 dark:border-slate-700 dark:text-slate-400" :disabled="i === 0" @click="moveListItem(f.key, i, -1)">↑</button>
+                    <button type="button" class="rounded-lg border border-slate-200 px-2 py-2 text-xs text-slate-500 disabled:opacity-30 dark:border-slate-700 dark:text-slate-400" :disabled="i === listOf(f.key).length - 1" @click="moveListItem(f.key, i, 1)">↓</button>
+                    <button type="button" class="rounded-lg border border-red-200 px-2.5 py-2 text-xs font-semibold text-red-600 dark:border-red-900 dark:text-red-400" @click="removeListItem(f.key, i)">削除</button>
+                  </div>
                 </div>
                 <button type="button" class="rounded-lg border border-dashed border-slate-300 px-3 py-2 text-xs font-semibold text-brass-700 dark:border-slate-700 dark:text-gold-300" @click="addListItem(f.key)">+ 項目を追加</button>
               </div>
@@ -335,12 +341,12 @@ async function save() {
 
         <div v-if="saveError" class="mt-3 text-xs font-semibold text-red-600 dark:text-red-400">{{ saveError }}</div>
         <div v-if="saved" class="mt-3 text-xs font-semibold text-emerald-600 dark:text-emerald-400">保存しました。</div>
-        <div class="mt-4 flex items-center justify-between">
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
           <div class="flex gap-3.5 text-sm text-slate-600 dark:text-slate-300">
             <label class="flex items-center gap-1.5"><input v-model="row.status" type="radio" value="公開" name="status" class="accent-brass-700" /> 公開</label>
             <label class="flex items-center gap-1.5"><input v-model="row.status" type="radio" value="下書き" name="status" class="accent-brass-700" /> 下書き</label>
           </div>
-          <div class="flex gap-2">
+          <div class="ml-auto flex gap-2">
             <NuxtLink to="/admin/content" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold dark:border-slate-700">キャンセル</NuxtLink>
             <button class="rounded-lg bg-brass-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-60" :disabled="saving" @click="save">
               {{ saving ? '保存中…' : '保存する' }}
