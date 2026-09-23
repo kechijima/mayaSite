@@ -44,6 +44,8 @@ npm run backfill:public-teams:emulator  # 既存チームぶんの publicTeams �
 npm run backfill:public-teams           # 同上、REAL project に対して。publicTeams 導入時に一度だけ
 npm run reset:mock-purchases:emulator   # 仮の決済で付いた有料会員・単体購入を無料会員に戻す(冪等、--dry-run 可)
 npm run reset:mock-purchases            # 同上、REAL project に対して。本番決済(Stripe)導入時に一度だけ — 下記 Phase 2 参照
+npm run backfill:mock-marker:emulator   # 印(source/paidSource='mock')が付く前の有料会員・単体購入に印を付ける(冪等、--dry-run 可)
+npm run backfill:mock-marker            # 同上、REAL project。2026-09-23 に一度実行済み。Stripe 導入後は実行しないこと
 ```
 
 No linter or formatter is configured in this repo. There are two automated checks:
@@ -209,7 +211,10 @@ member**. The rules allow this through the users `update` 4th branch (`plan` ∈
 only, not while suspended) and owner `create` on `purchases/*` / `unlocks/*` (never update/delete). **Everything a member
 writes this way must carry the marker** `paidSource: 'mock'` / `source: 'mock'` — the rules refuse it otherwise — so that
 [scripts/resetMockPurchases.ts](scripts/resetMockPurchases.ts) can later undo exactly these and nothing the webhook wrote.
-`npm run verify:rules:emulator` covers all of it (48 checks).
+`npm run verify:rules:emulator` covers all of it (48 checks). Data written before the marker existed (between #139
+and #140, plus anything an admin set to 有料会員) was stamped once with
+[scripts/backfillMockMarker.ts](scripts/backfillMockMarker.ts) on 2026-09-23; `setUserStatus` in
+[utils/userAdmin.ts](utils/userAdmin.ts) stamps admin-granted 有料会員 too, since nobody pays before Stripe.
 
 **Status is derived, not stored** ([utils/userAdmin.ts](utils/userAdmin.ts)):
 

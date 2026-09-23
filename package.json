@@ -30,6 +30,8 @@
     "migrate:premium:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/splitPremiumContent.ts",
     "reset:mock-purchases": "tsx --env-file=.env scripts/resetMockPurchases.ts",
     "reset:mock-purchases:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/resetMockPurchases.ts",
+    "backfill:mock-marker": "tsx --env-file=.env scripts/backfillMockMarker.ts",
+    "backfill:mock-marker:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/backfillMockMarker.ts",
     "verify:kin": "tsx scripts/verifyMayaCalc.ts",
     "verify:compatibility": "tsx scripts/verifyCompatibility.ts",
     "verify:rules:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 tsx scripts/verifyReferralRules.ts",

@@ -52,10 +52,14 @@ export const USER_STATUS_NOTE: Record<UserStatus, string> = {
 // 利用停止は suspended、有料化は plan で表す。片方だけを書き換えると
 // 「停止中の有料会員」のような読みにくい状態が残るので、常に両方を確定させる。
 // 'team' はチーム所属から導出されるので、ここでは書き込まない(plan は 'free' になる)。
+// paidSource: 'mock' は「仮で付いた有料会員」の印。本番決済(Stripe)が無い今、管理画面で付ける
+// 有料会員も払っていないので印を付け、本番導入時の scripts/resetMockPurchases.ts で戻す対象にする。
+// Stripe 導入後は管理画面からの有料化そのものを見直す(Customer Portal / Webhook が正になる)。
 export async function setUserStatus(firestore: Firestore, uid: string, status: UserStatus) {
   await updateDoc(doc(firestore, 'users', uid), {
     suspended: status === 'suspended',
-    plan: status === 'paid' ? 'paid' : 'free'
+    plan: status === 'paid' ? 'paid' : 'free',
+    paidSource: status === 'paid' ? 'mock' : null
   })
 }
 
