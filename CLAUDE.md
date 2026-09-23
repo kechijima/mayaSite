@@ -6,11 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 "マヤ暦占い" (Maya Calendar Fortune-Telling) — a Nuxt 3 site that calculates a visitor's KIN from their birthdate and reveals an increasingly deep reading behind a paywall. Requirements are documented in Japanese at [docs/要件定義.md](docs/要件定義.md); `docs/参考画像.png` and [mockup/maya-mockup.html](mockup/maya-mockup.html) are visual references for the target design (a static HTML mockup covering the free/paid views and the admin console — not wired to the app, but the source of truth for styling intent).
 
-**Current state: the KIN diagnosis, its CMS content, signup/login, member statuses, the purchase-plan page and the admin console are all real and Firestore-backed. Payment (Stripe) is the only thing still not implemented** — see "Payment roadmap (Phase 2)" at the end for the agreed design.
+**Current state: the KIN diagnosis, its CMS content, signup/login, member statuses, the purchase-plan page, the checkout screens and the admin console are all real and Firestore-backed. Real payment (Stripe) is the only thing still not implemented** — see "Payment roadmap (Phase 2)" at the end for the agreed design.
 
-The paid area is unlocked by **being a signed-in member who has not been suspended**. Registering is enough; there is nothing to pay yet. See "Member status and the paid-area gate" below; the decision is centralised in [composables/useEntitlement.ts](composables/useEntitlement.ts) so that introducing payment later is a change there plus one in [firestore.rules](firestore.rules).
+**The paid area is really gated now** (2026-09-23): only 有料会員 (`plan == 'paid'`), チーム会員 (`teamId`), or a member who bought that KIN's article (`users/{uid}/unlocks/{docId}`) can read `diagnosisContentPremium`; 無料会員 see LockedVeil. Since no money moves yet, the mock checkout writes `plan` / `unlocks` **with the member's own credentials** under a rules branch marked 【決済モック期間限定】 — see "Member status and the paid-area gate". The decision is centralised in [composables/useEntitlement.ts](composables/useEntitlement.ts) (`canRead(docId)`) and [firestore.rules](firestore.rules) (`isEntitledFor(docId)`).
 
-**Membership tiers are already modelled for payment** (2026-09-17): 無料会員 / チーム会員 / 有料会員 / 利用停止 (チーム会員 was called 有料会員(紹介) until 2026-09-17 — renamed because those members don't pay). A member who belongs to a team (joined with a referral code, or added by an admin) is **チーム会員** for as long as they stay in the team. Today that label changes nothing about access — every non-suspended member can already read the paid area — but it is what Phase 2 will gate on.
+**Membership tiers**: 無料会員 / チーム会員 / 有料会員 / 利用停止 (チーム会員 was called 有料会員(紹介) until 2026-09-17 — renamed because those members don't pay). A member who belongs to a team (joined with a referral code, or added by an admin) is **チーム会員** for as long as they stay in the team and reads everything; 有料会員 reads everything; 無料会員 reads only what they bought per article.
 
 Real and Firestore-backed: the diagnosis, 相性診断 ([pages/compatibility.vue](pages/compatibility.vue)), the per-seal and per-KIN detail pages ([pages/kin/[sealIndex].vue](pages/kin/%5BsealIndex%5D.vue), [pages/kin/[kin]/detail.vue](pages/kin/%5Bkin%5D/detail.vue)), the CMS ([pages/admin/content/**](pages/admin/content)), 診断履歴 ([pages/admin/history/index.vue](pages/admin/history/index.vue)), チーム管理 ([pages/admin/teams/**](pages/admin/teams)), ユーザー管理 ([pages/admin/users/index.vue](pages/admin/users/index.vue)) and 紹介コード入力 ([pages/account.vue](pages/account.vue)).
 
@@ -187,7 +187,26 @@ deliberately has no `~/` imports so `scripts/` can import it under tsx.
 
 ### Member status and the paid-area gate
 The paid sections of [pages/result.vue](pages/result.vue), [pages/kin/[sealIndex].vue](pages/kin/%5BsealIndex%5D.vue) and
-[pages/kin/[kin]/detail.vue](pages/kin/%5Bkin%5D/detail.vue) are unlocked for any signed-in member who is not suspended.
+[pages/kin/[kin]/detail.vue](pages/kin/%5Bkin%5D/detail.vue) are unlocked **per premium document**: `canRead(docId)` in
+[composables/useEntitlement.ts](composables/useEntitlement.ts) mirrors `isEntitledFor(docId)` in the rules — not suspended
+and (plan == 'paid' or teamId != null or `users/{uid}/unlocks/{docId}` exists). result.vue checks its two `character-*`
+docs separately (`sunUnlocked` / `wavespellUnlocked`) and the KIN letter by whether `restText` arrived; the kin pages check
+their one doc. `?from=` on the kin pages is no longer part of the gate (the unlock docs already encode which relation
+seals / destiny KINs a purchase covers); it only picks which KIN `/plans` offers.
+
+**Single-article purchases** write one `unlocks/{contentDocId}` document per unlocked doc (`unlockDocIdsForKin` in
+[utils/checkout.ts](utils/checkout.ts): `kin-N`, the sun/wavespell `character-*`, the 4 relation `character-*`, the 5
+destiny `kin-*`) plus a `purchases/kin-N` record for `/account`. Rules can't iterate a purchase list but can `exists()`
+a path, which is why the unlock set is materialised per doc rather than stored as an array (this replaced the Phase 2
+idea of "a purchase record carries its doc IDs"). Because `character-*` docs are shared by several KINs, a buyer of KIN N
+also sees the 太陽の紋章 section of any other KIN with the same seal — accepted.
+
+**【決済モック期間限定】** Until Stripe lands, `/checkout/pay`'s 支払う calls `applyMockPurchase` (plan → 'paid', or the
+purchases/unlocks batch) and `/account`'s 解約する（仮） calls `cancelMockSubscription` (plan → 'free'), both **as the
+member**. The rules allow this through the users `update` 4th branch (`plan` ∈ {paid, free} + `paidAt` only, not while
+suspended) and owner `create` on `purchases/*` / `unlocks/*` (never update/delete). When the webhook exists, delete that
+branch and make those creates admin-only; nothing else changes. `npm run verify:rules:emulator` covers all of it (45
+checks).
 
 **Status is derived, not stored** ([utils/userAdmin.ts](utils/userAdmin.ts)):
 
@@ -198,15 +217,14 @@ Checked in this order:
 | Shown as | Condition | Paid area |
 |---|---|---|
 | 利用停止 | `suspended === true` | locked (free diagnosis still works) |
-| 有料会員 | `plan === 'paid'` | unlocked — **nobody is in this state yet**; it exists for payment |
+| 有料会員 | `plan === 'paid'` | unlocked (set by the mock checkout today, by Stripe's webhook later) |
 | チーム会員 | `teamId != null` | unlocked |
-| 無料会員 | anything else | unlocked (until Phase 2) |
+| 無料会員 | anything else | locked, except docs in their own `unlocks` |
 
-`/admin/users/[uid]` offers 無料会員 / 利用停止 (`SELECTABLE_USER_STATUSES`); for a member in a team the page shows
-チーム会員 in place of 無料会員, because choosing 無料会員 would change nothing while the team is set.
-有料会員 is withheld until payment ships — add `'paid'` to that array to release it. After a
-change the row's status is re-derived with `userStatus()`, not copied from the radio. Both `plan` and
-`suspended` are admin-only in [firestore.rules](firestore.rules); a member cannot promote or un-suspend themselves.
+`/admin/users/[uid]` offers 無料会員 / 有料会員 / 利用停止 (`SELECTABLE_USER_STATUSES`); for a member in a team the page shows
+チーム会員 in place of 無料会員, because choosing 無料会員 would change nothing while the team is set. After a
+change the row's status is re-derived with `userStatus()`, not copied from the radio. `suspended` is admin-only in
+[firestore.rules](firestore.rules); `plan` is admin-only **except** for the mock-checkout branch described above.
 
 **Team membership is managed only in `/admin/teams`**, status (suspension) only in `/admin/users`.
 Removing a member from their team is how an admin turns チーム会員 back into 無料会員; there is no
@@ -439,7 +457,8 @@ Firebase web config is read from `NUXT_PUBLIC_FIREBASE_*` env vars in [nuxt.conf
 [nuxt.config.ts](nuxt.config.ts) sets `ssr: false` — a fully static SPA, no server, no Cloud Functions. `npm run generate` (which sets `NITRO_PRESET=static` — deliberately not baked into `nuxt.config.ts` itself, since that specific preset breaks `nuxt dev` with a `No entry found in rollupOptions.input` crash; see the comment in `nuxt.config.ts`) produces `.output/public` only (every route is the same empty shell; vue-router resolves paths entirely client-side after hydration) and makes the build fail loudly if a `server/api/**` route is ever reintroduced, rather than silently building something `nuxt dev` runs but the static output can't serve. [firebase.json](firebase.json)'s `hosting.rewrites` sends every path (`**`) to `/index.html` (a standard SPA catch-all, not a function target) and declares the `firestore` block; deploying needs `firebase deploy` (include `--only firestore:rules` after any `firestore.rules` change — it's not redeployed automatically just because the app is). This exists specifically to stay on Firebase Hosting's free "Spark" plan — Cloud Functions (the previous deployment target, via `nitro.preset: 'firebase'`) require the paid "Blaze" plan even to enable the necessary APIs, confirmed by an actual failed `firebase deploy` (`Error: ...must be on the Blaze (pay-as-you-go) plan`).
 
 **Order matters when rules and data change together.** Deploy the rules *first*, then migrate, then
-the app:
+the app. (The 2026-09-23 gate change was rules-first too: deploying the app first would have shown free members
+unlocked content the rules still allowed; rules-first briefly showed LockedVeil to everyone, which is the safe side.)
 
 ```bash
 npx firebase deploy --only firestore:rules
@@ -466,14 +485,11 @@ Prices are tax-included.
 - **Infrastructure**: Stripe Checkout needs a webhook, which needs a server — the plan is Firebase Blaze +
   Cloud Functions (Checkout session creation, webhook, Customer Portal). Only the server writes
   `users/{uid}.plan = 'paid'` and purchase records `users/{uid}/purchases/kin-{N}`.
-- **Rules**: a purchase record carries the content document IDs it unlocks (`kin-N`, the sun/wavespell and 4
-  relation `character-*`, the 5 destiny `kin-*`), because rules cannot iterate purchases. `isEntitled()` becomes
-  "not suspended && (plan == 'paid' || teamId != null || this doc ID is in a purchase)", mirrored in
-  `useEntitlement` — which must then decide per page (by the page's KIN / validated `from`), not globally.
-  Because `character-*` documents are shared by several KINs, Firestore read access will be somewhat wider than
-  what the UI unlocks; that was accepted.
-- **Also needed then**: add `'paid'` to `SELECTABLE_USER_STATUSES`, replace `planAction()` in `/plans`,
-  change the free tier to "free area + purchased KINs" in copy.
+- **Rules / client gate: done** (2026-09-23) — `isEntitledFor(docId)` + `users/{uid}/unlocks/{docId}` + `canRead(docId)`,
+  see "Member status and the paid-area gate". What remains is moving the *writes* server-side: the webhook writes
+  `plan`/`paidAt` and the `purchases`/`unlocks` batch exactly as `applyMockPurchase` does today, and the
+  【決済モック期間限定】 rules branch goes away.
+- **Also done**: `'paid'` is selectable in admin, `/plans` routes into `/checkout`.
 - **Screens already built** (2026-09-23): `/checkout`, `/checkout/pay` (mock, to be deleted), `/checkout/success`,
   `/legal/tokushoho` (skeleton), plan display on `/account` — see "Purchase plans and the paywall CTA".
 - **Still undecided**: behaviour after cancelling (e.g. readable until period end), the contents of

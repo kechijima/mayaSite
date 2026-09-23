@@ -2,14 +2,29 @@
 import { PLANS, formatYen, isValidOrder, readCheckoutParams } from '~/utils/checkout'
 
 // お支払い完了(Stripe の success_url 相当)。
-// Phase 2 では、Stripe から戻ってきた時点ではまだ Webhook が users/{uid} を更新していないことが
-// あるので、ここで useEntitlement().refresh() を数秒おきに呼び、plan / purchases が反映されたら
-// 「完了」表示に切り替える(それまでは「反映中」)。今は決済が無いので最初から「完了」を出す。
+// 決済モックでは仮の決済画面が遷移前に解放を書いて refresh 済みなので、ここでは結果を表示する
+// だけ。Phase 2 では Stripe から戻ってきた時点でまだ Webhook が users/{uid} を更新していないことが
+// あるので、reflected が立つまで useEntitlement().refresh() を数秒おきに呼ぶ(下の onMounted)。
 const route = useRoute()
 const params = computed(() => readCheckoutParams(route.query))
 const order = computed(() => (isValidOrder(params.value) ? params.value : null))
 const plan = computed(() => (order.value ? PLANS[order.value.plan] : null))
 const backLink = computed(() => params.value.redirect ?? '/')
+
+const { profile, purchasedKins, settled, refresh } = useEntitlement()
+// 購入がこの端末の権限に反映されたか。
+const reflected = computed(() => {
+  if (!order.value || !profile.value) return false
+  if (order.value.plan === 'subscription') return profile.value.plan === 'paid'
+  return order.value.kin !== null && purchasedKins.value.includes(order.value.kin)
+})
+onMounted(async () => {
+  // Phase 2 の Webhook 待ちを見越して、反映されていなければ数回読み直す(モックでは通常1回目で反映済み)。
+  for (let i = 0; i < 5 && settled.value && !reflected.value; i++) {
+    await new Promise((r) => setTimeout(r, 1500))
+    await refresh()
+  }
+})
 </script>
 
 <template>
@@ -31,8 +46,11 @@ const backLink = computed(() => params.value.redirect ?? '/')
             <p class="text-[15px] font-bold">{{ plan.name }}<template v-if="order?.kin !== null">（KIN{{ order?.kin }}）</template></p>
             <p class="mt-1 text-[13px]" style="color: var(--ink-soft);">{{ formatYen(plan.price) }}{{ plan.id === 'subscription' ? '/月' : '' }}（税込）</p>
           </template>
-          <p class="mt-4 text-[12.5px] leading-[1.9]" style="color: var(--ink-soft);">
-            診断結果の続きをご覧いただけます。反映まで少し時間がかかる場合は、しばらくしてからページを開き直してください。
+          <p v-if="reflected" class="mt-4 text-[12.5px] leading-[1.9]" style="color: var(--ink-soft);">
+            <span style="color: var(--gold-deep);">✓</span> 有料エリアが解放されました。診断結果の続きをご覧いただけます。
+          </p>
+          <p v-else class="mt-4 text-[12.5px] leading-[1.9]" style="color: var(--ink-soft);">
+            お支払いの反映を確認しています…。反映まで少し時間がかかる場合は、しばらくしてからページを開き直してください。
           </p>
           <NuxtLink :to="backLink" class="btn-gold mt-5 w-full">{{ params.redirect ? '診断結果の続きを読む' : 'トップへ戻る' }}</NuxtLink>
         </section>

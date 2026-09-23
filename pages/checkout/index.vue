@@ -9,7 +9,7 @@ import { PLANS, buildPayLink, buildPlansLink, formatYen, isValidOrder, readCheck
 // ページへ遷移する。今は仮の決済画面(/checkout/pay)へ進むだけ。詳細は utils/checkout.ts。
 const route = useRoute()
 const { user, ready } = useAuth()
-const { profile, settled, suspended } = useEntitlement()
+const { profile, settled, suspended, purchasedKins } = useEntitlement()
 
 const params = computed(() => readCheckoutParams(route.query))
 const order = computed(() => (isValidOrder(params.value) ? params.value : null))
@@ -23,11 +23,12 @@ const signupLink = computed(() => `/signup?redirect=${encodeURIComponent(route.f
 
 // 購入できない状態。Phase 2 の合意: 利用停止は購入より優先、チーム会員は全て読めるので
 // 購入する意味がない、有料会員が有料会員をもう一度買うことはない。
-const blocker = computed<'suspended' | 'team' | 'already-paid' | null>(() => {
+const blocker = computed<'suspended' | 'team' | 'already-paid' | 'already-bought' | null>(() => {
   if (!profile.value) return null
   if (suspended.value) return 'suspended'
   if (profile.value.teamId) return 'team'
-  if (profile.value.plan === 'paid' && order.value?.plan === 'subscription') return 'already-paid'
+  if (profile.value.plan === 'paid') return 'already-paid'
+  if (order.value?.plan === 'single' && order.value.kin !== null && purchasedKins.value.includes(order.value.kin)) return 'already-bought'
   return null
 })
 </script>
@@ -70,6 +71,11 @@ const blocker = computed<'suspended' | 'team' | 'already-paid' | null>(() => {
           <template v-else-if="blocker === 'team'">
             <p class="mb-2 text-[14.5px]"><span style="color: var(--gold-deep);">✓</span> {{ profile?.teamName || 'チーム' }}に所属しています</p>
             <p class="mb-4 text-[13px] leading-[1.9]" style="color: var(--ink-soft);">チーム会員としてすべての診断結果をご覧いただけるため、お支払いは不要です。</p>
+            <NuxtLink :to="params.redirect ?? '/'" class="btn-outline">診断結果へ戻る</NuxtLink>
+          </template>
+          <template v-else-if="blocker === 'already-bought'">
+            <p class="mb-2 text-[14.5px]"><span style="color: var(--gold-deep);">✓</span> KIN{{ order.kin }} の記事は購入済みです</p>
+            <p class="mb-4 text-[13px] leading-[1.9]" style="color: var(--ink-soft);">この記事の有料エリアはすでにご覧いただけます。</p>
             <NuxtLink :to="params.redirect ?? '/'" class="btn-outline">診断結果へ戻る</NuxtLink>
           </template>
           <template v-else>

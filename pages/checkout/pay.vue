@@ -1,14 +1,20 @@
 <script setup lang="ts">
-import { PLANS, buildPlansLink, buildSuccessLink, formatYen, isValidOrder, readCheckoutParams } from '~/utils/checkout'
+import type { Firestore } from 'firebase/firestore'
+import { PLANS, applyMockPurchase, buildPlansLink, buildSuccessLink, formatYen, isValidOrder, readCheckoutParams } from '~/utils/checkout'
 
 // 【仮の決済画面】Stripe がホストする Checkout ページの置き換え。決済導入後は Stripe の
 // ページそのものに遷移するので、このファイルは削除する(utils/checkout.ts のコメント参照)。
 // カード入力欄は見た目だけで、何も検証せず、どこにも送らない。
-//   支払う      → /checkout/success(Stripe の success_url 相当)
+//   支払う      → 解放を書き込んで /checkout/success(Stripe の success_url 相当)
 //   キャンセル  → /plans?canceled=1(Stripe の cancel_url 相当)
+// 「支払う」で users/{uid}.plan または users/{uid}/unlocks を本人の権限で書く
+// (utils/checkout.ts の applyMockPurchase、firestore.rules の【決済モック期間限定】分岐)。
+// これで無料会員が仮の決済を通ると有料エリアが見えるようになる(2026-09-23)。
 const route = useRoute()
 const { user, ready } = useAuth()
+const { refresh: refreshEntitlement } = useEntitlement()
 const { withLoading } = useGlobalLoading()
+const payError = ref('')
 
 const params = computed(() => readCheckoutParams(route.query))
 const order = computed(() => (isValidOrder(params.value) ? params.value : null))
@@ -19,12 +25,21 @@ const card = reactive({ number: '', exp: '', cvc: '', name: '' })
 const paying = ref(false)
 
 async function pay() {
-  if (!order.value || paying.value) return
+  if (!order.value || !user.value || paying.value) return
   paying.value = true
+  payError.value = ''
   try {
-    // 決済処理っぽい待ち時間だけ真似る(本物は Stripe 側で完結し、ここには戻ってこない)
-    await withLoading(() => new Promise((resolve) => setTimeout(resolve, 900)))
+    await withLoading(async () => {
+      const { $firestore } = useNuxtApp()
+      await applyMockPurchase($firestore as Firestore, user.value!.uid, order.value!)
+      // 解放を反映してから遷移する。先に遷移すると、戻った先がまだロック状態のまま描画される。
+      await refreshEntitlement()
+    })
     await navigateTo(buildSuccessLink(order.value))
+  } catch (err) {
+    payError.value = (err as { code?: string })?.code === 'permission-denied'
+      ? 'お支払いを受け付けられませんでした。アカウントの状態をご確認ください。'
+      : 'お支払いに失敗しました。時間をおいて再度お試しください。'
   } finally {
     paying.value = false
   }
@@ -77,6 +92,7 @@ async function pay() {
             <label class="formlabel" for="card-name">カード名義</label>
             <input id="card-name" v-model="card.name" class="formfield" autocomplete="off" placeholder="TARO YAMADA" />
           </div>
+          <p v-if="payError" class="notice">{{ payError }}</p>
           <button type="submit" class="btn-gold !mt-6 w-full" :disabled="paying">
             {{ paying ? '処理中…' : `${formatYen(plan.price)} を支払う` }}
           </button>

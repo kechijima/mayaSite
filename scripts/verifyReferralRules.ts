@@ -21,6 +21,7 @@ import {
 } from 'firebase/auth'
 import {
   connectFirestoreEmulator,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -155,6 +156,7 @@ async function seed() {
   })
   await adminDb.collection('publicTeams').doc(ACTIVE_TEAM).set({ name: 'Aチーム', active: true })
   await adminDb.collection('publicTeams').doc(DISABLED_TEAM).set({ name: 'Cチーム', active: false })
+  await adminDb.collection('diagnosisContentPremium').doc('character-4').set({ type: 'character', index: 4, practicalTips: ['x'] })
   await adminDb.collection('diagnosisContentPremium').doc('character-3').set({
     practicalTips: ['有料の本文'], type: 'character', index: 3
   })
@@ -298,9 +300,68 @@ async function main() {
     await setDoc(doc(db, 'users', uid), { ...baseProfile(), ...unaffiliated() })
     await expectAllow('無料本文は誰でも読める', () =>
       getDoc(doc(db, 'diagnosisContent', 'character-3')))
-    // 2026-09-09: 閲覧条件はチーム所属ではなく「会員登録していて停止されていないこと」。
-    await expectAllow('チーム未所属でも会員なら有料本文を読める', () =>
+    // 2026-09-23: 閲覧条件は「有料会員・チーム会員・単体購入で解放済み」に限定。無料会員は読めない。
+    await expectDeny('無料会員は有料本文を読めない', () =>
       getDoc(doc(db, 'diagnosisContentPremium', 'character-3')))
+  }
+  {
+    const uid = await freshUser()
+    await setDoc(doc(db, 'users', uid), { ...baseProfile(), ...redeemed(ACTIVE_CODE, ACTIVE_TEAM) })
+    await expectAllow('チーム会員は有料本文を読める', () =>
+      getDoc(doc(db, 'diagnosisContentPremium', 'character-3')))
+  }
+
+  console.log('\n▸ 決済モック(本人による plan / purchases / unlocks の書き込み — Stripe 導入時に削除)')
+  {
+    const uid = await freshUser()
+    await setDoc(doc(db, 'users', uid), { ...baseProfile(), ...unaffiliated() })
+    await expectAllow('本人が plan を paid にできる(仮の決済)', () =>
+      updateDoc(doc(db, 'users', uid), { plan: 'paid', paidAt: serverTimestamp() }))
+    await expectAllow('有料会員は有料本文を読める', () =>
+      getDoc(doc(db, 'diagnosisContentPremium', 'character-3')))
+    await expectAllow('本人が plan を free に戻せる(解約(仮))', () =>
+      updateDoc(doc(db, 'users', uid), { plan: 'free', paidAt: null }))
+    await expectDeny('plan には paid/free 以外を書けない', () =>
+      updateDoc(doc(db, 'users', uid), { plan: 'vip' }))
+    // suspended:false は既に false なので diff に現れず「変更」にならない。true を書いて確かめる。
+    await expectDeny('plan の変更に紛れて suspended は変えられない', () =>
+      updateDoc(doc(db, 'users', uid), { plan: 'paid', suspended: true }))
+  }
+  {
+    const uid = await freshUser()
+    await setDoc(doc(db, 'users', uid), { ...baseProfile(), ...unaffiliated() })
+    await expectAllow('本人が単体購入の記録と解放を書ける', async () => {
+      await setDoc(doc(db, 'users', uid, 'purchases', 'kin-42'), { kin: 42, price: 550, unlocks: ['character-3'], createdAt: serverTimestamp() })
+      await setDoc(doc(db, 'users', uid, 'unlocks', 'character-3'), { kin: 42, purchasedAt: serverTimestamp() })
+    })
+    await expectAllow('解放されたドキュメントは読める', () =>
+      getDoc(doc(db, 'diagnosisContentPremium', 'character-3')))
+    await expectDeny('解放されていないドキュメントは読めない', () =>
+      getDoc(doc(db, 'diagnosisContentPremium', 'character-4')))
+    await expectDeny('解放は取り消せない(消せない)', () =>
+      deleteDoc(doc(db, 'users', uid, 'unlocks', 'character-3')))
+    await expectDeny('purchasedAt に固定値は書けない', () =>
+      setDoc(doc(db, 'users', uid, 'unlocks', 'character-5'), { kin: 42, purchasedAt: new Date() }))
+  }
+  {
+    const uid = await freshUser()
+    await setDoc(doc(db, 'users', uid), { ...baseProfile(), ...unaffiliated() })
+    await expectDeny('他人の unlocks は書けない', () =>
+      setDoc(doc(db, 'users', 'someone-else', 'unlocks', 'character-3'), { kin: 42, purchasedAt: serverTimestamp() }))
+    await expectDeny('他人の unlocks は読めない', () =>
+      getDocs(collection(db, 'users', 'someone-else', 'unlocks')))
+  }
+  {
+    const uid = await freshUser()
+    await setDoc(doc(db, 'users', uid), { ...baseProfile(), ...unaffiliated() })
+    await updateDoc(doc(db, 'users', uid), { plan: 'paid', paidAt: serverTimestamp() })
+    await suspend(uid)
+    await expectDeny('利用停止中は有料会員でも有料本文を読めない', () =>
+      getDoc(doc(db, 'diagnosisContentPremium', 'character-3')))
+    await expectDeny('利用停止中は plan を書けない', () =>
+      updateDoc(doc(db, 'users', uid), { plan: 'free', paidAt: null }))
+    await expectDeny('利用停止中は unlocks を書けない', () =>
+      setDoc(doc(db, 'users', uid, 'unlocks', 'character-3'), { kin: 42, purchasedAt: serverTimestamp() }))
   }
   {
     const uid = await freshUser()

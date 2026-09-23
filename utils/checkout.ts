@@ -10,8 +10,14 @@
 //   /checkout/success  Stripe の success_url。Phase 2 では Webhook が users を更新するまで
 //                      「反映待ち」を出し、更新を確認してから戻り先へ案内する
 // 価格は税込(Phase 2 の合意どおり)。
+//
+// 2026-09-23: 無料会員には有料エリアを見せず、仮の決済を通ったら見えるようにした。
+// 「支払う」は applyMockPurchase() で本人の権限のまま users/{uid}.plan または
+// users/{uid}/unlocks を書く(firestore.rules の【決済モック期間限定】分岐)。
+// Stripe 導入後はこの書き込みを Cloud Function(Webhook)へ移し、rules の分岐を消す。
+import { doc, serverTimestamp, updateDoc, writeBatch, type Firestore } from 'firebase/firestore'
 import type { LocationQueryValue } from 'vue-router'
-import { parseKin } from '~/utils/mayaCalc'
+import { destinyKins, kinInfo, parseKin, relationSealIndices } from '~/utils/mayaCalc'
 import { safeRedirect } from '~/utils/signupLink'
 
 export type PlanId = 'subscription' | 'single'
@@ -84,4 +90,46 @@ export function buildSuccessLink(p: CheckoutParams & { plan: PlanId }): string {
 // プラン選択へ戻る。canceled は Stripe の cancel_url 相当(/plans が「キャンセルされました」を出す)。
 export function buildPlansLink(kin: number | null, redirect: string | null, canceled = false): string {
   return withParams('/plans', { kin, redirect, canceled: canceled ? 1 : null })
+}
+
+// KIN N の記事の単体購入で解放される diagnosisContentPremium のドキュメントID(CLAUDE.md Phase 2 の
+// 合意): KIN N の手紙、太陽の紋章とウェイブスペルの character、result.vue から辿れる関係性 4 紋章の
+// character、運命数字 5 つの kin(N 自身を含む)。重複は除く。
+// firestore.rules は users/{uid}/unlocks/{docId} の exists() で判定するので、ここで列挙した ID が
+// そのまま「読めるドキュメント」になる。
+export function unlockDocIdsForKin(kin: number): string[] {
+  const info = kinInfo(kin)
+  const ids = new Set<string>([`kin-${kin}`, `character-${info.sealIndex}`, `character-${info.wavespellSealIndex}`])
+  for (const sealIndex of relationSealIndices(kin)) ids.add(`character-${sealIndex}`)
+  for (const k of destinyKins(kin)) ids.add(`kin-${k}`)
+  return [...ids]
+}
+
+// 【決済モック期間限定】仮の決済画面の「支払う」。本人の権限で解放を書き込む。
+//   有料会員     → users/{uid}.plan = 'paid'
+//   この記事のみ → users/{uid}/purchases/kin-{N}(記録)と users/{uid}/unlocks/{docId}(解放)を1バッチで
+// Stripe 導入後はこの関数を呼ばず、Webhook がサーバー側で同じ書き込みをする。
+export async function applyMockPurchase(firestore: Firestore, uid: string, order: CheckoutParams & { plan: PlanId }) {
+  if (order.plan === 'subscription') {
+    await updateDoc(doc(firestore, 'users', uid), { plan: 'paid', paidAt: serverTimestamp() })
+    return
+  }
+  const kin = order.kin as number
+  const unlocks = unlockDocIdsForKin(kin)
+  const batch = writeBatch(firestore)
+  batch.set(doc(firestore, 'users', uid, 'purchases', `kin-${kin}`), {
+    kin,
+    price: PLANS.single.price,
+    unlocks,
+    createdAt: serverTimestamp()
+  })
+  for (const id of unlocks) {
+    batch.set(doc(firestore, 'users', uid, 'unlocks', id), { kin, purchasedAt: serverTimestamp() })
+  }
+  await batch.commit()
+}
+
+// 【決済モック期間限定】マイページの「解約する(仮)」。Stripe 導入後は Customer Portal に置き換わる。
+export async function cancelMockSubscription(firestore: Firestore, uid: string) {
+  await updateDoc(doc(firestore, 'users', uid), { plan: 'free', paidAt: null })
 }

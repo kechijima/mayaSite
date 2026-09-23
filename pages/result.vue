@@ -66,13 +66,16 @@ const toneCelebrities = computed(() => parseCelebrities(toneProfile.value?.celeb
 // 太陽の紋章・ウェイブスペルは別人格(別キャラクター)なので、それぞれ自分のセクション内で自分の
 // プロフィールを深掘りする(2026-08-06以前は両方まとめて「あなたについて」という1セクションに
 // していたが、実際には太陽の紋章側のプロフィールしか出せておらず紛らわしかったため分離した)。
-// 有料エリアの解放条件は composables/useEntitlement.ts に集約している。会員登録していて
-// 利用停止されていないことが条件 — 決済導入時はそこを1行変えるだけで「決済した人のみ」に
-// 切り替わる。
-// entitlementSettled は認証復元とusersドキュメント取得の両方が終わったかを表す。
+// 有料エリアの解放条件は composables/useEntitlement.ts に集約している。有料会員・チーム会員は
+// 全部、単体購入はその KIN の記事に含まれるドキュメントだけ読める(canRead(docId))ので、
+// 太陽の紋章とウェイブスペルはそれぞれ自分の character ドキュメントで判定する。KIN の手紙は
+// 続きの本文(kinRestText)が届いたかどうかで判定する(下の kinLetterLocked)。
+// entitlementSettled は認証復元とusers/unlocks取得の両方が終わったかを表す。
 // 有料ブロックもLockedVeilもこれが立つまで出さない — 立てずにLockedVeilを出すと、
 // 閲覧できる会員にも読み込み中の一瞬だけ購入訴求が見えてしまうため。
-const { entitled: deepUnlocked, settled: entitlementSettled } = useEntitlement()
+const { canRead, unlockKey, settled: entitlementSettled } = useEntitlement()
+const sunUnlocked = computed(() => (unlockKey.value, canRead(`character-${result.value.sealIndex}`)))
+const wavespellUnlocked = computed(() => (unlockKey.value, canRead(`character-${result.value.wavespellSealIndex}`)))
 
 // 全画面ローディング。トップの「無料で診断する」を押した時点で出し始め(pages/index.vue)、
 // ここで本文と画像が揃ってから外す。直接URLを開かれた場合(共有リンク・再読み込み)は
@@ -149,7 +152,8 @@ const kinPremiumChars = computed(() => content.kinPremiumCharCount.value)
 const lockedTotalChars = computed(() => {
   if (!entitlementSettled.value) return 0
   let total = 0
-  if (!deepUnlocked.value) total += sunPremiumChars.value + wavespellPremiumChars.value
+  if (!sunUnlocked.value) total += sunPremiumChars.value
+  if (!wavespellUnlocked.value) total += wavespellPremiumChars.value
   if (kinText.value && kinLetterLocked.value) total += kinPremiumChars.value
   return total
 })
@@ -389,7 +393,7 @@ async function shareResult() {
 
         <!-- 有料項目はまとめて1つのモザイクに入れる(項目ごとに小さなロック箱を並べるより、
              「この分量の続きがある」ことが伝わるため)。参考: kinoshita-reon.jp -->
-        <ProfileBlocks v-if="deepUnlocked" :sections="sunPremiumProfileSections" />
+        <ProfileBlocks v-if="sunUnlocked" :sections="sunPremiumProfileSections" />
         <LockedVeil v-else-if="entitlementSettled && sunPremiumChars" :to="plansLink" :total-chars="lockedTotalChars" />
       </section>
 
@@ -432,7 +436,7 @@ async function shareResult() {
 
         <ProfileBlocks :sections="wavespellOtherFreeProfileSections" />
 
-        <ProfileBlocks v-if="deepUnlocked" :sections="wavespellPremiumProfileSections" />
+        <ProfileBlocks v-if="wavespellUnlocked" :sections="wavespellPremiumProfileSections" />
         <LockedVeil v-else-if="entitlementSettled && wavespellPremiumChars" :to="plansLink" :total-chars="lockedTotalChars" />
       </section>
 

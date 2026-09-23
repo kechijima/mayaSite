@@ -132,7 +132,9 @@ export function useDiagnosisContent(indexes: DiagnosisContentIndexes) {
   // 有料ドキュメントは権限がある時だけ取りに行く。権限が無いユーザーの分まで毎回
   // 読みに行くと、必ず失敗する読み取りを3件発生させたうえでコンソールに
   // permission-denied が並ぶだけで、得るものが何もないため。
-  const { entitled } = useEntitlement()
+  // 単体購入は KIN ごとに解放範囲が違うので、ドキュメント単位で canRead を見る
+  // (firestore.rules の isEntitledFor(docId) と同じ判定)。
+  const { canRead, unlockKey } = useEntitlement()
 
   const { data, pending } = useAsyncData(
     'diagnosis-content',
@@ -144,16 +146,15 @@ export function useDiagnosisContent(indexes: DiagnosisContentIndexes) {
         fetchPublishedDoc(firestore, `tone-${toneIndex.value}`),
         fetchPublishedDoc(firestore, `kin-${kin.value}`)
       ])
-      const [sunPremium, wavespellPremium, kinPremium] = entitled.value
-        ? await Promise.all([
-            fetchPremiumDoc(firestore, `character-${sealIndex.value}`),
-            fetchPremiumDoc(firestore, `character-${wavespellSealIndex.value}`),
-            fetchPremiumDoc(firestore, `kin-${kin.value}`)
-          ])
-        : [null, null, null]
+      const premiumIfReadable = (id: string) => (canRead(id) ? fetchPremiumDoc(firestore, id) : Promise.resolve(null))
+      const [sunPremium, wavespellPremium, kinPremium] = await Promise.all([
+        premiumIfReadable(`character-${sealIndex.value}`),
+        premiumIfReadable(`character-${wavespellSealIndex.value}`),
+        premiumIfReadable(`kin-${kin.value}`)
+      ])
       return { sunDoc, wavespellDoc, toneDoc, kinDoc, sunPremium, wavespellPremium, kinPremium }
     },
-    { server: false, lazy: true, watch: [sealIndex, wavespellSealIndex, toneIndex, kin, entitled] }
+    { server: false, lazy: true, watch: [sealIndex, wavespellSealIndex, toneIndex, kin, unlockKey] }
   )
 
   return {
