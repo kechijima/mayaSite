@@ -2,13 +2,14 @@
 import { doc, updateDoc, type Firestore } from 'firebase/firestore'
 import { safeRedirect } from '~/utils/signupLink'
 import { USER_STATUS_LABEL, userStatus } from '~/utils/userAdmin'
+import { cancelMockSubscription } from '~/utils/checkout'
 
 // 紹介コードの後追い入力ページ。既に会員登録済みの人がチームとコードを入力すると、
 // そのチームに所属しチーム会員になる。新規登録と同時に入力する場合は pages/signup/referral.vue。
 // 2026-09-23: 「現在のプラン」の表示と「お支払いの管理」の導線を追加(決済フローの画面だけを
 // 先に作った段階)。「お支払いの管理」は Phase 2 で Stripe の Customer Portal へ送る。
 const { user, ready: authReady } = useAuth()
-const { profile, settled, suspended, refresh: refreshEntitlement } = useEntitlement()
+const { profile, settled, suspended, purchasedKins, refresh: refreshEntitlement } = useEntitlement()
 const referral = useReferralCodeInput()
 const { withLoading } = useGlobalLoading()
 
@@ -58,6 +59,25 @@ const planNote = computed(() => {
     default: return '診断結果の続きをご覧いただくにはプランのご購入が必要です。'
   }
 })
+// 【決済モック期間限定】解約 = plan を 'free' に戻す。Stripe 導入後は Customer Portal に置き換える。
+const cancelling = ref(false)
+const cancelError = ref('')
+async function cancelSubscription() {
+  if (!user.value || cancelling.value) return
+  cancelling.value = true
+  cancelError.value = ''
+  try {
+    await withLoading(async () => {
+      const { $firestore } = useNuxtApp()
+      await cancelMockSubscription($firestore as Firestore, user.value!.uid)
+      await refreshEntitlement()
+    })
+  } catch {
+    cancelError.value = '解約に失敗しました。時間をおいて再度お試しください。'
+  } finally {
+    cancelling.value = false
+  }
+}
 const isPaid = computed(() => !!profile.value && userStatus(profile.value) === 'paid')
 const isFree = computed(() => !!profile.value && userStatus(profile.value) === 'free')
 const plansLink = computed(() => (requestedRedirect.value ? `/plans?redirect=${encodeURIComponent(requestedRedirect.value)}` : '/plans'))
@@ -113,6 +133,17 @@ async function submitCode() {
           <div class="mt-4 flex flex-col gap-2 sm:flex-row">
             <NuxtLink v-if="isFree" :to="plansLink" class="btn-gold">プランを見る</NuxtLink>
             <button v-if="isPaid" type="button" class="btn-outline" disabled title="決済機能の導入後にご利用いただけます">お支払いの管理（準備中）</button>
+            <!-- 【決済モック期間限定】Stripe 導入後は上の「お支払いの管理」(Customer Portal)に統合する -->
+            <button v-if="isPaid" type="button" class="btn-quiet" :disabled="cancelling" @click="cancelSubscription">解約する（仮）</button>
+          </div>
+          <p v-if="cancelError" class="notice mt-3">{{ cancelError }}</p>
+          <div v-if="purchasedKins.length" class="mt-4 border-t pt-3" style="border-color: var(--gold-line-soft);">
+            <p class="formlabel">購入済みの記事</p>
+            <ul class="flex flex-wrap gap-2 text-[13px]">
+              <li v-for="k in purchasedKins" :key="k">
+                <NuxtLink :to="`/kin/${k}/detail`" class="btn-outline !px-3 !py-1.5 !text-[12.5px]">KIN{{ k }}</NuxtLink>
+              </li>
+            </ul>
           </div>
         </section>
 

@@ -18,12 +18,17 @@ const route = useRoute()
 // entitlementSettled は
 // 認証復元とusersドキュメント取得の両方が終わったかを表し、LockedVeilはこれが立つまで
 // 出さない — 所属済みの会員に読み込み中の一瞬だけ購入訴求が見えるのを避けるため。
-const { entitled: deepUnlocked, settled: entitlementSettled } = useEntitlement()
+const { canRead, unlockKey, settled: entitlementSettled } = useEntitlement()
 
 const sealIndex = computed(() => {
   const n = Number(route.params.sealIndex)
   return Number.isInteger(n) && n >= 0 && n < SEALS.length ? n : null
 })
+// この紋章の character ドキュメントを読めるか。有料会員・チーム会員は常に、単体購入なら
+// 購入した KIN の関係性 4 紋章(と太陽の紋章/ウェイブスペル)に含まれる場合だけ
+// (utils/checkout.ts の unlockDocIdsForKin)。?from= の検証はもう解放判定には不要で、
+// /plans に案内する単体購入の KIN を決めるためだけに残っている。
+const deepUnlocked = computed(() => (unlockKey.value, sealIndex.value !== null && canRead(`character-${sealIndex.value}`)))
 const seal = computed(() => (sealIndex.value !== null ? SEALS[sealIndex.value] : null))
 // 遷移元の診断結果ページのKIN(result.vue の関係性カードが ?from= に付ける)。
 // この紋章が本当に from の関係性4つ(ガイド/神秘/反対/類似)のどれかである場合だけ採用する —

@@ -37,13 +37,13 @@ export const USER_STATUS_LABEL: Record<UserStatus, string> = {
   suspended: '利用停止'
 }
 
-// 詳細画面で選べる選択肢。有料会員は決済機能の導入後に解禁する — 現時点では
-// 無料会員との違いが無く、切り替えても何も起きないボタンになってしまうため
-// (決済導入時に 'paid' をこの配列へ足すだけで選べるようになる)。
-export const SELECTABLE_USER_STATUSES: UserStatus[] = ['free', 'suspended']
+// 詳細画面で選べる選択肢。2026-09-23 に有料会員を解禁した — 無料会員は有料エリアを
+// 読めなくなり、plan: 'paid' に実際の意味ができたため(仮の決済で付いた有料会員を
+// 管理者が外す/付ける用途)。
+export const SELECTABLE_USER_STATUSES: UserStatus[] = ['free', 'paid', 'suspended']
 
 export const USER_STATUS_NOTE: Record<UserStatus, string> = {
-  free: '有料エリアを閲覧できます。',
+  free: '無料エリアのみ閲覧できます。有料エリアは有料会員になるか、記事を単体購入すると閲覧できます。',
   team: 'チームに所属しているため、すべての診断結果を閲覧できます。無料会員に戻す場合はチーム管理からチームを外してください。',
   paid: '有料エリアを閲覧できます。決済済みの会員です。',
   suspended: '有料エリアを閲覧できません。無料の診断はこれまで通りご利用いただけます。本人が紹介コードを入力しても解除されません。'

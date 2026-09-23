@@ -8,18 +8,31 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == uid;
     }
 
-    // 有料エリアの閲覧権限。現在は「会員登録していて、利用停止されていないこと」。
-    // 決済導入時はここに .plan == 'paid' の条件を足し、composables/useEntitlement.ts の
-    // entitled と対で切り替える(CLAUDE.md「Payment roadmap (Phase 2)」)。
+    // 有料本文(diagnosisContentPremium/{docId})の閲覧権限。composables/useEntitlement.ts の
+    // canRead(docId) と対で書き換えること(CLAUDE.md「Member status and the paid-area gate」)。
     //
-    // 2026-09-09: 判定を「チームに所属していること」から変更した。
-    // 2026-09-17: チーム所属中の会員は「チーム会員」として扱うことになったが、決済導入までは
-    // 会員全員が閲覧できるので、ここはまだ変えていない(導入時の条件は CLAUDE.md の Phase 2 参照)。
-    // get(key, default) なのは suspended を持たない既存会員を弾かないため。
-    function isEntitled() {
+    //   利用停止でない かつ (有料会員 plan == 'paid'
+    //                        または チーム所属 teamId != null
+    //                        または その docId が単体購入で解放済み users/{uid}/unlocks/{docId})
+    //
+    // 単体購入(KIN N の記事)は「解放されるドキュメントID」を 1 件ずつ unlocks に置く。
+    // rules は購入一覧を走査できないが exists() なら引けるため(CLAUDE.md Phase 2 の案を
+    // この形に改めた。2026-09-23)。
+    //
+    // 2026-09-09: 判定を「チームに所属していること」から「登録していて停止でない」へ。
+    // 2026-09-23: 決済フローの導入に合わせ「有料会員・チーム会員・単体購入」に限定した。
+    //             無料会員は読めない。plan/unlocks を書くのは本来サーバー(Stripe の Webhook)だが、
+    //             決済モック期間は本人にも書かせている(users の update 4本目と purchases/unlocks)。
+    // get(key, default) なのは suspended/plan を持たない既存会員を弾かないため。
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    function isEntitledFor(docId) {
       return request.auth != null
-        && get(/databases/$(database)/documents/users/$(request.auth.uid))
-             .data.get('suspended', false) != true;
+        && userDoc().get('suspended', false) != true
+        && (userDoc().get('plan', 'free') == 'paid'
+            || userDoc().get('teamId', null) != null
+            || exists(/databases/$(database)/documents/users/$(request.auth.uid)/unlocks/$(docId)));
     }
 
     // 紹介コードのドキュメントを引く。存在しなければ null を返すので、呼び出し側で
@@ -98,9 +111,36 @@ service cloud.firestore {
             && request.resource.data.diff(resource.data).affectedKeys()
                  .hasOnly(['teamId', 'teamName', 'entitlementSource',
                            'referralCodeId', 'referralRedeemedAt'])
-            && redeemsCode(request.resource.data));
+            && redeemsCode(request.resource.data))
+        // 4本目【決済モック期間限定】: 本人が plan を 'paid' / 'free' に切り替える。
+        //   仮の決済画面(/checkout/pay)の「支払う」とマイページの「解約する(仮)」が使う。
+        //   Stripe 導入後はサーバー(Webhook)だけが書くので、この分岐は削除すること。
+        //   利用停止中は不可(停止は購入より優先 — Phase 2 の合意)。
+        || (isOwner(uid)
+            && resource.data.get('suspended', false) != true
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['plan', 'paidAt'])
+            && request.resource.data.plan in ['paid', 'free']);
 
       allow delete: if false;
+
+      // 記事の単体購入。purchases/kin-{N} が購入の記録(マイページの一覧用)、
+      // unlocks/{contentDocId} が解放されたドキュメント 1 件ずつ(isEntitledFor が exists() で引く)。
+      // 【決済モック期間限定】本人が作れる。Stripe 導入後はサーバーだけが書くので create を
+      // isAdmin() に戻すこと。読むのは本人と管理者。消せない(返金の扱いは未決定)。
+      match /purchases/{purchaseId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create: if isOwner(uid)
+          && get(/databases/$(database)/documents/users/$(uid)).data.get('suspended', false) != true
+          && request.resource.data.createdAt == request.time;
+        allow update, delete: if false;
+      }
+      match /unlocks/{contentDocId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create: if isOwner(uid)
+          && get(/databases/$(database)/documents/users/$(uid)).data.get('suspended', false) != true
+          && request.resource.data.purchasedAt == request.time;
+        allow update, delete: if false;
+      }
     }
 
     // チームの実体。名前・現在のコード・管理者メモを持つ。管理者専用で、コードを
@@ -143,7 +183,7 @@ service cloud.firestore {
     // 同居させたままでは「無料本文は全公開、有料本文は非公開」が実現できず、
     // 未ログインでも開発者ツールから有料本文を読めてしまう(仕様書9章)。
     match /diagnosisContentPremium/{docId} {
-      allow read: if isEntitled() || isAdmin();
+      allow read: if isEntitledFor(docId) || isAdmin();
       allow write: if isAdmin();
     }
     match /diagnosisHistory/{docId} {

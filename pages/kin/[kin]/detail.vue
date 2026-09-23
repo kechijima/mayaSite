@@ -17,9 +17,12 @@ const route = useRoute()
 // entitlementSettled は
 // 認証復元とusersドキュメント取得の両方が終わったかを表し、LockedVeilはこれが立つまで
 // 出さない — 所属済みの会員に読み込み中の一瞬だけ購入訴求が見えるのを避けるため。
-const { entitled: deepUnlocked, settled: entitlementSettled } = useEntitlement()
+const { canRead, unlockKey, settled: entitlementSettled } = useEntitlement()
 
 const targetKin = computed(() => parseKin(route.params.kin))
+// この KIN の手紙を読めるか。単体購入なら、購入した KIN 自身とその運命数字 5 つに含まれる場合
+// (utils/checkout.ts の unlockDocIdsForKin)。?from= は /plans に案内する KIN を決めるためだけ。
+const deepUnlocked = computed(() => (unlockKey.value, targetKin.value !== null && canRead(`kin-${targetKin.value}`)))
 // 遷移元の診断結果ページのKIN(result.vue の運命数字リンクが ?from= に付ける)。
 // このページのKINが本当に from の運命数字5つのどれかである場合だけ採用する — URLは書き換え
 // られるので、検証しないと「購入したKINから来た」ことを装って無関係なKINを開けてしまう。
