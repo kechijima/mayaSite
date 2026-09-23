@@ -295,8 +295,10 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
   box-shadow: 0 1px 0 rgba(255, 255, 255, .6) inset;
 }
 .dossier__name { font-size: 27px; line-height: 1.2; color: var(--ink); }
-.dossier__type { display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 5px 14px 5px 12px; border-radius: 6px; background: var(--gold); color: #241a06; font-family: "Shippori Mincho", serif; font-weight: 700; font-size: 14px; letter-spacing: .12em; line-height: 1.4; }
-.dossier__type::before { content: ""; flex: none; width: 6px; height: 6px; background: currentColor; opacity: .75; transform: rotate(45deg); }
+/* 帯は濃い金(--gold-deep)に紙色の文字。当初は --gold に黒文字だったが、茶金の上の黒はコントラスト比
+   約 4.0 で読みづらいと指摘された(2026-09-23)。--gold-deep × 紙色は約 7.5。 */
+.dossier__type { display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 5px 14px 5px 12px; border-radius: 6px; background: var(--gold-deep); color: var(--paper); font-family: "Shippori Mincho", serif; font-weight: 700; font-size: 14px; letter-spacing: .12em; line-height: 1.4; text-shadow: 0 1px 0 rgba(0, 0, 0, .18); }
+.dossier__type::before { content: ""; flex: none; width: 6px; height: 6px; background: currentColor; opacity: .9; transform: rotate(45deg); }
 .dossier__catch { font-size: 13.5px; line-height: 1.85; color: var(--ink-soft); margin: 10px 0 22px; font-family: "Shippori Mincho", serif; }
 .dossier__blocks .block:first-child { margin-top: 0; }
 /* Mobile keeps the same side-by-side layout as desktop (never stacks) — the portrait column
