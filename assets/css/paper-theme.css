@@ -98,6 +98,11 @@
 .masthead__eyebrow { position: relative; z-index: 1; font-size: 11.5px; letter-spacing: .28em; color: var(--gold-deep); margin-bottom: 6px; }
 .masthead__title { position: relative; z-index: 1; font-size: clamp(26px, 5vw, 32px); letter-spacing: .14em; margin: 0 0 6px; text-wrap: balance; }
 .masthead__sub { position: relative; z-index: 1; font-size: 13px; color: var(--ink-soft); letter-spacing: .02em; }
+/* /kin/[sealIndex](KINの関係性の詳細)は見出しの下に関係の説明文(.masthead__sub)を置き、その直後に
+   .dossier が続く。説明文と紋章名の見出しの間が PC で 0px・スマホで 14px と詰まりすぎていたので
+   (2026-09-23 指摘)、説明文の側で下の余白を確保する。 */
+.section > .masthead__sub { max-width: 640px; margin: 0 auto 36px; text-align: center; line-height: 1.9; }
+@media (max-width: 600px) { .section > .masthead__sub { margin-bottom: 28px; text-align: left; } }
 /* アーチ装飾を持たないページ(相性診断 / マイページ / お申し込み)用の見出し。
    これらのページにはヘッダーが無い(layouts/default.vue 参照)ので、ヘッダー高さは足さない。 */
 .masthead--plain { padding-top: 48px; }
