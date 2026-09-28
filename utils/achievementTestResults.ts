@@ -53,8 +53,8 @@ export async function saveTestResult(firestore: Firestore, uid: string, test: Ac
 }
 
 // 新しい順。単一フィールドの orderBy なので複合インデックスは要らない。
-// 2026-09-29 より前の1日だけ動いていた「知識を問う4択」の結果(level を持ち sealIndex が無い)が
-// 本番に1件残っている。形が違うので読み飛ばす(消すかどうかは別途判断)。
+// 2026-09-29 より前の1日だけ動いていた「知識を問う4択」の結果(level を持ち sealIndex が無い)は
+// 本番から消した(同日)。形の違うドキュメントが混ざっても落ちないよう、念のため読み飛ばしは残す。
 export async function fetchTestResults(firestore: Firestore, uid: string): Promise<TestResultRow[]> {
   const snap = await getDocs(query(collection(firestore, 'users', uid, 'testResults'), orderBy('takenAt', 'desc')))
   return snap.docs
