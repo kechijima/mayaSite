@@ -217,6 +217,14 @@ service cloud.firestore {
       allow read: if isEntitledFor(docId) || isAdmin();
       allow write: if isAdmin();
     }
+    // 到達度診断テストの受験履歴を全会員ぶん横断して読む(管理画面 /admin/test-history の
+    // collectionGroup('testResults') クエリ)。管理者だけ。本人の読み書きは上の users/{uid}/testResults 側。
+    // コレクショングループのクエリには firestore.indexes.json の fieldOverrides(takenAt)が必要 —
+    // rules と一緒に `npx firebase deploy --only firestore:indexes` を流すこと。
+    match /{path=**}/testResults/{resultId} {
+      allow read: if isAdmin();
+    }
+
     // 到達度診断テストの問題(紋章ごと 25 問。scripts/seedAchievementTests.ts が入れる)。
     // 講師の教材なので誰でも読める形にはせず、受けられる人(チーム会員)と管理者だけに開ける。
     // 画面側の出し分け(composables/useTestAccess.ts)と同じ条件。

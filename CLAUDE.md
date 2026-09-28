@@ -37,7 +37,7 @@ npm run admin:create -- --email=you@example.com --password=xxxx            # sam
 
 npm run verify:kin                 # dateToKin() が mayadan.jp と一致するかの検証。単体で動く(エミュレータ不要)
 npm run verify:compatibility       # 相性診断の判定が mayadan.jp の相性診断と一致するかの検証(エミュレータ不要)
-npm run verify:rules:emulator      # firestore.rules の検証(66項目)。エミュレータ起動中に実行する — 下記参照
+npm run verify:rules:emulator      # firestore.rules の検証(67項目)。エミュレータ起動中に実行する — 下記参照
 npm run migrate:premium:emulator   # 有料項目を diagnosisContentPremium へ切り出す移行。--dry-run で件数だけ確認できる
 npm run migrate:premium            # 同上、REAL project に対して。リリース時に一度だけ実行する(冪等)
 npm run backfill:public-teams:emulator  # 既存チームぶんの publicTeams を作る(冪等、--dry-run 可)
@@ -211,7 +211,7 @@ member**. The rules allow this through the users `update` 4th branch (`plan` ∈
 only, not while suspended) and owner `create` on `purchases/*` / `unlocks/*` (never update/delete). **Everything a member
 writes this way must carry the marker** `paidSource: 'mock'` / `source: 'mock'` — the rules refuse it otherwise — so that
 [scripts/resetMockPurchases.ts](scripts/resetMockPurchases.ts) can later undo exactly these and nothing the webhook wrote.
-`npm run verify:rules:emulator` covers all of it (48 of the 66 checks; the other 18 cover `achievementTests` / `testResults`, see "Achievement test"). Data written before the marker existed (between #139
+`npm run verify:rules:emulator` covers all of it (48 of the 67 checks; the other 19 cover `achievementTests` / `testResults`, see "Achievement test"). Data written before the marker existed (between #139
 and #140, plus anything an admin set to 有料会員) was stamped once with
 [scripts/backfillMockMarker.ts](scripts/backfillMockMarker.ts) on 2026-09-23; `setUserStatus` in
 [utils/userAdmin.ts](utils/userAdmin.ts) stamps admin-granted 有料会員 too, since nobody pays before Stripe.
@@ -382,7 +382,15 @@ page grouped by category, like the original Google Form; unanswered ones are hig
 - **Admin**: [pages/admin/users/[uid].vue](pages/admin/users/%5Buid%5D.vue) lists every attempt (total, neutral
   penalty, five category scores) with an expandable answer sheet (statement, answer, points, colour-coded 4/2/0);
   [pages/admin/teams/[teamId].vue](pages/admin/teams/%5BteamId%5D.vue) shows 「紋章 N点（回数・最新日）」 per member,
-  filled in after the member list renders (one `testResults` query per member — fine at current team sizes).
+  filled in after the member list renders (one `testResults` query per member — fine at current team sizes);
+  [pages/admin/test-history.vue](pages/admin/test-history.vue) lists **every member's attempts** newest-first via
+  `collectionGroup('testResults')` (same cursor pagination as `/admin/history`; name/email/team are joined from `users`
+  per page). That query needs two things that ordinary reads don't: the rules' `/{path=**}/testResults` admin-only
+  match, and a COLLECTION_GROUP index on `takenAt` — declared as a `fieldOverrides` entry in
+  [firestore.indexes.json](firestore.indexes.json) (wired into `firebase.json`), deployed with
+  `npx firebase deploy --only firestore:indexes`. Until the index is built the page shows a `failed-precondition` hint
+  instead of rows. The override lists the default COLLECTION indexes too, because an override *replaces* the field's
+  default single-field indexes rather than adding to them.
 - `/test` and `/test/*` are footerless `.paper-page--focus` pages like `/plans`; [layouts/default.vue](layouts/default.vue)
   matches `/test/` by prefix. Styles are the `.testscore*` / `.testbars` / `.testhistory` / `.survey*` blocks at the end
   of [assets/css/paper-theme.css](assets/css/paper-theme.css).
@@ -520,6 +528,7 @@ unlocked content the rules still allowed; rules-first briefly showed LockedVeil 
 
 ```bash
 npx firebase deploy --only firestore:rules
+npx firebase deploy --only firestore:indexes   # firestore.indexes.json を触ったときだけ(初回は 2026-09-29)
 npm run migrate:premium            # 移行が必要なときだけ。--dry-run で件数を先に確認できる
 npm run backfill:public-teams      # publicTeams 導入時に一度だけ。--dry-run 可
 npm run generate && npx firebase deploy --only hosting
