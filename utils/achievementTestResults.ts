@@ -53,12 +53,16 @@ export async function saveTestResult(firestore: Firestore, uid: string, test: Ac
 }
 
 // 新しい順。単一フィールドの orderBy なので複合インデックスは要らない。
+// 2026-09-29 より前の1日だけ動いていた「知識を問う4択」の結果(level を持ち sealIndex が無い)が
+// 本番に1件残っている。形が違うので読み飛ばす(消すかどうかは別途判断)。
 export async function fetchTestResults(firestore: Firestore, uid: string): Promise<TestResultRow[]> {
   const snap = await getDocs(query(collection(firestore, 'users', uid, 'testResults'), orderBy('takenAt', 'desc')))
-  return snap.docs.map((d) => {
-    const data = d.data() as TestResultDoc
-    return { ...data, id: d.id, takenAt: (data.takenAt as Timestamp | undefined) ?? null }
-  })
+  return snap.docs
+    .filter((d) => typeof d.data().sealIndex === 'number')
+    .map((d) => {
+      const data = d.data() as TestResultDoc
+      return { ...data, id: d.id, takenAt: (data.takenAt as Timestamp | undefined) ?? null }
+    })
 }
 
 // チーム詳細のメンバー一覧に出す1行ぶんの要約。例: 「赤い竜 63点（2回・最新 2026-09-29）」。
