@@ -169,22 +169,18 @@ function statusLabel(status: TeamRow['status']) {
                 <th class="pb-2.5 pr-3">コード</th>
                 <th class="pb-2.5 pr-3">状態</th>
                 <th class="pb-2.5 pr-3 text-right">メンバー</th>
-                <th class="pb-2.5 pr-3">作成日</th>
-                <th class="pb-2.5"></th>
+                <th class="pb-2.5">作成日</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="row in rows" :key="row.id" class="border-b border-slate-100 last:border-0 dark:border-slate-800/60">
+              <tr v-for="row in rows" :key="row.id" class="cursor-pointer border-b border-slate-100 last:border-0 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/40" @click="navigateTo(`/admin/teams/${row.id}`)">
                 <td class="py-2.5 pr-3 font-semibold">{{ row.name }}</td>
                 <td class="py-2.5 pr-3 font-mono tracking-[.05em]">{{ row.code }}</td>
                 <td class="py-2.5 pr-3">
                   <span class="rounded-full px-2.5 py-0.5 text-[11.5px] font-bold" :class="statusChip(row.status)">{{ statusLabel(row.status) }}</span>
                 </td>
                 <td class="py-2.5 pr-3 text-right tabular-nums">{{ row.members }}</td>
-                <td class="py-2.5 pr-3 tabular-nums text-slate-500 dark:text-slate-400">{{ formatDate(row) }}</td>
-                <td class="py-2.5">
-                  <NuxtLink :to="`/admin/teams/${row.id}`" class="text-xs font-semibold text-brass-700 hover:underline dark:text-gold-300">詳細</NuxtLink>
-                </td>
+                <td class="py-2.5 tabular-nums text-slate-500 dark:text-slate-400">{{ formatDate(row) }}</td>
               </tr>
             </tbody>
           </table>

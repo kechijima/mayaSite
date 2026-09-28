@@ -131,12 +131,11 @@ watch(filtered, () => {
                 <th class="pb-2.5 pr-3">ステータス</th>
                 <th class="pb-2.5 pr-3">所属チーム</th>
                 <th class="pb-2.5 pr-3">所属経路</th>
-                <th class="pb-2.5 pr-3">登録日</th>
-                <th class="pb-2.5"></th>
+                <th class="pb-2.5">登録日</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="u in filtered" :key="u.uid" class="border-b border-slate-100 last:border-0 dark:border-slate-800/60">
+              <tr v-for="u in filtered" :key="u.uid" class="cursor-pointer border-b border-slate-100 last:border-0 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/40" @click="navigateTo(`/admin/users/${u.uid}`)">
                 <td class="py-2.5 pr-3">{{ u.name || '—' }}</td>
                 <td class="py-2.5 pr-3 text-slate-500 dark:text-slate-400">{{ u.email }}</td>
                 <td class="py-2.5 pr-3">
@@ -144,10 +143,7 @@ watch(filtered, () => {
                 </td>
                 <td class="py-2.5 pr-3">{{ u.teamName || '—' }}</td>
                 <td class="py-2.5 pr-3 text-slate-500 dark:text-slate-400">{{ u.source }}</td>
-                <td class="py-2.5 pr-3 tabular-nums text-slate-500 dark:text-slate-400">{{ u.joined }}</td>
-                <td class="py-2.5">
-                  <NuxtLink :to="`/admin/users/${u.uid}`" class="text-xs font-semibold text-brass-700 hover:underline dark:text-gold-300">詳細</NuxtLink>
-                </td>
+                <td class="py-2.5 tabular-nums text-slate-500 dark:text-slate-400">{{ u.joined }}</td>
               </tr>
             </tbody>
           </table>
