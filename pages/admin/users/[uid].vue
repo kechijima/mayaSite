@@ -11,6 +11,16 @@ import {
   type UserRow,
   type UserStatus
 } from '~/utils/userAdmin'
+import {
+  CATEGORY_MAX_SCORE,
+  TEST_ANSWER_LABEL,
+  TEST_CATEGORY_KEYS,
+  TEST_MAX_SCORE,
+  flattenQuestions,
+  pointsFor,
+  type AchievementTestDoc
+} from '~/utils/achievementTest'
+import { fetchAchievementTest, fetchTestResults, formatTestDateTime, type TestResultRow } from '~/utils/achievementTestResults'
 
 definePageMeta({ layout: 'admin' })
 
@@ -33,6 +43,34 @@ const statusSaved = ref(false)
 
 const { withLoading } = useGlobalLoading()
 
+// 到達度診断テストの受験履歴(新しい順)。チーム会員しか受けられないが、チームを外れた後も
+// 過去の記録は残るので、所属の有無に関わらず出す(無ければ「まだ受けていません」)。
+// 答案を開くときに、その紋章の問題文を achievementTests から引いて並べる(結果には問題文を保存していない)。
+const testResults = ref<TestResultRow[]>([])
+const testLoadError = ref('')
+const testDocs = ref<Record<number, AchievementTestDoc | null>>({})
+const CATEGORY_NAME: Record<string, string> = { thinking: '思考', action: '行動', relationship: '人間関係', belief: '信念', skill: 'スキル' }
+async function openAnswers(sealIndex: number) {
+  if (sealIndex in testDocs.value) return
+  testDocs.value[sealIndex] = null
+  try {
+    testDocs.value[sealIndex] = await fetchAchievementTest(firestore(), sealIndex)
+  } catch {
+    delete testDocs.value[sealIndex]
+  }
+}
+function answerRows(r: TestResultRow) {
+  const t = testDocs.value[r.sealIndex]
+  if (!t) return null
+  return flattenQuestions(t).map((q, i) => ({
+    index: i,
+    category: q.category.name,
+    text: q.question.text,
+    answer: r.answers[i],
+    points: r.answers[i] ? pointsFor(q.question, r.answers[i]) : 0
+  }))
+}
+
 function firestore() {
   const { $firestore } = useNuxtApp()
   return $firestore as Firestore
@@ -40,13 +78,20 @@ function firestore() {
 
 onMounted(async () => {
   try {
-    const row = await fetchUserRow(firestore(), uid)
+    const [row, results] = await Promise.all([
+      fetchUserRow(firestore(), uid),
+      fetchTestResults(firestore(), uid).catch(() => {
+        testLoadError.value = '受験履歴を読み込めませんでした。'
+        return [] as TestResultRow[]
+      })
+    ])
     if (!row) {
       notFound.value = true
       return
     }
     user.value = row
     draftStatus.value = row.status
+    testResults.value = results
   } catch {
     loadError.value = '会員情報の読み込みに失敗しました。時間をおいて再度お試しください。'
   } finally {
@@ -159,6 +204,46 @@ async function applyStatus() {
           <span v-if="statusSaved" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">変更しました</span>
           <span v-if="statusError" class="text-xs font-semibold text-red-600 dark:text-red-400">{{ statusError }}</span>
         </div>
+      </div>
+
+      <!-- 到達度診断テスト。1回ごとに総合点とカテゴリ別、開くと25問の答案(回答と点数)が見える。 -->
+      <div class="mb-4 rounded-xl border border-slate-200 bg-white p-5.5 dark:border-slate-800 dark:bg-slate-900">
+        <p class="mb-3 text-sm font-bold">到達度診断テスト</p>
+        <p v-if="testLoadError" class="text-xs font-semibold text-red-600 dark:text-red-400">{{ testLoadError }}</p>
+        <p v-else-if="!testResults.length" class="text-[12px] text-slate-500 dark:text-slate-400">まだ受けていません。</p>
+        <ul v-else class="divide-y divide-slate-100 dark:divide-slate-800/60">
+          <li v-for="r in testResults" :key="r.id">
+            <details class="group py-2.5" @toggle="(e) => (e.target as HTMLDetailsElement).open && openAnswers(r.sealIndex)">
+              <summary class="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 text-[13px] [&::-webkit-details-marker]:hidden">
+                <span class="tabular-nums text-slate-500 dark:text-slate-400">{{ formatTestDateTime(r.takenAt) }}</span>
+                <span class="font-semibold">{{ r.sealName }}</span>
+                <span class="tabular-nums"><strong>{{ r.total }}</strong>／{{ TEST_MAX_SCORE }}点</span>
+                <span v-if="r.neutralCount" class="text-[11.5px] text-slate-500 dark:text-slate-400">どちらでもない {{ r.neutralCount }}（{{ r.penalty }}点）</span>
+                <span class="ml-auto text-[11px] text-slate-400 group-open:hidden">答案を見る</span>
+                <span class="ml-auto hidden text-[11px] text-slate-400 group-open:inline">閉じる</span>
+              </summary>
+              <dl class="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12px] sm:grid-cols-5">
+                <div v-for="key in TEST_CATEGORY_KEYS" :key="key">
+                  <dt class="text-[10.5px] uppercase tracking-wide text-slate-400">{{ CATEGORY_NAME[key] }}</dt>
+                  <dd class="tabular-nums">{{ r.categoryScores[key] }}／{{ CATEGORY_MAX_SCORE }}<span class="ml-1 text-slate-400">({{ Math.round((r.categoryScores[key] / CATEGORY_MAX_SCORE) * 100) }}%)</span></dd>
+                </div>
+              </dl>
+              <p v-if="testDocs[r.sealIndex] === null" class="mt-2 text-[12px] text-slate-400">問題文を読み込み中…</p>
+              <ol v-else-if="answerRows(r)" class="mt-2 space-y-1.5 rounded-lg bg-slate-50 p-3 text-[12.5px] dark:bg-slate-800/60">
+                <li v-for="a in answerRows(r)" :key="a.index" class="flex gap-2">
+                  <span class="w-5 flex-none text-right tabular-nums text-slate-400">{{ a.index + 1 }}</span>
+                  <span class="min-w-0 flex-1">
+                    <span class="mr-1.5 text-[10.5px] text-slate-400">{{ a.category }}</span>{{ a.text }}
+                    <span class="ml-2 whitespace-nowrap font-semibold" :class="a.points === 4 ? 'text-emerald-600 dark:text-emerald-400' : a.points === 2 ? 'text-slate-500 dark:text-slate-400' : 'text-red-600 dark:text-red-400'">
+                      {{ a.answer ? TEST_ANSWER_LABEL[a.answer] : '—' }} {{ a.points }}点
+                    </span>
+                  </span>
+                </li>
+              </ol>
+              <p v-else class="mt-2 text-[12px] text-slate-400">問題文を読み込めませんでした。</p>
+            </details>
+          </li>
+        </ul>
       </div>
 
       <p class="rounded-lg border border-slate-200 p-3.5 text-[12px] leading-[1.8] text-slate-500 dark:border-slate-800 dark:text-slate-400">

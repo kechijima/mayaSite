@@ -19,6 +19,7 @@ export interface EntitlementProfile {
   // 診断フォームの入力内容。コード登録後に本人の診断結果ページへ戻すために使う
   // (pages/account.vue) — LockedVeil経由でない場合、戻り先のクエリが他に無いため。
   name?: string
+  phone?: string
   birthdate?: string
   gender?: string
   // 所属チーム。所属中はチーム会員として扱われ、すべての有料本文を読める(utils/userAdmin.ts)。

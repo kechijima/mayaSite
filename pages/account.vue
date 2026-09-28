@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { doc, updateDoc, type Firestore } from 'firebase/firestore'
+import { signOut, updateProfile, type Auth } from 'firebase/auth'
 import { safeRedirect } from '~/utils/signupLink'
 import { USER_STATUS_LABEL, userStatus } from '~/utils/userAdmin'
 import { cancelMockSubscription } from '~/utils/checkout'
+import { DEFAULT_GENDER, genderLabel, isGender, type Gender } from '~/utils/gender'
 
 // 紹介コードの後追い入力ページ。既に会員登録済みの人がチームとコードを入力すると、
 // そのチームに所属しチーム会員になる。新規登録と同時に入力する場合は pages/signup/referral.vue。
@@ -84,6 +86,80 @@ const plansLink = computed(() => (requestedRedirect.value ? `/plans?redirect=${e
 // 一度どこかに所属したことがあるか。文言を「登録」と「再登録」で出し分けるだけに使う。
 const hasJoinedBefore = computed(() => !!profile.value?.referralRedeemedAt)
 
+// 登録情報の編集(2026-09-28)。お名前・生年月日・性別・電話番号を本人が直せる。
+// firestore.rules の users update 2本目(plan / suspended / 紹介系以外は本人が編集可)で通る。
+// メールアドレスは Firebase Auth 側の変更(再認証と確認メール)が絡むので、ここでは表示のみ。
+// 生年月日を変えると KIN が変わる — 診断結果ページへの戻り先(ownResultPath)もこの値から組むので、
+// 保存後に refreshEntitlement() で profile を読み直す。
+const editingProfile = ref(false)
+const draftName = ref('')
+const draftPhone = ref('')
+const draftBirthdate = ref('')
+const draftGender = ref<Gender>(DEFAULT_GENDER)
+const savingProfile = ref(false)
+const profileError = ref('')
+const profileSaved = ref(false)
+
+function startEditProfile() {
+  const p = profile.value
+  draftName.value = p?.name ?? ''
+  draftPhone.value = p?.phone ?? ''
+  draftBirthdate.value = p?.birthdate ?? ''
+  draftGender.value = p?.gender && isGender(p.gender) ? p.gender : DEFAULT_GENDER
+  profileError.value = ''
+  profileSaved.value = false
+  editingProfile.value = true
+}
+
+async function saveProfile() {
+  if (!user.value || savingProfile.value) return
+  const name = draftName.value.trim()
+  if (!name) {
+    profileError.value = 'お名前を入力してください。'
+    return
+  }
+  savingProfile.value = true
+  profileError.value = ''
+  try {
+    await withLoading(async () => {
+      const { $firestore } = useNuxtApp()
+      await updateDoc(doc($firestore as Firestore, 'users', user.value!.uid), {
+        name,
+        phone: draftPhone.value.trim(),
+        birthdate: draftBirthdate.value,
+        gender: draftGender.value
+      })
+      // ヘッダーの表示名は Auth の displayName から出しているので、そちらも揃える。
+      if (name !== user.value!.displayName) {
+        await updateProfile(user.value!, { displayName: name })
+        refreshUser()
+      }
+      await refreshEntitlement()
+    })
+    editingProfile.value = false
+    profileSaved.value = true
+  } catch {
+    profileError.value = '保存に失敗しました。時間をおいて再度お試しください。'
+  } finally {
+    savingProfile.value = false
+  }
+}
+
+const profilePhone = computed(() => profile.value?.phone || '')
+const profileGenderLabel = computed(() =>
+  profile.value?.gender && isGender(profile.value.gender) ? genderLabel(profile.value.gender) : '—'
+)
+
+// ログアウト。このページはログイン前提の内容(プラン・登録情報)なので、SiteHeader と違って
+// トップへ送る(残しても「ログインが必要です」の案内に変わるだけで居場所が無い)。
+async function logout() {
+  await withLoading(async () => {
+    const { $auth } = useNuxtApp()
+    await signOut($auth as Auth)
+  })
+  await navigateTo('/')
+}
+
 async function submitCode() {
   codeError.value = ''
   if (!user.value) return
@@ -130,7 +206,7 @@ async function submitCode() {
           <p class="formlabel">現在のプラン</p>
           <p class="text-[17px] font-bold">{{ planLabel }}</p>
           <p class="mt-1 text-[12.5px] leading-[1.8]" style="color: var(--ink-soft);">{{ planNote }}</p>
-          <div class="mt-4 flex flex-col gap-2 sm:flex-row">
+          <div class="mt-4 flex flex-col gap-2.5 sm:flex-row sm:justify-center">
             <NuxtLink v-if="isFree" :to="plansLink" class="btn-gold">プランを見る</NuxtLink>
             <button v-if="isPaid" type="button" class="btn-outline" disabled title="決済機能の導入後にご利用いただけます">お支払いの管理（準備中）</button>
             <!-- 【決済モック期間限定】Stripe 導入後は上の「お支払いの管理」(Customer Portal)に統合する -->
@@ -147,15 +223,67 @@ async function submitCode() {
           </div>
         </section>
 
+        <!-- 登録情報。表示と編集をひとつの枠で切り替える。 -->
+        <section v-if="authReady && user && settled && profile" class="panel">
+          <div class="mb-3 flex items-baseline justify-between gap-3">
+            <p class="formlabel !mb-0">登録情報</p>
+            <button v-if="!editingProfile" type="button" class="text-[12px] hover:underline" style="color: var(--gold-deep);" @click="startEditProfile">編集する</button>
+          </div>
+
+          <form v-if="editingProfile" class="space-y-3" @submit.prevent="saveProfile">
+            <div class="formgrid">
+              <div>
+                <label class="formlabel">お名前</label>
+                <input v-model="draftName" type="text" required autocomplete="name" class="formfield" />
+              </div>
+              <div>
+                <label class="formlabel">生年月日</label>
+                <BirthdateSelect v-model="draftBirthdate" theme="paper" />
+              </div>
+              <div>
+                <label class="formlabel">性別</label>
+                <GenderRadio v-model="draftGender" />
+              </div>
+              <div>
+                <label class="formlabel">電話番号</label>
+                <input v-model="draftPhone" type="tel" autocomplete="tel" class="formfield" />
+              </div>
+              <div>
+                <label class="formlabel">メールアドレス</label>
+                <input :value="user.email" type="email" class="formfield" disabled />
+                <p class="mt-1 text-[11.5px]" style="color: var(--ink-faint);">メールアドレスの変更はお問い合わせください。</p>
+              </div>
+            </div>
+            <p v-if="profileError" class="notice">{{ profileError }}</p>
+            <div class="!mt-5 flex flex-col gap-2.5 sm:flex-row sm:justify-center">
+              <button type="submit" class="btn-gold" :disabled="savingProfile">{{ savingProfile ? '保存中…' : '保存する' }}</button>
+              <button type="button" class="btn-quiet" :disabled="savingProfile" @click="editingProfile = false">やめる</button>
+            </div>
+          </form>
+
+          <template v-else>
+            <dl class="orderlist">
+              <div><dt>お名前</dt><dd>{{ profile.name || '—' }}</dd></div>
+              <div><dt>生年月日</dt><dd>{{ profile.birthdate || '—' }}</dd></div>
+              <div><dt>性別</dt><dd>{{ profileGenderLabel }}</dd></div>
+              <div><dt>電話番号</dt><dd>{{ profilePhone || '—' }}</dd></div>
+              <div><dt>メールアドレス</dt><dd class="break-all">{{ user.email }}</dd></div>
+            </dl>
+            <p v-if="profileSaved" class="mt-3 text-[12px]" style="color: var(--gold-deep);">保存しました。</p>
+          </template>
+        </section>
+
         <section class="panel">
           <p class="formlabel">紹介コード</p>
           <p v-if="!authReady" class="text-[13.5px]" style="color: var(--ink-faint);">読み込み中…</p>
 
           <template v-else-if="!user">
-            <p class="mb-4 text-[13.5px] leading-[1.9]" style="color: var(--ink-soft);">
-              紹介コードのご登録にはログインが必要です。
-            </p>
-            <NuxtLink :to="loginLink" class="btn-gold">ログインする</NuxtLink>
+            <div class="text-center">
+              <p class="mb-4 text-[13.5px] leading-[1.9]" style="color: var(--ink-soft);">
+                紹介コードのご登録にはログインが必要です。
+              </p>
+              <NuxtLink :to="loginLink" class="btn-gold">ログインする</NuxtLink>
+            </div>
           </template>
 
           <p v-else-if="!settled" class="text-[13.5px]" style="color: var(--ink-faint);">読み込み中…</p>
@@ -180,6 +308,14 @@ async function submitCode() {
             <p class="text-[12.5px]" style="color: var(--ink-faint);">
               変更をご希望の場合はお問い合わせください。
             </p>
+            <!-- 到達度診断テスト(チーム会員限定)。結果は /test 側で出す。 -->
+            <div class="mt-4 border-t pt-3.5" style="border-color: var(--gold-line-soft);">
+              <p class="formlabel">到達度診断テスト</p>
+              <p class="mb-3 text-[12.5px] leading-[1.8]" style="color: var(--ink-soft);">
+                あなたの太陽の紋章らしさがどこまで身についているか、25問の自己診断で確かめられます。何度でも受けられます。
+              </p>
+              <NuxtLink to="/test" class="btn-outline w-full">到達度診断テストを受ける</NuxtLink>
+            </div>
           </template>
 
           <!-- 未所属: 一度も所属していない人も、管理者に外された人も、ここで入力できる -->
@@ -202,7 +338,10 @@ async function submitCode() {
           </template>
         </section>
 
-        <NuxtLink to="/" class="!mt-6 block text-center text-[12px] hover:underline" style="color: var(--ink-faint);">
+        <div v-if="authReady && user" class="!mt-6 text-center">
+          <button type="button" class="btn-quiet" @click="logout">ログアウト</button>
+        </div>
+        <NuxtLink to="/" class="!mt-4 block text-center text-[12px] hover:underline" style="color: var(--ink-faint);">
           トップへ戻る
         </NuxtLink>
       </div>

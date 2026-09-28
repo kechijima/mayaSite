@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Membership tiers**: 無料会員 / チーム会員 / 有料会員 / 利用停止 (チーム会員 was called 有料会員(紹介) until 2026-09-17 — renamed because those members don't pay). A member who belongs to a team (joined with a referral code, or added by an admin) is **チーム会員** for as long as they stay in the team and reads everything; 有料会員 reads everything; 無料会員 reads only what they bought per article.
 
-Real and Firestore-backed: the diagnosis, 相性診断 ([pages/compatibility.vue](pages/compatibility.vue)), the per-seal and per-KIN detail pages ([pages/kin/[sealIndex].vue](pages/kin/%5BsealIndex%5D.vue), [pages/kin/[kin]/detail.vue](pages/kin/%5Bkin%5D/detail.vue)), the CMS ([pages/admin/content/**](pages/admin/content)), 診断履歴 ([pages/admin/history/index.vue](pages/admin/history/index.vue)), チーム管理 ([pages/admin/teams/**](pages/admin/teams)), ユーザー管理 ([pages/admin/users/index.vue](pages/admin/users/index.vue)) and 紹介コード入力 ([pages/account.vue](pages/account.vue)).
+Real and Firestore-backed: the diagnosis, 相性診断 ([pages/compatibility.vue](pages/compatibility.vue)), 到達度診断テスト ([pages/test/**](pages/test), team members only — see "Achievement test"), the per-seal and per-KIN detail pages ([pages/kin/[sealIndex].vue](pages/kin/%5BsealIndex%5D.vue), [pages/kin/[kin]/detail.vue](pages/kin/%5Bkin%5D/detail.vue)), the CMS ([pages/admin/content/**](pages/admin/content)), 診断履歴 ([pages/admin/history/index.vue](pages/admin/history/index.vue)), チーム管理 ([pages/admin/teams/**](pages/admin/teams)), ユーザー管理 ([pages/admin/users/index.vue](pages/admin/users/index.vue)) and 紹介コード入力 ([pages/account.vue](pages/account.vue)).
 
 Still a mock: [pages/admin/index.vue](pages/admin/index.vue) (dashboard stats, hardcoded `ref()` arrays). The old `/checkout` prototype and its `localStorage`-only `useMembership` flag were deleted on 2026-09-17; [pages/plans.vue](pages/plans.vue) replaced them.
 
@@ -30,14 +30,14 @@ npm run preview                # preview a build
 
 npm run dev:nuxt                # just the Nuxt dev server, no emulator orchestration (assumes Firestore emulator already reachable at 127.0.0.1:8080)
 npm run emulators               # just the Firebase Local Emulator Suite (Firestore + Auth + Hosting), data persisted to .firebase-emulator-data/ across restarts
-npm run seed:characters:emulator   # seed the diagnosisContent collection into the emulator (no credentials needed) — see seed:tones/seed:kins/seed:celebrities for the rest
+npm run seed:characters:emulator   # seed the diagnosisContent collection into the emulator (no credentials needed) — see seed:tones/seed:kins/seed:celebrities/seed:tests for the rest
 npm run seed:characters            # seed the REAL Firestore project instead — requires FIREBASE_SERVICE_ACCOUNT_KEY in .env
 npm run admin:create:emulator -- --email=you@example.com --password=xxxx   # create/promote an admin login in the emulator (no credentials needed) — see "Admin authentication"
 npm run admin:create -- --email=you@example.com --password=xxxx            # same, against the REAL project — requires FIREBASE_SERVICE_ACCOUNT_KEY in .env
 
 npm run verify:kin                 # dateToKin() が mayadan.jp と一致するかの検証。単体で動く(エミュレータ不要)
 npm run verify:compatibility       # 相性診断の判定が mayadan.jp の相性診断と一致するかの検証(エミュレータ不要)
-npm run verify:rules:emulator      # firestore.rules の検証(29項目)。エミュレータ起動中に実行する — 下記参照
+npm run verify:rules:emulator      # firestore.rules の検証(66項目)。エミュレータ起動中に実行する — 下記参照
 npm run migrate:premium:emulator   # 有料項目を diagnosisContentPremium へ切り出す移行。--dry-run で件数だけ確認できる
 npm run migrate:premium            # 同上、REAL project に対して。リリース時に一度だけ実行する(冪等)
 npm run backfill:public-teams:emulator  # 既存チームぶんの publicTeams を作る(冪等、--dry-run 可)
@@ -70,7 +70,7 @@ only as a record of what those migrations did.
 
 ### `npm run dev` is a one-command orchestrator, not just `nuxt dev`
 
-It's [scripts/dev.mjs](scripts/dev.mjs), which: starts the Firebase emulators (Firestore/Auth/Hosting) unless one's already reachable at `127.0.0.1:8080` (in which case it reuses that one and won't touch its lifecycle) → waits for Firestore to respond → runs the four seed scripts in order — `seed:characters` / `seed:tones` / `seed:kins` / `seed:celebrities`, all idempotent and skipping docs that are already seeded, so this is safe on every start → starts `nuxt dev`. On Ctrl-C (SIGINT/SIGTERM) it stops whatever it itself started — including the Nuxt dev server, which is *always* its own to stop — and waits for the emulator's own `--export-on-exit` to actually finish (so `.firebase-emulator-data/` stays current) before exiting; a reused, externally-started emulator is left running. Each spawned child (`npm run emulators` / the `seed:*:emulator` scripts / `npm run dev:nuxt` — same scripts as above, not duplicated commands) runs `detached: true` in its own process group specifically so this shutdown can reliably signal every descendant (npm → firebase-tools → java, or npm → nuxt) with one `process.kill(-pid, 'SIGINT')`, regardless of how many wrapper layers are in between — plain `child.kill()` only reaches the immediate child, which isn't enough here.
+It's [scripts/dev.mjs](scripts/dev.mjs), which: starts the Firebase emulators (Firestore/Auth/Hosting) unless one's already reachable at `127.0.0.1:8080` (in which case it reuses that one and won't touch its lifecycle) → waits for Firestore to respond → runs the five seed scripts in order — `seed:characters` / `seed:tones` / `seed:kins` / `seed:celebrities` / `seed:tests`, all idempotent and skipping docs that are already seeded, so this is safe on every start → starts `nuxt dev`. On Ctrl-C (SIGINT/SIGTERM) it stops whatever it itself started — including the Nuxt dev server, which is *always* its own to stop — and waits for the emulator's own `--export-on-exit` to actually finish (so `.firebase-emulator-data/` stays current) before exiting; a reused, externally-started emulator is left running. Each spawned child (`npm run emulators` / the `seed:*:emulator` scripts / `npm run dev:nuxt` — same scripts as above, not duplicated commands) runs `detached: true` in its own process group specifically so this shutdown can reliably signal every descendant (npm → firebase-tools → java, or npm → nuxt) with one `process.kill(-pid, 'SIGINT')`, regardless of how many wrapper layers are in between — plain `child.kill()` only reaches the immediate child, which isn't enough here.
 
 Requires a JRE on PATH (the Firestore emulator is Java-based) — `brew install openjdk` if missing; it's keg-only, so either symlink it or export `PATH="/opt/homebrew/opt/openjdk/bin:$PATH"` before running `npm run dev`/`npm run emulators`. `scripts/dev.mjs` checks for this upfront (only when it's the one starting the emulator) and fails fast with that exact instruction if Java is missing, rather than surfacing firebase-tools' own less obvious error.
 
@@ -211,7 +211,7 @@ member**. The rules allow this through the users `update` 4th branch (`plan` ∈
 only, not while suspended) and owner `create` on `purchases/*` / `unlocks/*` (never update/delete). **Everything a member
 writes this way must carry the marker** `paidSource: 'mock'` / `source: 'mock'` — the rules refuse it otherwise — so that
 [scripts/resetMockPurchases.ts](scripts/resetMockPurchases.ts) can later undo exactly these and nothing the webhook wrote.
-`npm run verify:rules:emulator` covers all of it (48 checks). Data written before the marker existed (between #139
+`npm run verify:rules:emulator` covers all of it (48 of the 66 checks; the other 18 cover `achievementTests` / `testResults`, see "Achievement test"). Data written before the marker existed (between #139
 and #140, plus anything an admin set to 有料会員) was stamped once with
 [scripts/backfillMockMarker.ts](scripts/backfillMockMarker.ts) on 2026-09-23; `setUserStatus` in
 [utils/userAdmin.ts](utils/userAdmin.ts) stamps admin-granted 有料会員 too, since nobody pays before Stripe.
@@ -336,6 +336,56 @@ LockedVeil's 「有料エリア 合計○○文字」 is the **sum over every ve
 veil shows the same number. On `/result` that is `lockedTotalChars` (sun + wavespell when not unlocked — both
 count even when they are the same seal — plus the KIN letter when locked), computed with the same conditions as
 the veils' own `v-if`s. The kin pages have a single veil, so it is just that veil's count.
+
+### Achievement test (到達度診断テスト, team members only)
+Added 2026-09-28 as a generated knowledge quiz, **replaced on 2026-09-29** by the instructor's real material: a
+per-seal self-assessment questionnaire (docs/到達度診断テスト/{赤系,白系,青系,黄系}.xlsx, one `★紋章名` sheet per seal,
+20 seals). A チーム会員 answers the 25 statements for **their own 太陽の紋章** (sun seal only, agreed 2026-09-29; other
+seals are not offered) and gets a total out of 100 plus a per-category ratio. No pass mark, no attempt limit, no reward.
+Entry points: マイページ (`/account`, shown only while `teamId` is set) → [pages/test/index.vue](pages/test/index.vue)
+(sun seal + latest result with bars + history) → [pages/test/take.vue](pages/test/take.vue) (all 25 statements on one
+page grouped by category, like the original Google Form; unanswered ones are highlighted on submit; result screen).
+
+- **Format** (mirrors the workbook exactly): 5 categories 思考/行動/人間関係/信念/スキル × 5 statements; three answers
+  そう思う/どちらでもない/思わない; each statement has `scores: [4,2,0]` or `[0,2,4]` (the seal-typical answer scores 4).
+  Category max 20, total max 100. **「どちらでもない」 costs −1 each** (the workbook's 「どちらでもない減点」 column,
+  adopted on request) → `total = rawTotal + penalty`, floored at 0. Scoring is [utils/achievementTest.ts](utils/achievementTest.ts)
+  `scoreTest()`; verified against the instructor's hand-scored 赤系の結果.xlsx (that workbook is Google-Form responses
+  with real names/birthdates — don't commit derived data from it, and don't seed it).
+- **Questions live in Firestore**, `achievementTests/{sealIndex}` (`{ sealIndex, sealName, categories[] }`), readable
+  only by team members and admins ([firestore.rules](firestore.rules)) because they are the instructor's material —
+  that is why they are not in the bundle. [scripts/extractAchievementTests.py](scripts/extractAchievementTests.py) turns
+  the xlsx into [scripts/achievementTests.data.ts](scripts/achievementTests.data.ts) (generated, don't hand-edit);
+  `npm run seed:tests[:emulator]` ([scripts/seedAchievementTests.ts](scripts/seedAchievementTests.ts)) writes them,
+  idempotent like the other seeds, `--force` to overwrite after fixing the master. `npm run dev` seeds it too.
+  Data fixes applied during extraction (all "take the plausible reading"): 白い犬's 「（確認します）」/「（角印します）」
+  notes and its trailing 「PDFがおかしい」 memo row dropped; 黄色い星 信念5 takes the post-arrow wording
+  「プライドが高い方だと思う。」; 黄色い太陽 人間関係5's 「（赤い竜と違うところです。）」 note dropped; every statement
+  ends with 「。」; スキル had no category description in the source, so one was written in the same style. Non-★ sheets
+  (赤系 Sheet1 / 「赤い竜 (2)」, 黄系 Sheet9) are work notes and ignored; the A1 titles are copy-paste leftovers, sheet
+  names are authoritative. **Admin editing**: [pages/admin/tests/index.vue](pages/admin/tests/index.vue) (20 seals, question
+  count, updated date) → [pages/admin/tests/[sealIndex].vue](pages/admin/tests/%5BsealIndex%5D.vue) edits the category
+  descriptions, the 25 statement texts and each statement's scoring direction (「そう思う」が4点 / 「思わない」が4点 — the
+  only two shapes the data has), then `setDoc`s the whole document. The 5×5×3 structure is fixed in the UI on purpose:
+  `scoreTest()` and the rules' `answers.size() == 25` assume it. Because `seed:tests` skips existing docs, admin edits
+  survive re-seeding unless `--force` is passed.
+- **Who may take it** is decided in [composables/useTestAccess.ts](composables/useTestAccess.ts) (`signedOut` /
+  `suspended` / `notTeam` / `ok`, rendered by [components/TestAccessNotice.vue](components/TestAccessNotice.vue)) and
+  mirrored in the rules: `users/{uid}/testResults/{autoId}` `create` requires owner + `teamId != null` + not suspended +
+  `takenAt == request.time` + `sealIndex` 0–19 + `answers.size() == 25` + `total` 0–100; `read` is owner or admin;
+  **no update or delete for anyone**. 有料会員 not in a team are refused on purpose.
+- **Results** ([utils/achievementTestResults.ts](utils/achievementTestResults.ts)) store `answers[25]`
+  (`'agree'|'neutral'|'disagree'` in `flattenQuestions()` order), `categoryScores`, `neutralCount`, `penalty`, `total`,
+  `sealIndex`/`sealName`, one document per attempt. Statement texts are **not** stored; the admin answer sheet re-joins
+  them from `achievementTests/{sealIndex}`, so a later fix to a statement shows the new text against the old answer.
+  A member who leaves the team keeps their history.
+- **Admin**: [pages/admin/users/[uid].vue](pages/admin/users/%5Buid%5D.vue) lists every attempt (total, neutral
+  penalty, five category scores) with an expandable answer sheet (statement, answer, points, colour-coded 4/2/0);
+  [pages/admin/teams/[teamId].vue](pages/admin/teams/%5BteamId%5D.vue) shows 「紋章 N点（回数・最新日）」 per member,
+  filled in after the member list renders (one `testResults` query per member — fine at current team sizes).
+- `/test` and `/test/*` are footerless `.paper-page--focus` pages like `/plans`; [layouts/default.vue](layouts/default.vue)
+  matches `/test/` by prefix. Styles are the `.testscore*` / `.testbars` / `.testhistory` / `.survey*` blocks at the end
+  of [assets/css/paper-theme.css](assets/css/paper-theme.css).
 
 ### Admin: teams
 [pages/admin/teams/index.vue](pages/admin/teams/index.vue) creates teams (name only — `teamId` and code are generated) and
