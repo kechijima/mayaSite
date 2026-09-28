@@ -86,7 +86,7 @@ function prevPage() {
     </div>
 
     <div class="rounded-xl border border-slate-200 bg-white p-5.5 dark:border-slate-800 dark:bg-slate-900">
-      <!-- lg 未満はテーブルの代わりにカード一覧。タップで詳細モーダル(AdminRecordCard 参照) -->
+      <!-- lg 未満はテーブルの代わりにカード一覧。タップで詳細ページへ(AdminRecordCard 参照)。PC のテーブルは行クリック -->
       <ul class="lg:hidden">
         <li v-if="!loading && !rows.length" class="py-6 text-center text-[13px] text-slate-400">診断履歴はまだありません</li>
         <AdminRecordCard
@@ -114,21 +114,20 @@ function prevPage() {
         <table class="w-full text-[13px]">
           <thead class="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-white [&_th]:pt-2.5 [&_th]:shadow-[inset_0_-1px_0_#e2e8f0] dark:[&_th]:bg-slate-900 dark:[&_th]:shadow-[inset_0_-1px_0_#1e293b]">
             <tr class="text-left text-[11px] uppercase tracking-wide text-slate-400">
-              <th class="pb-2.5 pr-3">種別</th><th class="pb-2.5 pr-3">名前</th><th class="pb-2.5 pr-3">生年月日</th><th class="pb-2.5 pr-3">性別</th><th class="pb-2.5 pr-3">太陽の紋章</th><th class="pb-2.5 pr-3">診断日時</th><th class="pb-2.5"></th>
+              <th class="pb-2.5 pr-3">種別</th><th class="pb-2.5 pr-3">名前</th><th class="pb-2.5 pr-3">生年月日</th><th class="pb-2.5 pr-3">性別</th><th class="pb-2.5 pr-3">太陽の紋章</th><th class="pb-2.5">診断日時</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="!loading && !rows.length">
-              <td colspan="7" class="py-6 text-center text-slate-400">診断履歴はまだありません</td>
+              <td colspan="6" class="py-6 text-center text-slate-400">診断履歴はまだありません</td>
             </tr>
-            <tr v-for="r in rows" :key="r.id" class="border-b border-slate-100 last:border-0 dark:border-slate-800/60">
+            <tr v-for="r in rows" :key="r.id" class="cursor-pointer border-b border-slate-100 last:border-0 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/40" @click="navigateTo(`/admin/history/${r.id}`)">
               <td class="py-2.5 pr-3"><span class="rounded-full px-2.5 py-0.5 text-[11.5px] font-bold" :class="historyTypeChipClass(r.type)">{{ historyTypeLabel(r.type) }}</span></td>
               <td class="py-2.5 pr-3">{{ r.primaryName }}</td>
               <td class="py-2.5 pr-3 tabular-nums text-slate-500 dark:text-slate-400">{{ r.birthdate }}</td>
               <td class="py-2.5 pr-3 text-slate-500 dark:text-slate-400">{{ r.gender }}</td>
               <td class="py-2.5 pr-3">{{ r.sealName }}</td>
-              <td class="py-2.5 pr-3 tabular-nums text-slate-500 dark:text-slate-400">{{ formatDateTime(r.createdAt) }}</td>
-              <td class="py-2.5"><NuxtLink :to="`/admin/history/${r.id}`" class="text-xs font-semibold text-brass-700 hover:underline dark:text-gold-300">詳細</NuxtLink></td>
+              <td class="py-2.5 tabular-nums text-slate-500 dark:text-slate-400">{{ formatDateTime(r.createdAt) }}</td>
             </tr>
           </tbody>
         </table>
