@@ -112,14 +112,14 @@ const sealName = computed(() => (sealIndex.value === null ? '' : SEALS[sealIndex
         <TestAccessNotice :access="access" :login-link="loginLink" :account-link="accountLink" />
 
         <template v-if="access === 'ok'">
-          <section v-if="sealIndex === null" class="panel">
+          <section v-if="sealIndex === null" class="panel text-center">
             <p class="mb-4 text-[13.5px]" style="color: var(--ink-soft);">生年月日が登録されていないため紋章を求められません。</p>
             <NuxtLink to="/account" class="btn-outline">マイページで登録する</NuxtLink>
           </section>
           <section v-else-if="loadState === 'loading' || loadState === 'idle'" class="panel">
             <p class="text-[13.5px]" style="color: var(--ink-faint);">読み込み中…</p>
           </section>
-          <section v-else-if="loadState === 'missing'" class="panel">
+          <section v-else-if="loadState === 'missing'" class="panel text-center">
             <p class="mb-4 text-[13.5px]" style="color: var(--ink-soft);">{{ sealName }}の問題はまだ用意されていません。</p>
             <NuxtLink to="/test" class="btn-outline">戻る</NuxtLink>
           </section>

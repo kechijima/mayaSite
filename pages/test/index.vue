@@ -48,18 +48,19 @@ const CATEGORY_NAME: Record<string, string> = { thinking: '思考', action: '行
         <TestAccessNotice :access="access" :login-link="loginLink" :account-link="accountLink" />
 
         <template v-if="access === 'ok'">
-          <section class="panel panel--plan">
+          <section class="panel panel--plan" :class="{ 'text-center': !sunSeal }">
             <p class="formlabel">あなたの太陽の紋章</p>
             <template v-if="sunSeal">
               <p class="text-[20px] font-bold">{{ sunSeal.name }}<span class="ml-2 text-[12.5px] font-normal" style="color: var(--ink-soft);">KIN {{ sunSeal.kin }}</span></p>
               <p class="mt-1 text-[12.5px] leading-[1.8]" style="color: var(--ink-soft);">
                 思考・行動・人間関係・信念・スキルの5つの面から、それぞれ5問ずつ「そう思う / どちらでもない / 思わない」で答えます。合計100点満点、何度でも受けられます。
               </p>
-              <NuxtLink to="/test/take" class="btn-gold mt-4 w-full sm:w-auto">{{ results?.length ? 'もう一度受ける' : '受ける' }}</NuxtLink>
+              <NuxtLink to="/test/take" class="btn-gold mt-5 w-full">{{ results?.length ? 'もう一度受ける' : '受ける' }}</NuxtLink>
             </template>
-            <p v-else class="text-[13px]" style="color: var(--ink-soft);">
-              生年月日が登録されていないため紋章を求められません。<NuxtLink to="/account" class="hover:underline" style="color: var(--gold-deep);">マイページ</NuxtLink>でご登録ください。
-            </p>
+            <template v-else>
+              <p class="mb-4 text-[13.5px] leading-[1.9]" style="color: var(--ink-soft);">生年月日が登録されていないため紋章を求められません。</p>
+              <NuxtLink to="/account" class="btn-outline">マイページで登録する</NuxtLink>
+            </template>
           </section>
 
           <section class="panel">

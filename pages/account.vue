@@ -206,7 +206,7 @@ async function submitCode() {
           <p class="formlabel">現在のプラン</p>
           <p class="text-[17px] font-bold">{{ planLabel }}</p>
           <p class="mt-1 text-[12.5px] leading-[1.8]" style="color: var(--ink-soft);">{{ planNote }}</p>
-          <div class="mt-4 flex flex-col gap-2 sm:flex-row">
+          <div class="mt-4 flex flex-col gap-2.5 sm:flex-row sm:justify-center">
             <NuxtLink v-if="isFree" :to="plansLink" class="btn-gold">プランを見る</NuxtLink>
             <button v-if="isPaid" type="button" class="btn-outline" disabled title="決済機能の導入後にご利用いただけます">お支払いの管理（準備中）</button>
             <!-- 【決済モック期間限定】Stripe 導入後は上の「お支払いの管理」(Customer Portal)に統合する -->
@@ -255,7 +255,7 @@ async function submitCode() {
               </div>
             </div>
             <p v-if="profileError" class="notice">{{ profileError }}</p>
-            <div class="!mt-5 flex flex-col gap-2 sm:flex-row">
+            <div class="!mt-5 flex flex-col gap-2.5 sm:flex-row sm:justify-center">
               <button type="submit" class="btn-gold" :disabled="savingProfile">{{ savingProfile ? '保存中…' : '保存する' }}</button>
               <button type="button" class="btn-quiet" :disabled="savingProfile" @click="editingProfile = false">やめる</button>
             </div>
@@ -278,10 +278,12 @@ async function submitCode() {
           <p v-if="!authReady" class="text-[13.5px]" style="color: var(--ink-faint);">読み込み中…</p>
 
           <template v-else-if="!user">
-            <p class="mb-4 text-[13.5px] leading-[1.9]" style="color: var(--ink-soft);">
-              紹介コードのご登録にはログインが必要です。
-            </p>
-            <NuxtLink :to="loginLink" class="btn-gold">ログインする</NuxtLink>
+            <div class="text-center">
+              <p class="mb-4 text-[13.5px] leading-[1.9]" style="color: var(--ink-soft);">
+                紹介コードのご登録にはログインが必要です。
+              </p>
+              <NuxtLink :to="loginLink" class="btn-gold">ログインする</NuxtLink>
+            </div>
           </template>
 
           <p v-else-if="!settled" class="text-[13.5px]" style="color: var(--ink-faint);">読み込み中…</p>
@@ -312,7 +314,7 @@ async function submitCode() {
               <p class="mb-3 text-[12.5px] leading-[1.8]" style="color: var(--ink-soft);">
                 あなたの太陽の紋章らしさがどこまで身についているか、25問の自己診断で確かめられます。何度でも受けられます。
               </p>
-              <NuxtLink to="/test" class="btn-outline">到達度診断テストを受ける</NuxtLink>
+              <NuxtLink to="/test" class="btn-outline w-full">到達度診断テストを受ける</NuxtLink>
             </div>
           </template>
 
