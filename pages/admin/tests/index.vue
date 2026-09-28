@@ -66,9 +66,9 @@ function questionsLabel(r: Row) {
           :to="`/admin/tests/${r.sealIndex}`"
         />
       </ul>
-      <div class="hidden lg:block">
+      <div class="hidden max-h-[70vh] overflow-auto lg:block">
         <table class="w-full text-[13px]">
-          <thead>
+          <thead class="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-white [&_th]:pt-2.5 [&_th]:shadow-[inset_0_-1px_0_#e2e8f0] dark:[&_th]:bg-slate-900 dark:[&_th]:shadow-[inset_0_-1px_0_#1e293b]">
             <tr class="text-left text-[11px] uppercase tracking-wide text-slate-400">
               <th class="pb-2.5 pr-3">紋章</th><th class="pb-2.5 pr-3">色</th><th class="pb-2.5 pr-3 text-right">問題数</th><th class="pb-2.5">更新日</th>
             </tr>
