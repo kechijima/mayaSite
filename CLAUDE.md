@@ -363,7 +363,12 @@ page grouped by category, like the original Google Form; unanswered ones are hig
   「プライドが高い方だと思う。」; 黄色い太陽 人間関係5's 「（赤い竜と違うところです。）」 note dropped; every statement
   ends with 「。」; スキル had no category description in the source, so one was written in the same style. Non-★ sheets
   (赤系 Sheet1 / 「赤い竜 (2)」, 黄系 Sheet9) are work notes and ignored; the A1 titles are copy-paste leftovers, sheet
-  names are authoritative. There is no admin authoring UI yet.
+  names are authoritative. **Admin editing**: [pages/admin/tests/index.vue](pages/admin/tests/index.vue) (20 seals, question
+  count, updated date) → [pages/admin/tests/[sealIndex].vue](pages/admin/tests/%5BsealIndex%5D.vue) edits the category
+  descriptions, the 25 statement texts and each statement's scoring direction (「そう思う」が4点 / 「思わない」が4点 — the
+  only two shapes the data has), then `setDoc`s the whole document. The 5×5×3 structure is fixed in the UI on purpose:
+  `scoreTest()` and the rules' `answers.size() == 25` assume it. Because `seed:tests` skips existing docs, admin edits
+  survive re-seeding unless `--force` is passed.
 - **Who may take it** is decided in [composables/useTestAccess.ts](composables/useTestAccess.ts) (`signedOut` /
   `suspended` / `notTeam` / `ok`, rendered by [components/TestAccessNotice.vue](components/TestAccessNotice.vue)) and
   mirrored in the rules: `users/{uid}/testResults/{autoId}` `create` requires owner + `teamId != null` + not suspended +

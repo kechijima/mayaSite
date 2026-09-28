@@ -390,7 +390,8 @@ async function main() {
   // 結果(users/{uid}/testResults)はチーム会員だけが自分のぶんを作れ、誰も書き換えられない。
   // utils/achievementTestResults.ts が書く形をそのまま使う。
   console.log('\n▸ 到達度診断テスト(achievementTests / users/testResults)')
-  await adminDb.collection('achievementTests').doc('0').set({
+  // 本物の問題(seed:tests が入れる '0'〜'19')を潰さないよう、検証用の別 ID に置いて最後に消す。
+  await adminDb.collection('achievementTests').doc('verify').set({
     sealIndex: 0, sealName: '赤い竜',
     categories: [{ key: 'thinking', name: '思考', description: '', questions: [{ text: 'q', scores: [4, 2, 0] }] }]
   })
@@ -405,9 +406,9 @@ async function main() {
     const uid = await freshUser()
     await setDoc(doc(db, 'users', uid), { ...baseProfile(), ...redeemed(ACTIVE_CODE, ACTIVE_TEAM) })
     await expectAllow('チーム会員は問題を読める', () =>
-      getDoc(doc(db, 'achievementTests', '0')))
+      getDoc(doc(db, 'achievementTests', 'verify')))
     await expectDeny('問題は本人には書けない', () =>
-      updateDoc(doc(db, 'achievementTests', '0'), { sealName: 'x' }))
+      updateDoc(doc(db, 'achievementTests', 'verify'), { sealName: 'x' }))
     await expectAllow('チーム会員は自分の受験結果を書ける', () =>
       setDoc(doc(db, 'users', uid, 'testResults', 'r1'), testResult()))
     await expectAllow('本人は自分の受験結果を読める', () =>
@@ -433,7 +434,7 @@ async function main() {
     const uid = await freshUser()
     await setDoc(doc(db, 'users', uid), { ...baseProfile(), ...unaffiliated() })
     await expectDeny('チームに所属していない会員は問題を読めない', () =>
-      getDoc(doc(db, 'achievementTests', '0')))
+      getDoc(doc(db, 'achievementTests', 'verify')))
     await expectDeny('チームに所属していない会員は受験結果を書けない', () =>
       setDoc(doc(db, 'users', uid, 'testResults', 'r1'), testResult()))
     await updateDoc(doc(db, 'users', uid), { plan: 'paid', paidAt: serverTimestamp(), paidSource: 'mock' })
@@ -445,15 +446,16 @@ async function main() {
     await setDoc(doc(db, 'users', uid), { ...baseProfile(), ...redeemed(ACTIVE_CODE, ACTIVE_TEAM) })
     await suspend(uid)
     await expectDeny('利用停止中のチーム会員は問題を読めない', () =>
-      getDoc(doc(db, 'achievementTests', '0')))
+      getDoc(doc(db, 'achievementTests', 'verify')))
     await expectDeny('利用停止中のチーム会員は受験結果を書けない', () =>
       setDoc(doc(db, 'users', uid, 'testResults', 'r1'), testResult()))
   }
   {
     await signOut(auth).catch(() => {})
     await expectDeny('未ログインでは問題を読めない', () =>
-      getDoc(doc(db, 'achievementTests', '0')))
+      getDoc(doc(db, 'achievementTests', 'verify')))
   }
+  await adminDb.collection('achievementTests').doc('verify').delete()
 
   console.log(`\n${failed === 0 ? '\x1b[32m' : '\x1b[31m'}${passed} passed, ${failed} failed\x1b[0m\n`)
   process.exit(failed === 0 ? 0 : 1)
