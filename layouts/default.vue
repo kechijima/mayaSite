@@ -14,7 +14,7 @@ const HOME_LINKS = [
 // フッターを出さないページ。フォーム1枚・プラン選択だけの画面で、スクロールさせずに
 // 1画面に収めて中央に置くため(.paper-page--focus と対)。
 const FOOTERLESS_PATHS = ['/plans', '/signup', '/signup/referral', '/login', '/account', '/checkout', '/checkout/pay', '/checkout/success', '/test']
-// 到達度テストの受験画面(/test/[level])も同じ扱い。級ごとにパスが変わるので前方一致で見る。
+// 到達度診断テストの受験画面(/test/take)も同じ扱い(前方一致)。
 const footerless = computed(() => FOOTERLESS_PATHS.includes(route.path) || route.path.startsWith('/test/'))
 
 const RESULT_LINKS = [

@@ -1004,55 +1004,41 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 
 
 
-/* ---------------- 到達度テスト(/test, /test/[level]) ---------------- */
-/* 一覧の級カード。左に級(初級/中級/上級)、右に「合格済み」。 */
-.testlevel { display: flex; flex-direction: column; gap: 10px; }
-.testlevel__head { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
-.testlevel__grade { flex: none; padding: 3px 12px; border-radius: 999px; background: var(--gold-deep); color: #fffaf0; font-size: 11.5px; font-weight: 700; letter-spacing: .12em; }
-.testlevel__title { margin: 0; font-size: 16px; font-weight: 700; color: var(--ink); }
-.testlevel__pass { margin-left: auto; font-size: 11.5px; font-weight: 700; color: var(--gold-deep); letter-spacing: .06em; }
-.testlevel__desc { margin: 0; font-size: 13px; line-height: 1.8; color: var(--ink-soft); }
-.testlevel__stats { margin: 0; font-size: 12px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
-.testlevel .btn-gold { margin-top: 4px; }
+/* ---------------- 到達度診断テスト(/test, /test/take) ---------------- */
+/* 総合点と、カテゴリ別(20点満点)の割合バー。/test の最新結果と /test/take の結果画面で共用。 */
+.testscore__total { margin: 2px 0 0; font-family: "Shippori Mincho", serif; color: var(--gold-deep); line-height: 1.1; }
+.testscore__total strong { font-size: 44px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.testscore__total small { margin-left: 4px; font-size: 14px; color: var(--ink-soft); }
+.testscore__meta { margin: 6px 0 0; font-size: 12px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.testbars { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
+.testbars li { display: grid; grid-template-columns: 5em 1fr 3.2em; align-items: center; gap: 10px; font-size: 12.5px; }
+.testbars__label { color: var(--ink-soft); }
+.testbars__track { height: 8px; border-radius: 999px; background: var(--gold-line-soft); overflow: hidden; }
+.testbars__track i { display: block; height: 100%; border-radius: 999px; background: var(--gold); transition: width .3s ease; }
+.testbars__value { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }
+.testhistory { list-style: none; margin: 16px 0 0; padding: 12px 0 0; border-top: 1px solid var(--gold-line-soft); display: grid; gap: 6px; font-size: 12.5px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.testhistory li { display: flex; gap: 12px; }
+.testhistory__total { margin-left: auto; color: var(--ink); }
 
-/* 受験画面。選択肢は診断フォームの性別ボタン(.genderpick__opt)と同じ枠で、選ぶと正誤の色が付く。 */
-.quiz__progress { display: flex; justify-content: space-between; gap: 12px; font-size: 11.5px; letter-spacing: .08em; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
-.quiz__kind { color: var(--ink-faint); }
-.quiz__bar { height: 3px; margin: 8px 0 18px; border-radius: 999px; background: var(--gold-line-soft); overflow: hidden; }
-.quiz__bar i { display: block; height: 100%; background: var(--gold); transition: width .25s ease; }
-.quiz__prompt { margin: 0 0 16px; font-size: 15.5px; line-height: 1.9; color: var(--ink); white-space: pre-line; }
-.quiz__choices { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.quiz__choice {
-  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer;
-  padding: 11px 14px; border-radius: 8px; appearance: none;
+/* 受験画面。カテゴリごとに1枚の panel、各問は文 + 3択のボタン。 */
+.survey__title { margin: 0; font-size: 16px; font-weight: 700; color: var(--ink); }
+.survey__desc { margin: 4px 0 14px; font-size: 12.5px; line-height: 1.8; color: var(--ink-soft); }
+.survey__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.survey__item { padding-top: 14px; border-top: 1px solid var(--gold-line-soft); scroll-margin-top: 80px; }
+.survey__item:first-child { padding-top: 0; border-top: 0; }
+.survey__item.is-missing .survey__q { color: var(--seal-red); }
+.survey__q { display: flex; gap: 10px; margin: 0 0 10px; font-size: 14px; line-height: 1.8; color: var(--ink); }
+.survey__num { flex: none; width: 24px; height: 24px; margin-top: 1px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--gold-line); color: var(--gold-deep); font-family: "Cormorant Garamond", serif; font-size: 13px; font-weight: 700; }
+.survey__choices { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 8px; }
+@media (min-width: 480px) { .survey__choices { grid-template-columns: repeat(3, 1fr); } }
+.survey__choice {
+  padding: 9px 6px; border-radius: 8px; appearance: none; cursor: pointer;
   border: 1px solid var(--gold-line); background: var(--paper); color: var(--ink);
-  font-size: 14px; line-height: 1.5;
-  transition: border-color .15s ease, background .15s ease;
+  font-size: 12.5px; line-height: 1.4; text-align: center; white-space: nowrap;
+  transition: border-color .15s ease, background .15s ease, color .15s ease;
 }
-.quiz__choice:hover:not(:disabled) { border-color: var(--gold); background: var(--paper-panel-2); }
-.quiz__choice:disabled { cursor: default; }
-.quiz__choice:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-.quiz__mark { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--gold); color: var(--gold-deep); font-family: "Cormorant Garamond", serif; font-size: 14px; font-weight: 700; background: var(--paper-panel); }
-.quiz__choice.is-correct { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 14%, var(--paper-panel)); }
-.quiz__choice.is-correct .quiz__mark { background: var(--gold); color: #241a06; }
-.quiz__choice.is-wrong { border-color: var(--seal-red); background: color-mix(in srgb, var(--seal-red) 7%, var(--paper-panel)); }
-.quiz__choice.is-wrong .quiz__mark { border-color: var(--seal-red); color: var(--seal-red); }
-.quiz__feedback { margin-top: 16px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--gold-line); background: color-mix(in srgb, var(--gold) 8%, transparent); }
-.quiz__feedback.is-wrong { border-color: color-mix(in srgb, var(--seal-red) 40%, transparent); background: color-mix(in srgb, var(--seal-red) 6%, transparent); }
-.quiz__verdict { margin: 0 0 4px; font-size: 13px; font-weight: 700; letter-spacing: .08em; color: var(--gold-deep); }
-.quiz__feedback.is-wrong .quiz__verdict { color: var(--seal-red); }
-.quiz__explain { margin: 0; font-size: 12.5px; line-height: 1.8; color: var(--ink-soft); }
-/* 結果 */
-.quiz__score { margin: 2px 0 0; font-family: "Shippori Mincho", serif; color: var(--gold-deep); line-height: 1.1; }
-.quiz__score strong { font-size: 44px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.quiz__score small { margin-left: 4px; font-size: 14px; color: var(--ink-soft); }
-.quiz__result { margin: 8px 0 0; font-size: 17px; font-weight: 700; letter-spacing: .12em; }
-.quiz__result.is-pass { color: var(--gold-deep); }
-.quiz__result.is-fail { color: var(--ink-soft); }
-.quiz__review { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
-.quiz__review > li { padding-top: 14px; border-top: 1px solid var(--gold-line-soft); }
-.quiz__review > li:first-child { padding-top: 0; border-top: 0; }
-.quiz__review-prompt { margin: 0 0 6px; font-size: 13.5px; line-height: 1.8; color: var(--ink); white-space: pre-line; }
-.quiz__review-line { margin: 0 0 2px; font-size: 12.5px; color: var(--seal-red); }
-.quiz__review-line span { display: inline-block; min-width: 6.5em; font-size: 11px; letter-spacing: .08em; color: var(--ink-faint); }
-.quiz__review-line.is-correct { color: var(--gold-deep); margin-bottom: 6px; }
+.survey__choice:hover { border-color: var(--gold); background: var(--paper-panel-2); }
+.survey__choice.is-on { border-color: var(--gold); background: var(--gold); color: #241a06; font-weight: 700; }
+.survey__choice:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.survey__submit { padding: 4px 0 0; text-align: center; }
+.survey__count { margin: 0 0 8px; font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }

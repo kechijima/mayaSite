@@ -1,4 +1,4 @@
-// 到達度テスト(/test, /test/[level])を受けられるかの出し分け。firestore.rules の
+// 到達度診断テスト(/test, /test/take)を受けられるかの出し分け。firestore.rules の
 // users/{uid}/testResults の create 条件(チーム所属かつ利用停止でない)と対。
 // 判定そのものは useEntitlement() の profile から導き、ここでは画面の状態名に読み替えるだけ。
 //

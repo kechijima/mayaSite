@@ -1,17 +1,25 @@
 <script setup lang="ts">
 import type { Firestore } from 'firebase/firestore'
-import {
-  QUESTIONS_PER_TEST,
-  TEST_LEVELS,
-  TEST_LEVEL_DESCRIPTION,
-  TEST_LEVEL_LABEL,
-  TEST_LEVEL_TITLE
-} from '~/utils/achievementTest'
-import { fetchTestResults, formatTestDateTime, summarizeByLevel } from '~/utils/achievementTestResults'
+import { CATEGORY_MAX_SCORE, TEST_CATEGORY_KEYS, TEST_MAX_SCORE } from '~/utils/achievementTest'
+import { fetchTestResults, formatTestDateTime } from '~/utils/achievementTestResults'
+import { diagnoseBirthdate } from '~/utils/mayaCalc'
+import { SEALS } from '~/utils/mayaData'
 
-// 到達度テストの入口。級ごとの説明と、本人のこれまでの結果(回数・最高点・合格したか)を出す。
-// 受けられるのはチーム会員だけ(composables/useTestAccess.ts)。順序も回数も縛らない。
-const { access, user, loginLink, accountLink } = useTestAccess()
+// 到達度診断テストの入口。本人の太陽の紋章(登録した生年月日から算出)を示し、これまでの結果を出す。
+// 受けられるのはチーム会員だけ(composables/useTestAccess.ts)。回数の制限はない。
+// 対象は太陽の紋章のみ(2026-09-29 の合意)。ウェイブスペルなど他の紋章は今は受けられない。
+const { access, user, profile, loginLink, accountLink } = useTestAccess()
+
+const sunSeal = computed(() => {
+  const birthdate = profile.value?.birthdate
+  if (!birthdate) return null
+  try {
+    const { birth } = diagnoseBirthdate(birthdate)
+    return { index: birth.sealIndex, name: SEALS[birth.sealIndex].name, kin: birth.kin }
+  } catch {
+    return null
+  }
+})
 
 const { data: results, pending: loadingResults } = useAsyncData(
   'test-results-self',
@@ -22,7 +30,8 @@ const { data: results, pending: loadingResults } = useAsyncData(
   },
   { server: false, lazy: true, watch: [access] }
 )
-const summary = computed(() => summarizeByLevel(results.value ?? []))
+const latest = computed(() => results.value?.[0] ?? null)
+const CATEGORY_NAME: Record<string, string> = { thinking: '思考', action: '行動', relationship: '人間関係', belief: '信念', skill: 'スキル' }
 </script>
 
 <template>
@@ -31,31 +40,52 @@ const summary = computed(() => summarizeByLevel(results.value ?? []))
     <div class="sheet">
       <div class="masthead masthead--plain">
         <span class="masthead__eyebrow">ACHIEVEMENT TEST</span>
-        <h1 class="font-display masthead__title">到達度テスト</h1>
-        <p class="masthead__sub">マヤ暦の基礎がどこまで身についたか、{{ QUESTIONS_PER_TEST }}問の4択で確かめます。</p>
+        <h1 class="font-display masthead__title">到達度診断テスト</h1>
+        <p class="masthead__sub">あなたの紋章らしさがどこまで身についているか、25問の自己診断で確かめます。</p>
       </div>
 
       <div class="mx-auto mt-10 max-w-[560px] space-y-4">
         <TestAccessNotice :access="access" :login-link="loginLink" :account-link="accountLink" />
 
         <template v-if="access === 'ok'">
-          <section v-for="level in TEST_LEVELS" :key="level" class="panel testlevel">
-            <div class="testlevel__head">
-              <span class="testlevel__grade">{{ TEST_LEVEL_LABEL[level] }}</span>
-              <h2 class="testlevel__title">{{ TEST_LEVEL_TITLE[level] }}</h2>
-              <span v-if="summary[level].passed" class="testlevel__pass">合格済み</span>
-            </div>
-            <p class="testlevel__desc">{{ TEST_LEVEL_DESCRIPTION[level] }}</p>
-            <p class="testlevel__stats">
-              <template v-if="loadingResults">読み込み中…</template>
-              <template v-else-if="summary[level].attempts === 0">まだ受けていません</template>
-              <template v-else>
-                受験 {{ summary[level].attempts }}回 ／ 最高 {{ summary[level].best }}／{{ summary[level].total }}点 ／ 最終 {{ formatTestDateTime(summary[level].lastAt) }}
-              </template>
+          <section class="panel panel--plan">
+            <p class="formlabel">あなたの太陽の紋章</p>
+            <template v-if="sunSeal">
+              <p class="text-[20px] font-bold">{{ sunSeal.name }}<span class="ml-2 text-[12.5px] font-normal" style="color: var(--ink-soft);">KIN {{ sunSeal.kin }}</span></p>
+              <p class="mt-1 text-[12.5px] leading-[1.8]" style="color: var(--ink-soft);">
+                思考・行動・人間関係・信念・スキルの5つの面から、それぞれ5問ずつ「そう思う / どちらでもない / 思わない」で答えます。合計100点満点、何度でも受けられます。
+              </p>
+              <NuxtLink to="/test/take" class="btn-gold mt-4 w-full sm:w-auto">{{ results?.length ? 'もう一度受ける' : '受ける' }}</NuxtLink>
+            </template>
+            <p v-else class="text-[13px]" style="color: var(--ink-soft);">
+              生年月日が登録されていないため紋章を求められません。<NuxtLink to="/account" class="hover:underline" style="color: var(--gold-deep);">マイページ</NuxtLink>でご登録ください。
             </p>
-            <NuxtLink :to="`/test/${level}`" class="btn-gold w-full sm:w-auto">
-              {{ summary[level].attempts ? 'もう一度受ける' : '受ける' }}
-            </NuxtLink>
+          </section>
+
+          <section class="panel">
+            <p class="formlabel">これまでの結果</p>
+            <p v-if="loadingResults" class="text-[13px]" style="color: var(--ink-faint);">読み込み中…</p>
+            <p v-else-if="!results?.length" class="text-[13px]" style="color: var(--ink-faint);">まだ受けていません。</p>
+            <template v-else>
+              <div v-if="latest" class="testscore">
+                <p class="testscore__total"><strong>{{ latest.total }}</strong><small>／{{ TEST_MAX_SCORE }}点</small></p>
+                <p class="testscore__meta">最新 {{ formatTestDateTime(latest.takenAt) }}・{{ latest.sealName }}</p>
+                <ul class="testbars">
+                  <li v-for="key in TEST_CATEGORY_KEYS" :key="key">
+                    <span class="testbars__label">{{ CATEGORY_NAME[key] }}</span>
+                    <span class="testbars__track"><i :style="{ width: `${(latest.categoryScores[key] / CATEGORY_MAX_SCORE) * 100}%` }" /></span>
+                    <span class="testbars__value">{{ Math.round((latest.categoryScores[key] / CATEGORY_MAX_SCORE) * 100) }}%</span>
+                  </li>
+                </ul>
+              </div>
+              <ul v-if="results.length > 1" class="testhistory">
+                <li v-for="r in results.slice(1)" :key="r.id">
+                  <span>{{ formatTestDateTime(r.takenAt) }}</span>
+                  <span>{{ r.sealName }}</span>
+                  <span class="testhistory__total">{{ r.total }}点</span>
+                </li>
+              </ul>
+            </template>
           </section>
         </template>
 

@@ -13,7 +13,7 @@ import {
   type ReferralTeam,
   type TeamMember
 } from '~/utils/referralTeamAdmin'
-import { fetchTestResults, formatLevelSummaryLine, summarizeByLevel } from '~/utils/achievementTestResults'
+import { fetchTestResults, formatResultSummaryLine } from '~/utils/achievementTestResults'
 
 definePageMeta({ layout: 'admin' })
 
@@ -90,7 +90,7 @@ async function load() {
 
 onMounted(load)
 
-// メンバーごとの到達度テストの要約(「初級 合格 ／ 中級 未合格 ／ 上級 —」)。
+// メンバーごとの到達度診断テストの要約(「赤い竜 63点（2回・最新 2026-09-29）」)。
 // 結果は users/{uid}/testResults に散っているので、メンバー1人につき1クエリになる。
 // 一覧の表示を待たせないよう、メンバーが出そろった後に別で読み、読めた人から埋める。
 const testSummaries = ref<Record<string, string>>({})
@@ -99,7 +99,7 @@ async function loadTestSummaries(list: TeamMember[]) {
   await Promise.all(
     list.map(async (m) => {
       try {
-        testSummaries.value[m.uid] = formatLevelSummaryLine(summarizeByLevel(await fetchTestResults(db, m.uid)))
+        testSummaries.value[m.uid] = formatResultSummaryLine(await fetchTestResults(db, m.uid))
       } catch {
         testSummaries.value[m.uid] = '取得できませんでした'
       }
@@ -323,7 +323,7 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
               :fields="[
                 { label: '所属経路', value: sourceLabel(m.entitlementSource) },
                 { label: '所属日', value: formatDate(m.joinedAt) },
-                { label: '到達度テスト', value: testSummaries[m.uid] ?? '読み込み中…' }
+                { label: '到達度診断テスト', value: testSummaries[m.uid] ?? '読み込み中…' }
               ]"
             >
               <template #actions>
@@ -342,7 +342,7 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
                   <th class="pb-2.5 pr-3">メール</th>
                   <th class="pb-2.5 pr-3">所属経路</th>
                   <th class="pb-2.5 pr-3">所属日</th>
-                  <th class="pb-2.5 pr-3">到達度テスト</th>
+                  <th class="pb-2.5 pr-3">到達度診断テスト</th>
                   <th class="pb-2.5"></th>
                 </tr>
               </thead>
