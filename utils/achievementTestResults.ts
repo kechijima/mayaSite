@@ -1,13 +1,18 @@
 import {
   addDoc,
   collection,
+  collectionGroup,
   doc,
   getDoc,
   getDocs,
+  limit,
   orderBy,
   query,
   serverTimestamp,
+  startAfter,
+  type DocumentData,
   type Firestore,
+  type QueryDocumentSnapshot,
   type Timestamp
 } from 'firebase/firestore'
 import {
@@ -63,6 +68,54 @@ export async function fetchTestResults(firestore: Firestore, uid: string): Promi
       const data = d.data() as TestResultDoc
       return { ...data, id: d.id, takenAt: (data.takenAt as Timestamp | undefined) ?? null }
     })
+}
+
+// ---- 管理画面 /admin/test-history: 全会員の受験履歴を横断して新しい順に ----
+// collectionGroup('testResults') は firestore.rules の /{path=**}/testResults(管理者のみ)と、
+// firestore.indexes.json の takenAt の COLLECTION_GROUP インデックスが要る。
+// 本番でインデックスがまだ作られていないと failed-precondition で落ちる — 呼び出し側で案内する。
+export interface TestResultLogRow extends TestResultRow {
+  uid: string
+}
+
+export async function fetchTestResultsPage(
+  firestore: Firestore,
+  pageSize: number,
+  cursor: QueryDocumentSnapshot<DocumentData> | null
+): Promise<{ rows: TestResultLogRow[]; hasNext: boolean; nextCursor: QueryDocumentSnapshot<DocumentData> | null }> {
+  const constraints = [orderBy('takenAt', 'desc'), ...(cursor ? [startAfter(cursor)] : []), limit(pageSize + 1)]
+  const snap = await getDocs(query(collectionGroup(firestore, 'testResults'), ...constraints))
+  const docs = snap.docs.filter((d) => typeof d.data().sealIndex === 'number')
+  const hasNext = snap.docs.length > pageSize
+  const pageDocs = docs.slice(0, pageSize)
+  const rows = pageDocs.map((d) => {
+    const data = d.data() as TestResultDoc
+    return { ...data, id: d.id, uid: d.ref.parent.parent?.id ?? '', takenAt: (data.takenAt as Timestamp | undefined) ?? null }
+  })
+  const lastRaw = snap.docs.slice(0, pageSize).at(-1) ?? null
+  return { rows, hasNext, nextCursor: lastRaw }
+}
+
+// 履歴の行に出す会員の名前・メール・チーム。結果には保存していないので users から引く(1人1回)。
+export interface TestResultUserInfo {
+  name: string
+  email: string
+  teamName: string
+}
+export async function fetchTestResultUsers(firestore: Firestore, uids: string[]): Promise<Record<string, TestResultUserInfo>> {
+  const out: Record<string, TestResultUserInfo> = {}
+  await Promise.all(
+    [...new Set(uids)].map(async (uid) => {
+      try {
+        const snap = await getDoc(doc(firestore, 'users', uid))
+        const d = (snap.data() ?? {}) as { name?: string; email?: string; teamName?: string | null; teamId?: string | null }
+        out[uid] = { name: d.name ?? '', email: d.email ?? '', teamName: d.teamId ? (d.teamName || d.teamId) : '' }
+      } catch {
+        out[uid] = { name: '', email: '', teamName: '' }
+      }
+    })
+  )
+  return out
 }
 
 // チーム詳細のメンバー一覧に出す1行ぶんの要約。例: 「赤い竜 63点（2回・最新 2026-09-29）」。

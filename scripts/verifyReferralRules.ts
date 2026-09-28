@@ -21,11 +21,14 @@ import {
 } from 'firebase/auth'
 import {
   connectFirestoreEmulator,
+  collectionGroup,
   deleteDoc,
   doc,
   getDoc,
   getDocs,
   collection,
+  limit,
+  orderBy,
   query,
   where,
   serverTimestamp,
@@ -429,6 +432,8 @@ async function main() {
       setDoc(doc(db, 'users', 'someone-else', 'testResults', 'r1'), testResult()))
     await expectDeny('他人の受験結果は読めない', () =>
       getDocs(collection(db, 'users', 'someone-else', 'testResults')))
+    await expectDeny('全会員の受験履歴の横断(collectionGroup)は管理者以外には読めない', () =>
+      getDocs(query(collectionGroup(db, 'testResults'), orderBy('takenAt', 'desc'), limit(1))))
   }
   {
     const uid = await freshUser()
