@@ -149,6 +149,29 @@ service cloud.firestore {
           && request.resource.data.purchasedAt == request.time;
         allow update, delete: if false;
       }
+
+      // 到達度テストの結果(utils/achievementTestResults.ts)。1回の受験につき1ドキュメント。
+      // 受けられるのはチーム会員だけ(teamId があり、利用停止でない) — /test の画面側の出し分けと対。
+      // 本人が create、本人と管理者が read。update / delete は誰にもさせない(受けた記録は残す)。
+      // takenAt == request.time は serverTimestamp() を強制し、日時の偽装を弾く。
+      // score/total は「点数が問題数を超えない」ことだけ見る。出題そのものはクライアントで
+      // 生成するので、答えの正しさまではルールでは検証しない(講師が答案を見て気づける程度でよい)。
+      match /testResults/{resultId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create: if isOwner(uid)
+          && get(/databases/$(database)/documents/users/$(uid)).data.get('suspended', false) != true
+          && get(/databases/$(database)/documents/users/$(uid)).data.get('teamId', null) != null
+          && request.resource.data.level in ['basic', 'intermediate', 'advanced']
+          && request.resource.data.score is int
+          && request.resource.data.total is int
+          && request.resource.data.total > 0
+          && request.resource.data.score >= 0
+          && request.resource.data.score <= request.resource.data.total
+          && request.resource.data.passed is bool
+          && request.resource.data.answers is list
+          && request.resource.data.takenAt == request.time;
+        allow update, delete: if false;
+      }
     }
 
     // チームの実体。名前・現在のコード・管理者メモを持つ。管理者専用で、コードを

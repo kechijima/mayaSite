@@ -13,6 +13,7 @@ import {
   type ReferralTeam,
   type TeamMember
 } from '~/utils/referralTeamAdmin'
+import { fetchTestResults, formatLevelSummaryLine, summarizeByLevel } from '~/utils/achievementTestResults'
 
 definePageMeta({ layout: 'admin' })
 
@@ -79,6 +80,7 @@ async function load() {
     const [code, list] = await Promise.all([fetchCodeStatus(db, data.code), fetchMembers(db, teamId)])
     status.value = code?.status ?? 'missing'
     members.value = list
+    loadTestSummaries(list)
   } catch {
     loadError.value = 'チームの読み込みに失敗しました。時間をおいて再度お試しください。'
   } finally {
@@ -87,6 +89,23 @@ async function load() {
 }
 
 onMounted(load)
+
+// メンバーごとの到達度テストの要約(「初級 合格 ／ 中級 未合格 ／ 上級 —」)。
+// 結果は users/{uid}/testResults に散っているので、メンバー1人につき1クエリになる。
+// 一覧の表示を待たせないよう、メンバーが出そろった後に別で読み、読めた人から埋める。
+const testSummaries = ref<Record<string, string>>({})
+async function loadTestSummaries(list: TeamMember[]) {
+  const db = firestore()
+  await Promise.all(
+    list.map(async (m) => {
+      try {
+        testSummaries.value[m.uid] = formatLevelSummaryLine(summarizeByLevel(await fetchTestResults(db, m.uid)))
+      } catch {
+        testSummaries.value[m.uid] = '取得できませんでした'
+      }
+    })
+  )
+}
 
 async function toggleStatus() {
   if (!team.value || status.value === 'missing') return
@@ -303,7 +322,8 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
               :subtitle="m.email"
               :fields="[
                 { label: '所属経路', value: sourceLabel(m.entitlementSource) },
-                { label: '所属日', value: formatDate(m.joinedAt) }
+                { label: '所属日', value: formatDate(m.joinedAt) },
+                { label: '到達度テスト', value: testSummaries[m.uid] ?? '読み込み中…' }
               ]"
             >
               <template #actions>
@@ -322,6 +342,7 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
                   <th class="pb-2.5 pr-3">メール</th>
                   <th class="pb-2.5 pr-3">所属経路</th>
                   <th class="pb-2.5 pr-3">所属日</th>
+                  <th class="pb-2.5 pr-3">到達度テスト</th>
                   <th class="pb-2.5"></th>
                 </tr>
               </thead>
@@ -331,6 +352,9 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
                   <td class="py-2.5 pr-3 text-slate-500 dark:text-slate-400">{{ m.email }}</td>
                   <td class="py-2.5 pr-3">{{ sourceLabel(m.entitlementSource) }}</td>
                   <td class="py-2.5 pr-3 tabular-nums text-slate-500 dark:text-slate-400">{{ formatDate(m.joinedAt) }}</td>
+                  <td class="py-2.5 pr-3 whitespace-nowrap">
+                    <NuxtLink :to="`/admin/users/${m.uid}`" class="hover:underline">{{ testSummaries[m.uid] ?? '読み込み中…' }}</NuxtLink>
+                  </td>
                   <td class="py-2.5">
                     <button type="button" class="text-xs font-semibold text-red-600 hover:underline dark:text-red-400" @click="removeTarget = m">外す</button>
                   </td>

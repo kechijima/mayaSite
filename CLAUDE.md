@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Membership tiers**: 無料会員 / チーム会員 / 有料会員 / 利用停止 (チーム会員 was called 有料会員(紹介) until 2026-09-17 — renamed because those members don't pay). A member who belongs to a team (joined with a referral code, or added by an admin) is **チーム会員** for as long as they stay in the team and reads everything; 有料会員 reads everything; 無料会員 reads only what they bought per article.
 
-Real and Firestore-backed: the diagnosis, 相性診断 ([pages/compatibility.vue](pages/compatibility.vue)), the per-seal and per-KIN detail pages ([pages/kin/[sealIndex].vue](pages/kin/%5BsealIndex%5D.vue), [pages/kin/[kin]/detail.vue](pages/kin/%5Bkin%5D/detail.vue)), the CMS ([pages/admin/content/**](pages/admin/content)), 診断履歴 ([pages/admin/history/index.vue](pages/admin/history/index.vue)), チーム管理 ([pages/admin/teams/**](pages/admin/teams)), ユーザー管理 ([pages/admin/users/index.vue](pages/admin/users/index.vue)) and 紹介コード入力 ([pages/account.vue](pages/account.vue)).
+Real and Firestore-backed: the diagnosis, 相性診断 ([pages/compatibility.vue](pages/compatibility.vue)), 到達度テスト ([pages/test/**](pages/test), team members only — see "Achievement test"), the per-seal and per-KIN detail pages ([pages/kin/[sealIndex].vue](pages/kin/%5BsealIndex%5D.vue), [pages/kin/[kin]/detail.vue](pages/kin/%5Bkin%5D/detail.vue)), the CMS ([pages/admin/content/**](pages/admin/content)), 診断履歴 ([pages/admin/history/index.vue](pages/admin/history/index.vue)), チーム管理 ([pages/admin/teams/**](pages/admin/teams)), ユーザー管理 ([pages/admin/users/index.vue](pages/admin/users/index.vue)) and 紹介コード入力 ([pages/account.vue](pages/account.vue)).
 
 Still a mock: [pages/admin/index.vue](pages/admin/index.vue) (dashboard stats, hardcoded `ref()` arrays). The old `/checkout` prototype and its `localStorage`-only `useMembership` flag were deleted on 2026-09-17; [pages/plans.vue](pages/plans.vue) replaced them.
 
@@ -37,7 +37,7 @@ npm run admin:create -- --email=you@example.com --password=xxxx            # sam
 
 npm run verify:kin                 # dateToKin() が mayadan.jp と一致するかの検証。単体で動く(エミュレータ不要)
 npm run verify:compatibility       # 相性診断の判定が mayadan.jp の相性診断と一致するかの検証(エミュレータ不要)
-npm run verify:rules:emulator      # firestore.rules の検証(29項目)。エミュレータ起動中に実行する — 下記参照
+npm run verify:rules:emulator      # firestore.rules の検証(60項目)。エミュレータ起動中に実行する — 下記参照
 npm run migrate:premium:emulator   # 有料項目を diagnosisContentPremium へ切り出す移行。--dry-run で件数だけ確認できる
 npm run migrate:premium            # 同上、REAL project に対して。リリース時に一度だけ実行する(冪等)
 npm run backfill:public-teams:emulator  # 既存チームぶんの publicTeams を作る(冪等、--dry-run 可)
@@ -211,7 +211,7 @@ member**. The rules allow this through the users `update` 4th branch (`plan` ∈
 only, not while suspended) and owner `create` on `purchases/*` / `unlocks/*` (never update/delete). **Everything a member
 writes this way must carry the marker** `paidSource: 'mock'` / `source: 'mock'` — the rules refuse it otherwise — so that
 [scripts/resetMockPurchases.ts](scripts/resetMockPurchases.ts) can later undo exactly these and nothing the webhook wrote.
-`npm run verify:rules:emulator` covers all of it (48 checks). Data written before the marker existed (between #139
+`npm run verify:rules:emulator` covers all of it (48 of the 60 checks; the other 12 cover `testResults`, see "Achievement test"). Data written before the marker existed (between #139
 and #140, plus anything an admin set to 有料会員) was stamped once with
 [scripts/backfillMockMarker.ts](scripts/backfillMockMarker.ts) on 2026-09-23; `setUserStatus` in
 [utils/userAdmin.ts](utils/userAdmin.ts) stamps admin-granted 有料会員 too, since nobody pays before Stripe.
@@ -336,6 +336,40 @@ LockedVeil's 「有料エリア 合計○○文字」 is the **sum over every ve
 veil shows the same number. On `/result` that is `lockedTotalChars` (sun + wavespell when not unlocked — both
 count even when they are the same seal — plus the KIN letter when locked), computed with the same conditions as
 the veils' own `v-if`s. The kin pages have a single veil, so it is just that veil's count.
+
+### Achievement test (到達度テスト, team members only)
+Added 2026-09-28. A チーム会員 can check how much of the Maya-calendar basics they have absorbed: three levels
+(初級 紋章と音の基礎 / 中級 KINの読み方 / 上級 KINの関係性), 10 four-choice questions each, 80% to pass. No order,
+no attempt limit, no reward for passing — the pass/fail label is only a marker for the member and their instructor.
+Entry points: マイページ (`/account`, shown only while `teamId` is set) → [pages/test/index.vue](pages/test/index.vue)
+(level list + own history) → [pages/test/[level].vue](pages/test/%5Blevel%5D.vue) (one question at a time, verdict and
+explanation right after choosing, result screen with a review of the wrong answers).
+
+- **Questions are generated, not stored.** [utils/achievementTest.ts](utils/achievementTest.ts) builds every question
+  from `SEALS` / `TONES` / `kinInfo()` / `dateToKin()` / `RELATION_DESCRIPTION`, so the answer key is the same code the
+  diagnosis uses and cannot drift from it. It has no `~/` imports (same reason as `utils/compatibility.ts`). Distractors
+  are drawn from the same table; KIN-number distractors are deliberately "nearby or same-seal/same-tone" numbers.
+  `generateTest(level, rng)` accepts an injectable RNG for tests. There is no admin authoring UI — if instructors ever
+  want their own questions, add a Firestore collection and merge it into `generateTest`, don't replace the generator.
+- **Who may take it** is decided in [composables/useTestAccess.ts](composables/useTestAccess.ts) (`signedOut` /
+  `suspended` / `notTeam` / `ok`, rendered by [components/TestAccessNotice.vue](components/TestAccessNotice.vue)) and
+  mirrored in the rules: `users/{uid}/testResults/{autoId}` `create` requires owner + `teamId != null` +
+  not suspended + `takenAt == request.time` + sane `level`/`score`/`total`; `read` is owner or admin; **no update or
+  delete for anyone** (a record of what was answered stays as it was). 有料会員 who are not in a team are refused on
+  purpose (agreed 2026-09-28: team only).
+- **Results** ([utils/achievementTestResults.ts](utils/achievementTestResults.ts)) store the full answer sheet
+  (`answers[]` = each question's prompt/choices/answerIndex/selectedIndex) plus `level`/`score`/`total`/`passed`,
+  one document per attempt. Per-level pass/attempts/best are **derived** by `summarizeByLevel()` from the history,
+  never written — same principle as member status. A member who later leaves the team keeps their history (admin can
+  still see it), they just can't add to it.
+- **Admin**: [pages/admin/users/[uid].vue](pages/admin/users/%5Buid%5D.vue) shows the per-level summary and every
+  attempt with an expandable answer sheet (○/× per question); [pages/admin/teams/[teamId].vue](pages/admin/teams/%5BteamId%5D.vue)
+  adds a 到達度テスト column/card field per member, filled in after the member list renders (one `testResults` query per
+  member — acceptable at team sizes here; if teams grow into the hundreds, denormalise a summary onto `users` instead,
+  but then the owner `update` rule must exclude that field).
+- `/test` and `/test/*` are footerless `.paper-page--focus` pages like `/plans`; [layouts/default.vue](layouts/default.vue)
+  matches `/test/` by prefix because the level is in the path. Styles are the `.testlevel*` / `.quiz*` blocks at the end
+  of [assets/css/paper-theme.css](assets/css/paper-theme.css).
 
 ### Admin: teams
 [pages/admin/teams/index.vue](pages/admin/teams/index.vue) creates teams (name only — `teamId` and code are generated) and

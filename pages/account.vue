@@ -180,6 +180,14 @@ async function submitCode() {
             <p class="text-[12.5px]" style="color: var(--ink-faint);">
               変更をご希望の場合はお問い合わせください。
             </p>
+            <!-- 到達度テスト(チーム会員限定)。級ごとの成績は /test 側で出す。 -->
+            <div class="mt-4 border-t pt-3.5" style="border-color: var(--gold-line-soft);">
+              <p class="formlabel">到達度テスト</p>
+              <p class="mb-3 text-[12.5px] leading-[1.8]" style="color: var(--ink-soft);">
+                紋章・銀河の音・KINの読み方・関係性がどこまで身についたか、4択の問題で確かめられます。何度でも受けられます。
+              </p>
+              <NuxtLink to="/test" class="btn-outline">到達度テストを受ける</NuxtLink>
+            </div>
           </template>
 
           <!-- 未所属: 一度も所属していない人も、管理者に外された人も、ここで入力できる -->

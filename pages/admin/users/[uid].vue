@@ -11,6 +11,8 @@ import {
   type UserRow,
   type UserStatus
 } from '~/utils/userAdmin'
+import { TEST_LEVELS, TEST_LEVEL_LABEL, TEST_LEVEL_TITLE } from '~/utils/achievementTest'
+import { fetchTestResults, formatTestDateTime, summarizeByLevel, type TestResultRow } from '~/utils/achievementTestResults'
 
 definePageMeta({ layout: 'admin' })
 
@@ -33,6 +35,12 @@ const statusSaved = ref(false)
 
 const { withLoading } = useGlobalLoading()
 
+// 到達度テストの受験履歴(新しい順)。チーム会員しか受けられないが、チームを外れた後も
+// 過去の記録は残るので、所属の有無に関わらず出す(無ければ「まだ受けていません」)。
+const testResults = ref<TestResultRow[]>([])
+const testSummary = computed(() => summarizeByLevel(testResults.value))
+const testLoadError = ref('')
+
 function firestore() {
   const { $firestore } = useNuxtApp()
   return $firestore as Firestore
@@ -40,13 +48,20 @@ function firestore() {
 
 onMounted(async () => {
   try {
-    const row = await fetchUserRow(firestore(), uid)
+    const [row, results] = await Promise.all([
+      fetchUserRow(firestore(), uid),
+      fetchTestResults(firestore(), uid).catch(() => {
+        testLoadError.value = '受験履歴を読み込めませんでした。'
+        return [] as TestResultRow[]
+      })
+    ])
     if (!row) {
       notFound.value = true
       return
     }
     user.value = row
     draftStatus.value = row.status
+    testResults.value = results
   } catch {
     loadError.value = '会員情報の読み込みに失敗しました。時間をおいて再度お試しください。'
   } finally {
@@ -159,6 +174,56 @@ async function applyStatus() {
           <span v-if="statusSaved" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">変更しました</span>
           <span v-if="statusError" class="text-xs font-semibold text-red-600 dark:text-red-400">{{ statusError }}</span>
         </div>
+      </div>
+
+      <!-- 到達度テスト。級ごとのまとめと、1回ごとの答案(開くと10問の正誤が見える)。 -->
+      <div class="mb-4 rounded-xl border border-slate-200 bg-white p-5.5 dark:border-slate-800 dark:bg-slate-900">
+        <p class="mb-3 text-sm font-bold">到達度テスト</p>
+        <dl class="mb-4 grid grid-cols-1 gap-y-3 text-[13px] sm:grid-cols-3">
+          <div v-for="level in TEST_LEVELS" :key="level">
+            <dt class="text-slate-400">{{ TEST_LEVEL_LABEL[level] }}（{{ TEST_LEVEL_TITLE[level] }}）</dt>
+            <dd class="font-semibold tabular-nums">
+              <template v-if="testSummary[level].attempts === 0">未受験</template>
+              <template v-else>
+                <span :class="testSummary[level].passed ? 'text-emerald-600 dark:text-emerald-400' : ''">{{ testSummary[level].passed ? '合格' : '未合格' }}</span>
+                <span class="ml-1.5 font-normal text-slate-500 dark:text-slate-400">最高 {{ testSummary[level].best }}／{{ testSummary[level].total }}・{{ testSummary[level].attempts }}回</span>
+              </template>
+            </dd>
+          </div>
+        </dl>
+        <p v-if="testLoadError" class="text-xs font-semibold text-red-600 dark:text-red-400">{{ testLoadError }}</p>
+        <p v-else-if="!testResults.length" class="text-[12px] text-slate-500 dark:text-slate-400">まだ受けていません。</p>
+        <ul v-else class="divide-y divide-slate-100 dark:divide-slate-800/60">
+          <li v-for="r in testResults" :key="r.id">
+            <details class="group py-2.5">
+              <summary class="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 text-[13px] [&::-webkit-details-marker]:hidden">
+                <span class="tabular-nums text-slate-500 dark:text-slate-400">{{ formatTestDateTime(r.takenAt) }}</span>
+                <span class="font-semibold">{{ TEST_LEVEL_LABEL[r.level] }}</span>
+                <span class="tabular-nums">{{ r.score }}／{{ r.total }}点</span>
+                <span
+                  class="rounded-full px-2 py-0.5 text-[11px] font-bold"
+                  :class="r.passed ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'"
+                >{{ r.passed ? '合格' : '未合格' }}</span>
+                <span class="ml-auto text-[11px] text-slate-400 group-open:hidden">答案を見る</span>
+                <span class="ml-auto hidden text-[11px] text-slate-400 group-open:inline">閉じる</span>
+              </summary>
+              <ol class="mt-2 space-y-2 rounded-lg bg-slate-50 p-3 text-[12.5px] dark:bg-slate-800/60">
+                <li v-for="(a, i) in r.answers" :key="i" class="flex gap-2">
+                  <span class="flex-none font-bold" :class="a.selectedIndex === a.answerIndex ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
+                    {{ a.selectedIndex === a.answerIndex ? '○' : '×' }}
+                  </span>
+                  <span class="min-w-0">
+                    <span class="whitespace-pre-line">{{ a.prompt }}</span>
+                    <span class="mt-0.5 flex flex-wrap gap-x-3 text-[11.5px] text-slate-500 dark:text-slate-400">
+                      <span>回答: {{ a.choices[a.selectedIndex] }}</span>
+                      <span v-if="a.selectedIndex !== a.answerIndex">正解: {{ a.choices[a.answerIndex] }}</span>
+                    </span>
+                  </span>
+                </li>
+              </ol>
+            </details>
+          </li>
+        </ul>
       </div>
 
       <p class="rounded-lg border border-slate-200 p-3.5 text-[12px] leading-[1.8] text-slate-500 dark:border-slate-800 dark:text-slate-400">
