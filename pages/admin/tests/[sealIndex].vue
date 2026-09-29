@@ -94,6 +94,19 @@ onMounted(async () => {
   }
 })
 
+// 配点の見せ方: 「紋章らしい答え」を選ぶと、その答えが 4 点・反対が 0 点・「どちらでもない」が 2 点になる。
+const SCORING_OPTIONS = [
+  { value: 'agree', label: 'そう思う' },
+  { value: 'disagree', label: '思わない' }
+] as const
+function scoringPreview(q: DraftQuestion) {
+  return [
+    { label: 'そう思う', points: q.high === 'agree' ? 4 : 0 },
+    { label: 'どちらでもない', points: 2 },
+    { label: '思わない', points: q.high === 'disagree' ? 4 : 0 }
+  ]
+}
+
 const missing = computed(() => categories.value.flatMap((c, ci) => c.questions.map((q, qi) => (q.text.trim() ? null : `${c.name} ${qi + 1}`)).filter(Boolean)))
 
 async function save() {
@@ -136,7 +149,7 @@ async function save() {
       <div class="mb-6">
         <h1 class="text-xl font-bold">編集：到達度診断テスト「{{ sealName }}」</h1>
         <span class="text-xs text-slate-500 dark:text-slate-400">
-          各問の配点は「4点になる答え」で指定します（もう一方は0点、「どちらでもない」は常に2点）。
+          各問で「この紋章らしい答え」を選んでください。その答えが4点、反対の答えが0点、「どちらでもない」は2点になります。
           <template v-if="isNew">この紋章の問題はまだ登録されていません。</template>
         </span>
       </div>
@@ -152,7 +165,7 @@ async function save() {
             <textarea v-model="c.description" rows="2" class="w-full rounded-lg border border-slate-200 bg-white p-3 text-[13px] dark:border-slate-800 dark:bg-slate-900"></textarea>
           </div>
           <ol class="space-y-3">
-            <li v-for="(q, qi) in c.questions" :key="qi" class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 sm:grid-cols-[auto_1fr_auto]">
+            <li v-for="(q, qi) in c.questions" :key="qi" class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 lg:grid-cols-[auto_1fr_auto]">
               <span class="pt-2 text-[12px] tabular-nums text-slate-400">{{ ci * QUESTIONS_PER_CATEGORY + qi + 1 }}</span>
               <textarea
                 v-model="q.text"
@@ -160,18 +173,35 @@ async function save() {
                 class="w-full rounded-lg border bg-white p-2.5 text-[13px] dark:bg-slate-900"
                 :class="!q.text.trim() ? 'border-red-300 dark:border-red-800' : 'border-slate-200 dark:border-slate-800'"
               ></textarea>
-              <div class="col-start-2 flex flex-wrap gap-1.5 sm:col-start-3 sm:flex-col sm:pt-0.5">
-                <label
-                  v-for="opt in [{ value: 'agree', label: '「そう思う」が4点' }, { value: 'disagree', label: '「思わない」が4点' }]"
-                  :key="opt.value"
-                  class="cursor-pointer whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-[11.5px] font-semibold"
-                  :class="q.high === opt.value
-                    ? 'border-brass-700 bg-amber-50 text-brass-700 dark:border-gold-300 dark:bg-amber-950/40 dark:text-gold-300'
-                    : 'border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-300'"
-                >
-                  <input v-model="q.high" type="radio" :value="opt.value" class="sr-only" />
-                  {{ opt.label }}
-                </label>
+              <!-- 配点。点数を直接選ばせず「紋章らしい答え」を選ばせ、3つの答えの点数はその結果として見せる -->
+              <div class="col-start-2 rounded-lg border border-slate-200 p-2.5 lg:col-start-3 lg:w-[320px] dark:border-slate-700">
+                <div class="mb-1.5 flex items-center justify-between gap-2">
+                  <span class="whitespace-nowrap text-[11px] font-bold text-slate-500 dark:text-slate-400">この紋章らしい答え</span>
+                  <div class="flex gap-1" role="radiogroup">
+                    <label
+                      v-for="opt in SCORING_OPTIONS"
+                      :key="opt.value"
+                      class="cursor-pointer whitespace-nowrap rounded-md border px-2 py-1 text-[11.5px] font-semibold"
+                      :class="q.high === opt.value
+                        ? 'border-brass-700 bg-brass-700 text-white dark:border-gold-300 dark:bg-gold-300 dark:text-slate-900'
+                        : 'border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-300'"
+                    >
+                      <input v-model="q.high" type="radio" :value="opt.value" class="sr-only" />
+                      {{ opt.label }}
+                    </label>
+                  </div>
+                </div>
+                <div class="grid grid-cols-3 gap-1 text-center text-[11px]">
+                  <div
+                    v-for="cell in scoringPreview(q)"
+                    :key="cell.label"
+                    class="rounded-md px-1 py-1"
+                    :class="cell.points === 4 ? 'bg-amber-50 font-bold text-brass-700 dark:bg-amber-950/40 dark:text-gold-300' : 'bg-slate-50 text-slate-500 dark:bg-slate-800 dark:text-slate-400'"
+                  >
+                    <div class="whitespace-nowrap">{{ cell.label }}</div>
+                    <div class="tabular-nums">{{ cell.points }}点</div>
+                  </div>
+                </div>
               </div>
             </li>
           </ol>
