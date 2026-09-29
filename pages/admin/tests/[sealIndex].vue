@@ -94,16 +94,12 @@ onMounted(async () => {
   }
 })
 
-// 配点の見せ方: 「紋章らしい答え」を選ぶと、その答えが 4 点・反対が 0 点・「どちらでもない」が 2 点になる。
-const SCORING_OPTIONS = [
-  { value: 'agree', label: 'そう思う' },
-  { value: 'disagree', label: '思わない' }
-] as const
-function scoringPreview(q: DraftQuestion) {
+// 点数配分の表示。4点にしたい答え(そう思う / 思わない)を押すと反対が0点になる。「どちらでもない」は常に2点。
+function scoringPreview(q: DraftQuestion): { label: string; points: number; value: DraftQuestion['high'] | null }[] {
   return [
-    { label: 'そう思う', points: q.high === 'agree' ? 4 : 0 },
-    { label: 'どちらでもない', points: 2 },
-    { label: '思わない', points: q.high === 'disagree' ? 4 : 0 }
+    { label: 'そう思う', points: q.high === 'agree' ? 4 : 0, value: 'agree' },
+    { label: 'どちらでもない', points: 2, value: null },
+    { label: '思わない', points: q.high === 'disagree' ? 4 : 0, value: 'disagree' }
   ]
 }
 
@@ -149,7 +145,7 @@ async function save() {
       <div class="mb-6">
         <h1 class="text-xl font-bold">編集：到達度診断テスト「{{ sealName }}」</h1>
         <span class="text-xs text-slate-500 dark:text-slate-400">
-          各問で「この紋章らしい答え」を選んでください。その答えが4点、反対の答えが0点、「どちらでもない」は2点になります。
+          各問の点数配分は、4点にする答え（そう思う / 思わない）を押して切り替えます。反対の答えは0点、「どちらでもない」は常に2点です。
           <template v-if="isNew">この紋章の問題はまだ登録されていません。</template>
         </span>
       </div>
@@ -173,34 +169,32 @@ async function save() {
                 class="w-full rounded-lg border bg-white p-2.5 text-[13px] dark:bg-slate-900"
                 :class="!q.text.trim() ? 'border-red-300 dark:border-red-800' : 'border-slate-200 dark:border-slate-800'"
               ></textarea>
-              <!-- 配点。点数を直接選ばせず「紋章らしい答え」を選ばせ、3つの答えの点数はその結果として見せる -->
+              <!-- 点数配分。そう思う / どちらでもない / 思わない の点数を並べ、4点にしたい答えを押して切り替える
+                   (「どちらでもない」は常に2点なので押せない)。保存される形は [4,2,0] か [0,2,4]。 -->
               <div class="col-start-2 rounded-lg border border-slate-200 p-2.5 lg:col-start-3 lg:w-[320px] dark:border-slate-700">
-                <div class="mb-1.5 flex items-center justify-between gap-2">
-                  <span class="whitespace-nowrap text-[11px] font-bold text-slate-500 dark:text-slate-400">この紋章らしい答え</span>
-                  <div class="flex gap-1" role="radiogroup">
-                    <label
-                      v-for="opt in SCORING_OPTIONS"
-                      :key="opt.value"
-                      class="cursor-pointer whitespace-nowrap rounded-md border px-2 py-1 text-[11.5px] font-semibold"
-                      :class="q.high === opt.value
-                        ? 'border-brass-700 bg-brass-700 text-white dark:border-gold-300 dark:bg-gold-300 dark:text-slate-900'
-                        : 'border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-300'"
-                    >
-                      <input v-model="q.high" type="radio" :value="opt.value" class="sr-only" />
-                      {{ opt.label }}
-                    </label>
-                  </div>
+                <div class="mb-1.5 flex items-baseline justify-between gap-2">
+                  <span class="whitespace-nowrap text-[11px] font-bold text-slate-500 dark:text-slate-400">点数配分</span>
+                  <span class="text-[10.5px] text-slate-400">4点にする答えを押して切り替え</span>
                 </div>
-                <div class="grid grid-cols-3 gap-1 text-center text-[11px]">
-                  <div
+                <div class="grid grid-cols-3 gap-1 text-center text-[11px]" role="radiogroup" aria-label="点数配分">
+                  <button
                     v-for="cell in scoringPreview(q)"
                     :key="cell.label"
-                    class="rounded-md px-1 py-1"
-                    :class="cell.points === 4 ? 'bg-amber-50 font-bold text-brass-700 dark:bg-amber-950/40 dark:text-gold-300' : 'bg-slate-50 text-slate-500 dark:bg-slate-800 dark:text-slate-400'"
+                    type="button"
+                    :role="cell.value ? 'radio' : undefined"
+                    :aria-checked="cell.value ? q.high === cell.value : undefined"
+                    :disabled="!cell.value"
+                    class="rounded-md px-1 py-1 transition-colors"
+                    :class="cell.points === 4
+                      ? 'bg-brass-700 font-bold text-white dark:bg-gold-300 dark:text-slate-900'
+                      : cell.value
+                        ? 'cursor-pointer bg-slate-50 text-slate-500 hover:bg-amber-50 hover:text-brass-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-amber-950/40 dark:hover:text-gold-300'
+                        : 'bg-slate-50 text-slate-500 dark:bg-slate-800 dark:text-slate-400'"
+                    @click="cell.value && (q.high = cell.value)"
                   >
                     <div class="whitespace-nowrap">{{ cell.label }}</div>
                     <div class="tabular-nums">{{ cell.points }}点</div>
-                  </div>
+                  </button>
                 </div>
               </div>
             </li>
