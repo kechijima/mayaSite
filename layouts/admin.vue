@@ -15,10 +15,10 @@ const navItems = [
   { to: '/admin', label: 'ダッシュボード', icon: 'grid' },
   { to: '/admin/content', label: '診断コンテンツ管理', icon: 'doc' },
   { to: '/admin/tests', label: '到達度診断テスト管理', icon: 'doc' },
-  { to: '/admin/test-history', label: '到達度診断テスト履歴', icon: 'history' },
   { to: '/admin/teams', label: 'チーム管理', icon: 'users' },
   { to: '/admin/users', label: 'ユーザー管理', icon: 'users' },
-  { to: '/admin/history', label: '診断履歴', icon: 'history' }
+  { to: '/admin/history', label: '診断履歴', icon: 'history' },
+  { to: '/admin/test-history', label: '到達度診断テスト履歴', icon: 'history' }
 ]
 
 function isActive(to: string) {
