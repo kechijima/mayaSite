@@ -475,8 +475,12 @@ keeps the top from being cut off in that case.
 [components/LoadingOverlay.vue](components/LoadingOverlay.vue) spans both worlds and is mounted in all three layouts. It is
 driven by [composables/useGlobalLoading.ts](composables/useGlobalLoading.ts), whose `withLoading()` wraps any Firebase call the
 visitor is actively waiting on — signup, login, logout, code lookup and redemption, and every admin
-write. Page-load reads are deliberately **not** wrapped: the free content renders first, so covering
-the screen there would only make the site feel slower; those keep their inline 読み込み中… text.
+write. **Page-load reads are covered too** (since 2026-09-29, on request — the inline 読み込み中… texts were removed so
+there is a single loading presentation): reactive waits such as the auth restore, `useEntitlement().settled` and
+`useAsyncData` pending, and the admin pages' `loading` refs, go through `useLoadingWhile(key, () => boolean)` (same
+file), which begins/ends a keyed wait and clears it on unmount. The one deliberate exception is the free diagnosis
+content on `/result` and the kin pages, which renders progressively and is not covered. In-memory "reveal 20 more"
+steps of the admin card lists show nothing (there is no wait).
 
 Two things about that component are load-bearing:
 - It is **always rendered** and toggled with a class, not `v-if` + `<Transition>`. With a transition,

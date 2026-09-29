@@ -24,6 +24,7 @@ const cursors = ref<(QueryDocumentSnapshot<DocumentData> | null)[]>([null])
 const pageHasNext = ref<boolean[]>([])
 const currentPage = ref(0)
 const loading = ref(false)
+useLoadingWhile('admin-test-history', () => loading.value)
 const loadError = ref('')
 const users = ref<Record<string, TestResultUserInfo>>({})
 
@@ -112,8 +113,7 @@ function userOf(r: TestResultLogRow): TestResultUserInfo {
         </AdminRecordCard>
         <!-- 無限スクロールの番兵(useInfiniteScroll)。この <ul> は lg 未満だけ表示される -->
         <li ref="sentinel" aria-hidden="true" />
-        <li v-if="loading" class="py-4 text-center text-[13px] text-slate-400">読み込み中…</li>
-        <li v-else-if="rows.length && !mobileHasMore" class="py-4 text-center text-[11.5px] text-slate-400">すべて表示しました</li>
+        <li v-if="!loading && rows.length && !mobileHasMore" class="py-4 text-center text-[11.5px] text-slate-400">すべて表示しました</li>
       </ul>
       <div class="hidden max-h-[70vh] overflow-auto lg:block">
         <table class="w-full text-[13px]">

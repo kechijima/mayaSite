@@ -10,6 +10,8 @@ import { PLANS, buildPayLink, buildPlansLink, formatYen, isValidOrder, readCheck
 const route = useRoute()
 const { user, ready } = useAuth()
 const { profile, settled, suspended, purchasedKins } = useEntitlement()
+// 認証の復元と会員情報の取得が終わるまで覆う(以前はここに「読み込み中…」を出していた)。
+useLoadingWhile('checkout', () => !ready.value || (!!user.value && !settled.value))
 
 const params = computed(() => readCheckoutParams(route.query))
 const order = computed(() => (isValidOrder(params.value) ? params.value : null))
@@ -51,9 +53,7 @@ const blocker = computed<'suspended' | 'team' | 'already-paid' | 'already-bought
           <NuxtLink :to="plansLink" class="btn-gold">プランを選ぶ</NuxtLink>
         </section>
 
-        <section v-else-if="!ready || (user && !settled)" class="panel">
-          <p class="text-[13.5px]" style="color: var(--ink-faint);">読み込み中…</p>
-        </section>
+        <template v-else-if="!ready || (user && !settled)" />
 
         <section v-else-if="!user" class="panel text-center">
           <p class="mb-4 text-[13.5px] leading-[1.9]" style="color: var(--ink-soft);">ご購入には会員登録とログインが必要です。</p>

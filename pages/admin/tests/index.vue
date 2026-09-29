@@ -18,6 +18,9 @@ interface Row {
 const COLOR_LABEL: Record<string, string> = { red: '赤', white: '白', blue: '青', yellow: '黄' }
 const rows = ref<Row[]>(SEALS.map((s, i) => ({ sealIndex: i, name: s.name, color: COLOR_LABEL[sealColor(i)], questions: null, updated: '—' })))
 const loadError = ref('')
+// 行は SEALS から先に作れるが、問題数・更新日が届くまでは「未登録」に見えてしまうので、届くまで覆う。
+const loading = ref(true)
+useLoadingWhile('admin-tests', () => loading.value)
 
 onMounted(async () => {
   try {
@@ -32,6 +35,8 @@ onMounted(async () => {
     })
   } catch {
     loadError.value = '問題の読み込みに失敗しました。時間をおいて再度お試しください。'
+  } finally {
+    loading.value = false
   }
 })
 

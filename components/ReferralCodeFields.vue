@@ -12,6 +12,8 @@ const props = defineProps<{
 }>()
 
 const { teams, pending, error: teamsError } = usePublicTeams()
+// チーム一覧が届くまで覆う(選択肢が空のプルダウンを触らせない)。
+useLoadingWhile('public-teams', () => pending.value)
 
 // 入力途中の照合(blur・チーム変更時)は全画面ローディング(useGlobalLoading)で覆わず、
 // メッセージ行の「確認しています…」だけで示す。覆うと、コード欄に入力したまま送信ボタンを
@@ -43,7 +45,7 @@ watch(
         required
         :disabled="pending"
       >
-        <option value="" disabled>{{ pending ? '読み込み中…' : 'チームを選択してください' }}</option>
+        <option value="" disabled>チームを選択してください</option>
         <option v-for="t in teams" :key="t.id" :value="t.id">{{ t.name }}</option>
       </select>
       <p v-if="teamsError" class="mt-1.5 text-[12.5px]" style="color: var(--seal-red);">

@@ -14,6 +14,8 @@ const { user, ready: authReady } = useAuth()
 const { profile, settled, suspended, purchasedKins, refresh: refreshEntitlement } = useEntitlement()
 const referral = useReferralCodeInput()
 const { withLoading } = useGlobalLoading()
+// 認証の復元と会員情報(users)の取得が終わるまで覆う。以前はここに「読み込み中…」を出していた。
+useLoadingWhile('account', () => !authReady.value || (!!user.value && !settled.value))
 
 const submittingCode = ref(false)
 const codeError = ref('')
@@ -275,7 +277,7 @@ async function submitCode() {
 
         <section class="panel">
           <p class="formlabel">紹介コード</p>
-          <p v-if="!authReady" class="text-[13.5px]" style="color: var(--ink-faint);">読み込み中…</p>
+          <template v-if="!authReady" />
 
           <template v-else-if="!user">
             <div class="text-center">
@@ -286,7 +288,7 @@ async function submitCode() {
             </div>
           </template>
 
-          <p v-else-if="!settled" class="text-[13.5px]" style="color: var(--ink-faint);">読み込み中…</p>
+          <template v-else-if="!settled" />
 
           <!-- 利用停止: ルール上、本人によるコード登録は受け付けられない -->
           <template v-else-if="membership === 'suspended'">

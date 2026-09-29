@@ -30,6 +30,7 @@ const { data: results, pending: loadingResults } = useAsyncData(
   },
   { server: false, lazy: true, watch: [access] }
 )
+useLoadingWhile('test-results', () => loadingResults.value)
 const latest = computed(() => results.value?.[0] ?? null)
 const CATEGORY_NAME: Record<string, string> = { thinking: '思考', action: '行動', relationship: '人間関係', belief: '信念', skill: 'スキル' }
 </script>
@@ -65,7 +66,7 @@ const CATEGORY_NAME: Record<string, string> = { thinking: '思考', action: '行
 
           <section class="panel">
             <p class="formlabel">これまでの結果</p>
-            <p v-if="loadingResults" class="text-[13px]" style="color: var(--ink-faint);">読み込み中…</p>
+            <template v-if="loadingResults" />
             <p v-else-if="!results?.length" class="text-[13px]" style="color: var(--ink-faint);">まだ受けていません。</p>
             <template v-else>
               <div v-if="latest" class="testscore">

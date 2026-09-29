@@ -33,6 +33,7 @@ const uid = route.params.uid as string
 
 const user = ref<UserRow | null>(null)
 const loading = ref(true)
+useLoadingWhile('admin-user', () => loading.value)
 const notFound = ref(false)
 const loadError = ref('')
 
@@ -54,7 +55,7 @@ async function openAnswers(sealIndex: number) {
   if (sealIndex in testDocs.value) return
   testDocs.value[sealIndex] = null
   try {
-    testDocs.value[sealIndex] = await fetchAchievementTest(firestore(), sealIndex)
+    testDocs.value[sealIndex] = await withLoading(() => fetchAchievementTest(firestore(), sealIndex))
   } catch {
     delete testDocs.value[sealIndex]
   }
@@ -146,7 +147,7 @@ async function applyStatus() {
       {{ loadError }}
     </div>
 
-    <p v-else-if="loading" class="py-6 text-center text-sm text-slate-500 dark:text-slate-400">読み込み中…</p>
+    <template v-else-if="loading" />
 
     <template v-else-if="user">
       <div class="mb-6 flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
@@ -228,7 +229,7 @@ async function applyStatus() {
                   <dd class="tabular-nums">{{ r.categoryScores[key] }}／{{ CATEGORY_MAX_SCORE }}<span class="ml-1 text-slate-400">({{ Math.round((r.categoryScores[key] / CATEGORY_MAX_SCORE) * 100) }}%)</span></dd>
                 </div>
               </dl>
-              <p v-if="testDocs[r.sealIndex] === null" class="mt-2 text-[12px] text-slate-400">問題文を読み込み中…</p>
+              <template v-if="testDocs[r.sealIndex] === null" />
               <ol v-else-if="answerRows(r)" class="mt-2 space-y-1.5 rounded-lg bg-slate-50 p-3 text-[12.5px] dark:bg-slate-800/60">
                 <li v-for="a in answerRows(r)" :key="a.index" class="flex gap-2">
                   <span class="w-5 flex-none text-right tabular-nums text-slate-400">{{ a.index + 1 }}</span>

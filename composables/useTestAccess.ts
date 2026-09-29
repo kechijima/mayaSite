@@ -23,6 +23,9 @@ export function useTestAccess() {
     return 'ok'
   })
 
+  // 判定が固まるまで(認証の復元・会員情報の取得)は画面を覆う。TestAccessNotice はその間なにも出さない。
+  useLoadingWhile('test-access', () => access.value === 'loading')
+
   const loginLink = computed(() => `/login?redirect=${encodeURIComponent(route.fullPath)}`)
   const accountLink = computed(() => `/account?redirect=${encodeURIComponent(route.fullPath)}`)
 

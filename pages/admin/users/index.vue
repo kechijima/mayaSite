@@ -24,6 +24,7 @@ definePageMeta({ layout: 'admin' })
 
 const rows = ref<UserRow[]>([])
 const loading = ref(true)
+useLoadingWhile('admin-users', () => loading.value)
 const loadError = ref('')
 const keyword = ref('')
 const statusFilter = ref<'all' | UserStatus>('all')
@@ -95,7 +96,7 @@ watch(filtered, () => {
     </div>
 
     <div class="rounded-xl border border-slate-200 bg-white p-5.5 dark:border-slate-800 dark:bg-slate-900">
-      <p v-if="loading" class="py-4 text-center text-sm text-slate-500 dark:text-slate-400">読み込み中…</p>
+      <template v-if="loading" />
       <p v-else-if="!filtered.length" class="py-4 text-center text-sm text-slate-500 dark:text-slate-400">
         {{ rows.length ? '条件に一致する会員はいません。' : 'まだ登録会員がいません。' }}
       </p>
@@ -120,7 +121,6 @@ watch(filtered, () => {
           </AdminRecordCard>
         <!-- 継ぎ足しの番兵(useInfiniteScroll)。この <ul> は lg 未満だけ表示される -->
         <li ref="sentinel" aria-hidden="true" />
-        <li v-if="visibleCount < filtered.length" class="py-4 text-center text-[13px] text-slate-400">読み込み中…</li>
         </ul>
         <div class="hidden max-h-[70vh] overflow-auto lg:block">
           <table class="w-full text-[13px]">

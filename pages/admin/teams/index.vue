@@ -19,6 +19,7 @@ const { withLoading } = useGlobalLoading()
 
 const rows = ref<TeamRow[]>([])
 const loading = ref(true)
+useLoadingWhile('admin-teams', () => loading.value)
 const loadError = ref('')
 
 const creating = ref(false)
@@ -138,7 +139,7 @@ function statusLabel(status: TeamRow['status']) {
     </div>
 
     <div class="rounded-xl border border-slate-200 bg-white p-5.5 dark:border-slate-800 dark:bg-slate-900">
-      <p v-if="loading" class="py-4 text-center text-sm text-slate-500 dark:text-slate-400">読み込み中…</p>
+      <template v-if="loading" />
       <p v-else-if="!rows.length" class="py-4 text-center text-sm text-slate-500 dark:text-slate-400">
         まだチームがありません。上のフォームから作成してください。
       </p>

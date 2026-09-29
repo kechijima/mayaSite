@@ -50,7 +50,7 @@ watch(
     loadState.value = 'loading'
     try {
       const { $firestore } = useNuxtApp()
-      const doc = await fetchAchievementTest($firestore as Firestore, s)
+      const doc = await withLoading(() => fetchAchievementTest($firestore as Firestore, s))
       test.value = doc
       loadState.value = doc ? 'ready' : 'missing'
     } catch {
@@ -116,9 +116,7 @@ const sealName = computed(() => (sealIndex.value === null ? '' : SEALS[sealIndex
             <p class="mb-4 text-[13.5px]" style="color: var(--ink-soft);">生年月日が登録されていないため紋章を求められません。</p>
             <NuxtLink to="/account" class="btn-outline">マイページで登録する</NuxtLink>
           </section>
-          <section v-else-if="loadState === 'loading' || loadState === 'idle'" class="panel">
-            <p class="text-[13.5px]" style="color: var(--ink-faint);">読み込み中…</p>
-          </section>
+          <template v-else-if="loadState === 'loading' || loadState === 'idle'" />
           <section v-else-if="loadState === 'missing'" class="panel text-center">
             <p class="mb-4 text-[13.5px]" style="color: var(--ink-soft);">{{ sealName }}の問題はまだ用意されていません。</p>
             <NuxtLink to="/test" class="btn-outline">戻る</NuxtLink>

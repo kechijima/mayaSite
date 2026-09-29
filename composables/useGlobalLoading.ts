@@ -5,9 +5,10 @@
 // 真偽値ではなく件数で持つのは、複数の処理が同時に走ったときに、先に終わった片方が
 // ローディングを消してしまうのを防ぐため。
 //
-// 画面表示時の読み込みは原則ここでは扱わない。無料部分は先に描画されるので、全画面で覆うと
-// かえって待たされている印象が強くなる — そちらは各ページの「読み込み中…」表示のままにする。
-// 例外は診断結果ページで、そこだけは本文と画像が揃うまで覆う(RESULT_LOADING_KEY)。
+// 画面表示時の読み込み(会員情報の取得、管理画面の一覧・詳細の取得など)もここで覆う。
+// 以前は各ページに「読み込み中…」の文字を出していたが、2026-09-29 に「ローディングの見せ方を
+// 1つに揃えたい」との要望でこちらに統一した(useLoadingWhile)。診断結果ページは本文と画像が
+// 揃うまで覆う(RESULT_LOADING_KEY)。
 const pending = ref(0)
 
 // 画面をまたぐ待ちはキーで持つ。withLoading は「呼んだ関数が終わるまで」で対になるが、
@@ -65,4 +66,13 @@ export function useGlobalLoading() {
   }
 
   return { active, withLoading, beginLoading, endLoading }
+}
+
+// 「ある条件が真のあいだ」画面を覆う。認証の復元待ちや useAsyncData の pending のように、
+// await で包める処理の形をしていない待ちに使う。条件が偽になるか、呼び出したコンポーネントが
+// 破棄されると外れる(ページを離れたときに覆いが残らない)。
+export function useLoadingWhile(key: string, condition: () => boolean) {
+  const { beginLoading, endLoading } = useGlobalLoading()
+  watchEffect(() => (condition() ? beginLoading(key) : endLoading(key)))
+  onScopeDispose(() => endLoading(key))
 }
