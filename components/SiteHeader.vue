@@ -157,10 +157,11 @@ onBeforeUnmount(() => {
         <a v-if="l.to.startsWith('#')" :href="l.to" class="sitemenu__link" @click="close">{{ l.label }}</a>
         <NuxtLink v-else :to="l.to" class="sitemenu__link" @click="close">{{ l.label }}</NuxtLink>
       </template>
-      <NuxtLink v-if="ready && user" to="/account" class="sitemenu__user" @click="close">
+      <!-- マイページへの行。他のメニュー項目と同じ1行の体裁で、右端の「›」で移動先があることを示す -->
+      <NuxtLink v-if="ready && user" to="/account" class="sitemenu__user" aria-label="マイページ" @click="close">
         <svg class="siteheader__usericon" aria-hidden="true"><use href="#i-user" /></svg>
-        <span class="siteheader__username">{{ displayName }}</span>
-        <span class="sitemenu__user-cta">マイページ</span>
+        <span class="sitemenu__username">{{ displayName }}</span>
+        <svg class="sitemenu__chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
       </NuxtLink>
     </nav>
   </header>
