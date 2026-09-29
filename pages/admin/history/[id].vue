@@ -13,6 +13,7 @@ const id = route.params.id as string
 
 const row = ref<HistoryRow | null>(null)
 const loading = ref(true)
+useLoadingWhile('admin-history-detail', () => loading.value)
 const notFound = ref(false)
 const loadError = ref('')
 
@@ -44,7 +45,7 @@ onMounted(async () => {
       {{ loadError }}
     </div>
 
-    <p v-else-if="loading" class="py-6 text-center text-sm text-slate-500 dark:text-slate-400">読み込み中…</p>
+    <template v-else-if="loading" />
 
     <template v-else-if="row">
       <div class="mb-6 flex flex-wrap items-start justify-between gap-x-4 gap-y-2">

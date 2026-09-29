@@ -2,7 +2,7 @@
 import type { TestAccess } from '~/composables/useTestAccess'
 
 // 到達度テストを受けられない人への案内(/test と /test/take で共通)。
-// 'ok' のときは何も描画しないので、呼び出し側は v-if を書かずに置ける。
+// 'ok' と 'loading' のときは何も描画しないので、呼び出し側は v-if を書かずに置ける。
 defineProps<{
   access: TestAccess
   loginLink: string
@@ -11,9 +11,8 @@ defineProps<{
 </script>
 
 <template>
-  <section v-if="access === 'loading'" class="panel">
-    <p class="text-[13.5px]" style="color: var(--ink-faint);">読み込み中…</p>
-  </section>
+  <!-- loading の間は useTestAccess 側が画面を覆っているので、ここでは何も出さない -->
+  <template v-if="access === 'loading'" />
 
   <section v-else-if="access === 'signedOut'" class="panel text-center">
     <p class="mb-4 text-[13.5px] leading-[1.9]" style="color: var(--ink-soft);">

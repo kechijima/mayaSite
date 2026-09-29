@@ -24,6 +24,7 @@ const team = ref<ReferralTeam | null>(null)
 const status = ref<'active' | 'disabled' | 'missing'>('missing')
 const members = ref<TeamMember[]>([])
 const loading = ref(true)
+useLoadingWhile('admin-team', () => loading.value)
 const notFound = ref(false)
 const loadError = ref('')
 const actionError = ref('')
@@ -80,7 +81,8 @@ async function load() {
     const [code, list] = await Promise.all([fetchCodeStatus(db, data.code), fetchMembers(db, teamId)])
     status.value = code?.status ?? 'missing'
     members.value = list
-    loadTestSummaries(list)
+    // 到達度診断テストの要約も一覧の一部なので、覆いを外す前に揃える。
+    await loadTestSummaries(list)
   } catch {
     loadError.value = 'チームの読み込みに失敗しました。時間をおいて再度お試しください。'
   } finally {
@@ -92,7 +94,7 @@ onMounted(load)
 
 // メンバーごとの到達度診断テストの要約(「赤い竜 63点（2回・最新 2026-09-29）」)。
 // 結果は users/{uid}/testResults に散っているので、メンバー1人につき1クエリになる。
-// 一覧の表示を待たせないよう、メンバーが出そろった後に別で読み、読めた人から埋める。
+// load() の中で await し、覆い(loading)が外れる前に全員ぶん揃える。
 const testSummaries = ref<Record<string, string>>({})
 async function loadTestSummaries(list: TeamMember[]) {
   const db = firestore()
@@ -206,7 +208,7 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
       指定されたチームが見つかりませんでした。
     </div>
 
-    <p v-else-if="loading" class="py-6 text-center text-sm text-slate-500 dark:text-slate-400">読み込み中…</p>
+    <template v-else-if="loading" />
 
     <template v-else-if="team">
       <div class="mb-6">
@@ -323,7 +325,7 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
               :fields="[
                 { label: '所属経路', value: sourceLabel(m.entitlementSource) },
                 { label: '所属日', value: formatDate(m.joinedAt) },
-                { label: '到達度診断テスト', value: testSummaries[m.uid] ?? '読み込み中…' }
+                { label: '到達度診断テスト', value: testSummaries[m.uid] ?? '—' }
               ]"
             >
               <template #actions>
@@ -332,7 +334,6 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
             </AdminRecordCard>
             <!-- 継ぎ足しの番兵(useInfiniteScroll)。この <ul> は lg 未満だけ表示される -->
             <li ref="sentinel" aria-hidden="true" />
-            <li v-if="visibleCount < members.length" class="py-4 text-center text-[13px] text-slate-400">読み込み中…</li>
           </ul>
           <div class="hidden max-h-[70vh] overflow-auto lg:block">
             <table class="w-full text-[13px]">
@@ -353,7 +354,7 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
                   <td class="py-2.5 pr-3">{{ sourceLabel(m.entitlementSource) }}</td>
                   <td class="py-2.5 pr-3 tabular-nums text-slate-500 dark:text-slate-400">{{ formatDate(m.joinedAt) }}</td>
                   <td class="py-2.5 pr-3 whitespace-nowrap">
-                    <NuxtLink :to="`/admin/users/${m.uid}`" class="hover:underline">{{ testSummaries[m.uid] ?? '読み込み中…' }}</NuxtLink>
+                    <NuxtLink :to="`/admin/users/${m.uid}`" class="hover:underline">{{ testSummaries[m.uid] ?? '—' }}</NuxtLink>
                   </td>
                   <td class="py-2.5">
                     <button type="button" class="text-xs font-semibold text-red-600 hover:underline dark:text-red-400" @click="removeTarget = m">外す</button>

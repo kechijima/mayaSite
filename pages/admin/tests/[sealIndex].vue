@@ -39,6 +39,7 @@ interface DraftCategory {
 
 const categories = ref<DraftCategory[]>([])
 const loading = ref(true)
+useLoadingWhile('admin-test-edit', () => loading.value)
 const isNew = ref(false)
 const loadError = ref('')
 const saving = ref(false)
@@ -139,7 +140,7 @@ async function save() {
     <div v-else-if="loadError" class="rounded-lg border border-red-300 bg-red-50 px-4 py-2.5 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
       {{ loadError }}
     </div>
-    <p v-else-if="loading" class="py-6 text-center text-sm text-slate-500 dark:text-slate-400">読み込み中…</p>
+    <template v-else-if="loading" />
 
     <template v-else>
       <div class="mb-6">

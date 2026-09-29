@@ -6,6 +6,9 @@ definePageMeta({ layout: 'admin' })
 
 const rows = ref<ContentRow[]>(buildContentRows())
 const loadError = ref('')
+// 行は SEALS/TONES から先に作れるが、本文の文字数やステータスが届くまでは「下書き」に見えてしまうので、届くまで覆う。
+const loading = ref(true)
+useLoadingWhile('admin-content', () => loading.value)
 
 onMounted(async () => {
   try {
@@ -30,6 +33,8 @@ onMounted(async () => {
     })
   } catch {
     loadError.value = 'コンテンツの読み込みに失敗しました。時間をおいて再度お試しください。'
+  } finally {
+    loading.value = false
   }
 })
 
@@ -123,7 +128,6 @@ function openRow(id: string) {
         </AdminRecordCard>
       <!-- 継ぎ足しの番兵(useInfiniteScroll)。この <ul> は lg 未満だけ表示される -->
       <li ref="sentinel" aria-hidden="true" />
-      <li v-if="visibleCount < filtered.length" class="py-4 text-center text-[13px] text-slate-400">読み込み中…</li>
       </ul>
       <div v-if="filtered.length" class="hidden max-h-[70vh] overflow-auto lg:block">
         <table class="w-full text-[13px]">
