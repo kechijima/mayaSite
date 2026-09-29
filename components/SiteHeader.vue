@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { signOut, type Auth } from 'firebase/auth'
 import jmbLogoSrc from '~/assets/images/optimized/jmb-logo.webp'
 
 // 全ユーザー向けページ共通のヘッダー(layouts/default.vue から差し込む)。/admin/** は
@@ -41,18 +40,8 @@ function toggle() {
   open.value = !open.value
 }
 
-// ログアウト後は useAuth() のuser/readyがリアクティブに更新されるので、result.vueの
-// deepUnlockedも自動で再ロックされる — 明示的なnavigateTo()は不要(admin側のログアウトと
-// 違い、一般ページに「ログイン専用」のページ自体が無いため)。
-const { withLoading } = useGlobalLoading()
-
-async function logout() {
-  close()
-  await withLoading(async () => {
-    const { $auth } = useNuxtApp()
-    await signOut($auth as Auth)
-  })
-}
+// 名前を押すとマイページ(/account)へ。ログアウトはマイページ側にあるので、ヘッダーには置かない
+// (2026-09-29: それまではヘッダーにログアウトがあり、マイページへの導線が無かった)。
 
 // ルート遷移でメニューを閉じる。同じリンクを再度押した場合も閉じたいので、リンク側でも
 // close() を呼んでいる(この watch はパスが変わらないと発火しないため)。
@@ -140,11 +129,10 @@ onBeforeUnmount(() => {
           <a v-if="l.to.startsWith('#')" :href="l.to" class="siteheader__link" @click="close">{{ l.label }}</a>
           <NuxtLink v-else :to="l.to" class="siteheader__link">{{ l.label }}</NuxtLink>
         </template>
-        <div v-if="ready && user" class="siteheader__user">
+        <NuxtLink v-if="ready && user" to="/account" class="siteheader__user" title="マイページ">
           <svg class="siteheader__usericon" aria-hidden="true"><use href="#i-user" /></svg>
           <span class="siteheader__username">{{ displayName }}</span>
-          <button type="button" class="siteheader__logout" @click="logout">ログアウト</button>
-        </div>
+        </NuxtLink>
       </nav>
 
       <button
@@ -169,11 +157,11 @@ onBeforeUnmount(() => {
         <a v-if="l.to.startsWith('#')" :href="l.to" class="sitemenu__link" @click="close">{{ l.label }}</a>
         <NuxtLink v-else :to="l.to" class="sitemenu__link" @click="close">{{ l.label }}</NuxtLink>
       </template>
-      <div v-if="ready && user" class="sitemenu__user">
+      <NuxtLink v-if="ready && user" to="/account" class="sitemenu__user" @click="close">
         <svg class="siteheader__usericon" aria-hidden="true"><use href="#i-user" /></svg>
         <span class="siteheader__username">{{ displayName }}</span>
-        <button type="button" class="sitemenu__logout" @click="logout">ログアウト</button>
-      </div>
+        <span class="sitemenu__user-cta">マイページ</span>
+      </NuxtLink>
     </nav>
   </header>
 </template>

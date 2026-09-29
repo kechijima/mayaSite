@@ -152,14 +152,14 @@ const profileGenderLabel = computed(() =>
   profile.value?.gender && isGender(profile.value.gender) ? genderLabel(profile.value.gender) : '—'
 )
 
-// ログアウト。このページはログイン前提の内容(プラン・登録情報)なので、SiteHeader と違って
-// トップへ送る(残しても「ログインが必要です」の案内に変わるだけで居場所が無い)。
+// ログアウト。このページはログイン前提の内容(プラン・登録情報)なので、ログイン画面へ送る
+// (2026-09-29: トップではなくログイン画面に、との要望)。ログアウトの導線はここだけ(ヘッダーには無い)。
 async function logout() {
   await withLoading(async () => {
     const { $auth } = useNuxtApp()
     await signOut($auth as Auth)
   })
-  await navigateTo('/')
+  await navigateTo('/login')
 }
 
 async function submitCode() {
