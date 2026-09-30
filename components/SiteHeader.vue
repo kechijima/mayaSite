@@ -42,6 +42,9 @@ function toggle() {
 
 // 名前を押すとマイページ(/account)へ。ログアウトはマイページ側にあるので、ヘッダーには置かない
 // (2026-09-29: それまではヘッダーにログアウトがあり、マイページへの導線が無かった)。
+// 到達度診断テストを受けられる人(チーム会員・有料会員、停止でない = entitled)には、メニューの末尾に
+// 「到達度診断テスト」を出す(2026-09-30)。判定は composables/useTestAccess.ts と同じ useEntitlement() の entitled。
+const { entitled: canTakeTest } = useEntitlement()
 
 // ルート遷移でメニューを閉じる。同じリンクを再度押した場合も閉じたいので、リンク側でも
 // close() を呼んでいる(この watch はパスが変わらないと発火しないため)。
@@ -129,6 +132,7 @@ onBeforeUnmount(() => {
           <a v-if="l.to.startsWith('#')" :href="l.to" class="siteheader__link" @click="close">{{ l.label }}</a>
           <NuxtLink v-else :to="l.to" class="siteheader__link">{{ l.label }}</NuxtLink>
         </template>
+        <NuxtLink v-if="canTakeTest" to="/test" class="siteheader__link">到達度診断テスト</NuxtLink>
         <NuxtLink v-if="ready && user" to="/account" class="siteheader__user" title="マイページ">
           <svg class="siteheader__usericon" aria-hidden="true"><use href="#i-user" /></svg>
           <span class="siteheader__username">{{ displayName }}</span>
@@ -157,6 +161,7 @@ onBeforeUnmount(() => {
         <a v-if="l.to.startsWith('#')" :href="l.to" class="sitemenu__link" @click="close">{{ l.label }}</a>
         <NuxtLink v-else :to="l.to" class="sitemenu__link" @click="close">{{ l.label }}</NuxtLink>
       </template>
+      <NuxtLink v-if="canTakeTest" to="/test" class="sitemenu__link" @click="close">到達度診断テスト</NuxtLink>
       <!-- マイページへの行。他のメニュー項目と同じ1行の体裁で、右端の「›」で移動先があることを示す -->
       <NuxtLink v-if="ready && user" to="/account" class="sitemenu__user" aria-label="マイページ" @click="close">
         <svg class="siteheader__usericon" aria-hidden="true"><use href="#i-user" /></svg>

@@ -38,7 +38,7 @@ npm run admin:create -- --email=you@example.com --password=xxxx            # sam
 npm run verify:kin                 # dateToKin() が mayadan.jp と一致するかの検証。単体で動く(エミュレータ不要)
 npm run verify:compatibility       # 相性診断の判定が mayadan.jp の相性診断と一致するかの検証(エミュレータ不要)
 npm run verify:scoring             # 到達度診断テストの採点(配点・「どちらでもない」5つ以上で減点)の検証(エミュレータ不要)
-npm run verify:rules:emulator      # firestore.rules の検証(67項目)。エミュレータ起動中に実行する — 下記参照
+npm run verify:rules:emulator      # firestore.rules の検証(70項目)。エミュレータ起動中に実行する — 下記参照
 npm run migrate:premium:emulator   # 有料項目を diagnosisContentPremium へ切り出す移行。--dry-run で件数だけ確認できる
 npm run migrate:premium            # 同上、REAL project に対して。リリース時に一度だけ実行する(冪等)
 npm run backfill:public-teams:emulator  # 既存チームぶんの publicTeams を作る(冪等、--dry-run 可)
@@ -212,7 +212,7 @@ member**. The rules allow this through the users `update` 4th branch (`plan` ∈
 only, not while suspended) and owner `create` on `purchases/*` / `unlocks/*` (never update/delete). **Everything a member
 writes this way must carry the marker** `paidSource: 'mock'` / `source: 'mock'` — the rules refuse it otherwise — so that
 [scripts/resetMockPurchases.ts](scripts/resetMockPurchases.ts) can later undo exactly these and nothing the webhook wrote.
-`npm run verify:rules:emulator` covers all of it (48 of the 67 checks; the other 19 cover `achievementTests` / `testResults`, see "Achievement test"). Data written before the marker existed (between #139
+`npm run verify:rules:emulator` covers all of it (49 of the 70 checks; the other 21 cover `achievementTests` / `testResults`, see "Achievement test"). Data written before the marker existed (between #139
 and #140, plus anything an admin set to 有料会員) was stamped once with
 [scripts/backfillMockMarker.ts](scripts/backfillMockMarker.ts) on 2026-09-23; `setUserStatus` in
 [utils/userAdmin.ts](utils/userAdmin.ts) stamps admin-granted 有料会員 too, since nobody pays before Stripe.
@@ -273,6 +273,9 @@ and don't replace it with something memorable.
   ever"; relaxed 2026-09-07 on request.) Rejoining makes them チーム会員 again.
 - A **suspended** member cannot redeem at all. Without that, someone an admin suspended could enter
   a code and undo it themselves; only an admin can lift a suspension.
+- A **有料会員** (`plan == 'paid'`) cannot redeem either (2026-09-30): subscribers have no referral-code concept, so
+  `/account` hides the 紹介コード section for them and the rule refuses the write. 到達度診断テスト is open to them (see
+  "Achievement test"); its マイページ entry lives in its own section shown to anyone `entitled`.
 - `plan` and `suspended` are admin-only.
 - Conditions read `resource.data.get('teamId', null)`, not `resource.data.teamId`. Members created
   before this feature have **no** permission fields at all, and a direct reference to a missing field
@@ -338,12 +341,13 @@ veil shows the same number. On `/result` that is `lockedTotalChars` (sun + waves
 count even when they are the same seal — plus the KIN letter when locked), computed with the same conditions as
 the veils' own `v-if`s. The kin pages have a single veil, so it is just that veil's count.
 
-### Achievement test (到達度診断テスト, team members only)
+### Achievement test (到達度診断テスト, team and paid members)
 Added 2026-09-28 as a generated knowledge quiz, **replaced on 2026-09-29** by the instructor's real material: a
 per-seal self-assessment questionnaire (docs/到達度診断テスト/{赤系,白系,青系,黄系}.xlsx, one `★紋章名` sheet per seal,
-20 seals). A チーム会員 answers the 25 statements for **their own 太陽の紋章** (sun seal only, agreed 2026-09-29; other
-seals are not offered) and gets a total out of 100 plus a per-category ratio. No pass mark, no attempt limit, no reward.
-Entry points: マイページ (`/account`, shown only while `teamId` is set) → [pages/test/index.vue](pages/test/index.vue)
+20 seals). A チーム会員 or 有料会員 (i.e. `useEntitlement().entitled`; paid members added 2026-09-30) answers the 25
+statements for **their own 太陽の紋章** (sun seal only, agreed 2026-09-29; other seals are not offered) and gets a total out of 100 plus a per-category ratio. No pass mark, no attempt limit, no reward.
+Entry points: the site header's 到達度診断テスト link and マイページ (`/account`), both shown only while `entitled` →
+[pages/test/index.vue](pages/test/index.vue)
 (sun seal + latest result with bars + history) → [pages/test/take.vue](pages/test/take.vue) (all 25 statements on one
 page grouped by category, like the original Google Form; unanswered ones are highlighted on submit; result screen).
 
@@ -358,7 +362,7 @@ page grouped by category, like the original Google Form; unanswered ones are hig
   `scoreTest()`; verified against the instructor's hand-scored 赤系の結果.xlsx (that workbook is Google-Form responses
   with real names/birthdates — don't commit derived data from it, and don't seed it).
 - **Questions live in Firestore**, `achievementTests/{sealIndex}` (`{ sealIndex, sealName, categories[] }`), readable
-  only by team members and admins ([firestore.rules](firestore.rules)) because they are the instructor's material —
+  only by team/paid members and admins ([firestore.rules](firestore.rules)) because they are the instructor's material —
   that is why they are not in the bundle. [scripts/extractAchievementTests.py](scripts/extractAchievementTests.py) turns
   the xlsx into [scripts/achievementTests.data.ts](scripts/achievementTests.data.ts) (generated, don't hand-edit);
   `npm run seed:tests[:emulator]` ([scripts/seedAchievementTests.ts](scripts/seedAchievementTests.ts)) writes them,
@@ -376,9 +380,9 @@ page grouped by category, like the original Google Form; unanswered ones are hig
   survive re-seeding unless `--force` is passed.
 - **Who may take it** is decided in [composables/useTestAccess.ts](composables/useTestAccess.ts) (`signedOut` /
   `suspended` / `notTeam` / `ok`, rendered by [components/TestAccessNotice.vue](components/TestAccessNotice.vue)) and
-  mirrored in the rules: `users/{uid}/testResults/{autoId}` `create` requires owner + `teamId != null` + not suspended +
+  mirrored in the rules: `users/{uid}/testResults/{autoId}` `create` requires owner + (`teamId != null` or `plan == 'paid'`) + not suspended +
   `takenAt == request.time` + `sealIndex` 0–19 + `answers.size() == 25` + `total` 0–100; `read` is owner or admin;
-  **no update or delete for anyone**. 有料会員 not in a team are refused on purpose.
+  **no update or delete for anyone**. 無料会員 (neither team nor paid) are refused; `achievementTests` reads use the same condition.
 - **Results** ([utils/achievementTestResults.ts](utils/achievementTestResults.ts)) store `answers[25]`
   (`'agree'|'neutral'|'disagree'` in `flattenQuestions()` order), `categoryScores`, `neutralCount`, `penalty`, `total`,
   `sealIndex`/`sealName`, one document per attempt. Statement texts are **not** stored; the admin answer sheet re-joins

@@ -96,6 +96,8 @@ service cloud.firestore {
       //   所属中はここが false になるため、別チームへの乗り換えはできない。
       //   利用停止中を弾いているのは、停止された人が自分で入り直して停止を無効化
       //   できないようにするため(解除は管理者のみ)。
+      //   有料会員(plan == 'paid')も弾く — サブスクの会員には紹介コードの概念が無く、コードを入れても
+      //   チーム会員にはならない(2026-09-30)。マイページ側も有料会員には紹介コード欄を出さない。
       //   コード登録で所属するとチーム会員になる(現在は会員全員が閲覧可なので閲覧可否は変わらない)。
       //   get(key, default) を使うのは、フィールドが「存在しない」既存会員を弾かないため。
       //   直接参照すると、この機能より前に登録した会員のドキュメントでは参照そのものが
@@ -107,6 +109,7 @@ service cloud.firestore {
                           'entitlementSource', 'referralCodeId', 'referralRedeemedAt']))
         || (isOwner(uid)
             && resource.data.get('suspended', false) != true
+            && resource.data.get('plan', 'free') != 'paid'
             && resource.data.get('teamId', null) == null
             && request.resource.data.diff(resource.data).affectedKeys()
                  .hasOnly(['teamId', 'teamName', 'entitlementSource',
@@ -151,7 +154,8 @@ service cloud.firestore {
       }
 
       // 到達度診断テストの結果(utils/achievementTestResults.ts)。1回の受験につき1ドキュメント。
-      // 受けられるのはチーム会員だけ(teamId があり、利用停止でない) — /test の画面側の出し分けと対。
+      // 受けられるのはチーム会員と有料会員(teamId があるか plan == 'paid'、かつ利用停止でない)
+      // — /test の画面側の出し分け(composables/useTestAccess.ts)と対。有料会員は 2026-09-30 に追加。
       // 本人が create、本人と管理者が read。update / delete は誰にもさせない(受けた記録は残す)。
       // takenAt == request.time は serverTimestamp() を強制し、日時の偽装を弾く。
       // 点数はクライアントが採点して書く(answers 25件と紋章から再計算できるので、管理画面で
@@ -160,7 +164,8 @@ service cloud.firestore {
         allow read: if isOwner(uid) || isAdmin();
         allow create: if isOwner(uid)
           && get(/databases/$(database)/documents/users/$(uid)).data.get('suspended', false) != true
-          && get(/databases/$(database)/documents/users/$(uid)).data.get('teamId', null) != null
+          && (get(/databases/$(database)/documents/users/$(uid)).data.get('teamId', null) != null
+              || get(/databases/$(database)/documents/users/$(uid)).data.get('plan', 'free') == 'paid')
           && request.resource.data.sealIndex is int
           && request.resource.data.sealIndex >= 0
           && request.resource.data.sealIndex <= 19
@@ -226,13 +231,13 @@ service cloud.firestore {
     }
 
     // 到達度診断テストの問題(紋章ごと 25 問。scripts/seedAchievementTests.ts が入れる)。
-    // 講師の教材なので誰でも読める形にはせず、受けられる人(チーム会員)と管理者だけに開ける。
+    // 講師の教材なので誰でも読める形にはせず、受けられる人(チーム会員・有料会員)と管理者だけに開ける。
     // 画面側の出し分け(composables/useTestAccess.ts)と同じ条件。
     match /achievementTests/{sealIndex} {
       allow read: if isAdmin()
         || (request.auth != null
             && userDoc().get('suspended', false) != true
-            && userDoc().get('teamId', null) != null);
+            && (userDoc().get('teamId', null) != null || userDoc().get('plan', 'free') == 'paid'));
       allow write: if isAdmin();
     }
     match /diagnosisHistory/{docId} {

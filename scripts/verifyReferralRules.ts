@@ -258,6 +258,14 @@ async function main() {
       updateDoc(doc(db, 'users', uid), redeemed(ACTIVE_CODE, ACTIVE_TEAM)))
   }
   {
+    // サブスクの有料会員には紹介コードの概念が無い。コードを入れてもチーム会員にはならない(2026-09-30)。
+    const uid = await freshUser()
+    await setDoc(doc(db, 'users', uid), { ...baseProfile(), ...unaffiliated() })
+    await updateDoc(doc(db, 'users', uid), { plan: 'paid', paidAt: serverTimestamp(), paidSource: 'mock' })
+    await expectDeny('有料会員はコードを登録できない', () =>
+      updateDoc(doc(db, 'users', uid), redeemed(ACTIVE_CODE, ACTIVE_TEAM)))
+  }
+  {
     const uid = await freshUser()
     await setDoc(doc(db, 'users', uid), { ...baseProfile(), ...unaffiliated() })
     await expectAllow('氏名などの通常のプロフィール編集はできる', () =>
@@ -443,8 +451,13 @@ async function main() {
     await expectDeny('チームに所属していない会員は受験結果を書けない', () =>
       setDoc(doc(db, 'users', uid, 'testResults', 'r1'), testResult()))
     await updateDoc(doc(db, 'users', uid), { plan: 'paid', paidAt: serverTimestamp(), paidSource: 'mock' })
-    await expectDeny('有料会員でもチームに所属していなければ受験結果を書けない', () =>
+    await expectAllow('有料会員はチームに所属していなくても問題を読める', () =>
+      getDoc(doc(db, 'achievementTests', 'verify')))
+    await expectAllow('有料会員はチームに所属していなくても受験結果を書ける', () =>
       setDoc(doc(db, 'users', uid, 'testResults', 'r1'), testResult()))
+    await suspend(uid)
+    await expectDeny('利用停止中の有料会員は受験結果を書けない', () =>
+      setDoc(doc(db, 'users', uid, 'testResults', 'r2'), testResult()))
   }
   {
     const uid = await freshUser()

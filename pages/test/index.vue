@@ -6,7 +6,7 @@ import { diagnoseBirthdate } from '~/utils/mayaCalc'
 import { SEALS } from '~/utils/mayaData'
 
 // 到達度診断テストの入口。本人の太陽の紋章(登録した生年月日から算出)を示し、これまでの結果を出す。
-// 受けられるのはチーム会員だけ(composables/useTestAccess.ts)。回数の制限はない。
+// 受けられるのはチーム会員と有料会員(composables/useTestAccess.ts)。回数の制限はない。
 // 対象は太陽の紋章のみ(2026-09-29 の合意)。ウェイブスペルなど他の紋章は今は受けられない。
 const { access, user, profile, loginLink, accountLink } = useTestAccess()
 
