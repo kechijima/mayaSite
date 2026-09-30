@@ -2,6 +2,7 @@
 import type { Firestore } from 'firebase/firestore'
 import {
   CATEGORY_MAX_SCORE,
+  NEUTRAL_PENALTY_THRESHOLD,
   TEST_ANSWERS,
   TEST_ANSWER_LABEL,
   TEST_MAX_SCORE,
@@ -131,7 +132,7 @@ const sealName = computed(() => (sealIndex.value === null ? '' : SEALS[sealIndex
               <p class="formlabel">結果</p>
               <p class="testscore__total"><strong>{{ result.total }}</strong><small>／{{ TEST_MAX_SCORE }}点</small></p>
               <p class="testscore__meta">
-                25問の合計 {{ result.rawTotal }}点<template v-if="result.neutralCount">、「どちらでもない」{{ result.neutralCount }}つで {{ result.penalty }}点</template>
+                25問の合計 {{ result.rawTotal }}点<template v-if="result.penalty">、「どちらでもない」{{ result.neutralCount }}つで {{ result.penalty }}点</template><template v-else-if="result.neutralCount">、「どちらでもない」{{ result.neutralCount }}つ（{{ NEUTRAL_PENALTY_THRESHOLD }}つ未満なので減点なし）</template>
               </p>
               <ul class="testbars mt-4 text-left">
                 <li v-for="c in result.categories" :key="c.key">

@@ -54,7 +54,7 @@ const CATEGORY_NAME: Record<string, string> = { thinking: '思考', action: '行
             <template v-if="sunSeal">
               <p class="text-[20px] font-bold">{{ sunSeal.name }}<span class="ml-2 text-[12.5px] font-normal" style="color: var(--ink-soft);">KIN {{ sunSeal.kin }}</span></p>
               <p class="mt-1 text-[12.5px] leading-[1.8]" style="color: var(--ink-soft);">
-                思考・行動・人間関係・信念・スキルの5つの面から、それぞれ5問ずつ「そう思う / どちらでもない / 思わない」で答えます。合計100点満点、何度でも受けられます。
+                思考・行動・人間関係・信念・スキルの5つの面から、それぞれ5問ずつ「そう思う / どちらでもない / 思わない」で答えます。合計100点満点、何度でも受けられます。「どちらでもない」が5つ以上になると、その数だけ減点されます。
               </p>
               <NuxtLink to="/test/take" class="btn-gold mt-5 w-full">{{ results?.length ? 'もう一度受ける' : '受ける' }}</NuxtLink>
             </template>
