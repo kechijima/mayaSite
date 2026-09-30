@@ -7,7 +7,9 @@
 //   - 5カテゴリ(思考 / 行動 / 人間関係 / 信念 / スキル)× 5問 = 25問
 //   - 回答は3択(そう思う / どちらでもない / 思わない)。問ごとに [4,2,0] か [0,2,4] の配点
 //     (紋章らしい答えが 4 点)。カテゴリ 20 点満点、合計 100 点満点
-//   - 「どちらでもない」1つにつき −1 点の減点(原本の集計表「どちらでもない減点」列)
+//   - 「どちらでもない」が 5 つ以上のときだけ、その個数ぶん −1 点ずつ減点(4 つ以下は減点なし。
+//     例: 4 つ → 0、5 つ → −5、7 つ → −7)。原本の集計表「どちらでもない減点」列がそうなっていて、
+//     2026-09-30 に講師からもこのルールだと確認した(それまでは 1 つから減点していた — 誤り)
 //   - 総合点 = 25問の合計 + 減点。カテゴリ別は 20 点に対する割合で見る(原本は 0.7 のような表示)
 //
 // 問題文は Firestore の achievementTests/{sealIndex} に置く(scripts/seedAchievementTests.ts)。
@@ -31,6 +33,8 @@ export const QUESTIONS_PER_CATEGORY = 5
 export const CATEGORY_MAX_SCORE = 20
 export const TEST_MAX_SCORE = 100
 export const NEUTRAL_PENALTY = -1
+// 「どちらでもない」がこの個数以上で減点が始まる(この個数を含む)。
+export const NEUTRAL_PENALTY_THRESHOLD = 5
 
 export interface TestQuestion {
   text: string
@@ -80,7 +84,7 @@ export interface TestScore {
   categories: CategoryScore[]
   rawTotal: number // 25問の合計(0〜100)
   neutralCount: number
-  penalty: number // neutralCount × NEUTRAL_PENALTY(0 以下)
+  penalty: number // neutralCount >= NEUTRAL_PENALTY_THRESHOLD のとき neutralCount × NEUTRAL_PENALTY、それ以外 0
   total: number // rawTotal + penalty。0 未満にはしない
 }
 
@@ -102,7 +106,7 @@ export function scoreTest(test: AchievementTestDoc, answers: TestAnswer[]): Test
     if (answer === 'neutral') neutralCount++
   })
   const rawTotal = categories.reduce((n, c) => n + c.score, 0)
-  const penalty = neutralCount * NEUTRAL_PENALTY
+  const penalty = neutralCount >= NEUTRAL_PENALTY_THRESHOLD ? neutralCount * NEUTRAL_PENALTY : 0
   return { categories, rawTotal, neutralCount, penalty, total: Math.max(0, rawTotal + penalty) }
 }
 

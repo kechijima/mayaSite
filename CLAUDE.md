@@ -37,6 +37,7 @@ npm run admin:create -- --email=you@example.com --password=xxxx            # sam
 
 npm run verify:kin                 # dateToKin() が mayadan.jp と一致するかの検証。単体で動く(エミュレータ不要)
 npm run verify:compatibility       # 相性診断の判定が mayadan.jp の相性診断と一致するかの検証(エミュレータ不要)
+npm run verify:scoring             # 到達度診断テストの採点(配点・「どちらでもない」5つ以上で減点)の検証(エミュレータ不要)
 npm run verify:rules:emulator      # firestore.rules の検証(67項目)。エミュレータ起動中に実行する — 下記参照
 npm run migrate:premium:emulator   # 有料項目を diagnosisContentPremium へ切り出す移行。--dry-run で件数だけ確認できる
 npm run migrate:premium            # 同上、REAL project に対して。リリース時に一度だけ実行する(冪等)
@@ -348,8 +349,12 @@ page grouped by category, like the original Google Form; unanswered ones are hig
 
 - **Format** (mirrors the workbook exactly): 5 categories 思考/行動/人間関係/信念/スキル × 5 statements; three answers
   そう思う/どちらでもない/思わない; each statement has `scores: [4,2,0]` or `[0,2,4]` (the seal-typical answer scores 4).
-  Category max 20, total max 100. **「どちらでもない」 costs −1 each** (the workbook's 「どちらでもない減点」 column,
-  adopted on request) → `total = rawTotal + penalty`, floored at 0. Scoring is [utils/achievementTest.ts](utils/achievementTest.ts)
+  Category max 20, total max 100. **「どちらでもない」 costs −1 each, but only once there are 5 or more of them**
+  (4 → 0, 5 → −5, 7 → −7; `NEUTRAL_PENALTY_THRESHOLD`). This is the workbook's 「どちらでもない減点」 column and was
+  confirmed by the instructor on 2026-09-30 — the first cut wrongly deducted from the first neutral answer; both
+  production results at the time had ≥5 neutrals, so no stored total needed correcting. `total = rawTotal + penalty`,
+  floored at 0. `npm run verify:scoring` ([scripts/verifyAchievementScoring.ts](scripts/verifyAchievementScoring.ts))
+  pins the rule down — run it after touching `scoreTest()`. Scoring is [utils/achievementTest.ts](utils/achievementTest.ts)
   `scoreTest()`; verified against the instructor's hand-scored 赤系の結果.xlsx (that workbook is Google-Form responses
   with real names/birthdates — don't commit derived data from it, and don't seed it).
 - **Questions live in Firestore**, `achievementTests/{sealIndex}` (`{ sealIndex, sealName, categories[] }`), readable
