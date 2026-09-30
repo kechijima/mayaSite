@@ -43,7 +43,7 @@ const loginLink = computed(() =>
   `/login?redirect=${encodeURIComponent(requestedRedirect.value ? `/account?redirect=${encodeURIComponent(requestedRedirect.value)}` : '/account')}`
 )
 
-// 3状態: 利用停止(入力できない) / 所属中(表示のみ) / 未所属(入力できる)。
+// 3状態: 利用停止(入力できない) / 所属中(紹介コード欄そのものを出さない) / 未所属(入力できる)。
 // 利用停止はルール側でもコード登録を拒否するので、入力欄を出しても必ず失敗する。
 // 管理者に外された人は「未所属」に含める — 入り直せないのは不便という判断で、
 // ルール側も「今どこにも所属していない人」なら受け付ける(firestore.rules の update 3本目)。
@@ -284,8 +284,10 @@ async function submitCode() {
           <NuxtLink to="/test" class="btn-outline w-full">到達度診断テストを受ける</NuxtLink>
         </section>
 
-        <!-- 紹介コード。サブスクの有料会員には紹介コードの概念が無いので出さない(ルール側でも登録を弾く、2026-09-30)。 -->
-        <section v-if="!isPaid" class="panel">
+        <!-- 紹介コード。サブスクの有料会員には紹介コードの概念が無いので出さない(ルール側でも登録を弾く、2026-09-30)。
+             チーム所属中も出さない(所属は「現在のプラン」のチーム会員表示で分かる。「〜に所属しています」の枠は
+             不要との判断で 2026-09-30 に削除)。残るのは 未ログイン / 利用停止 / 未所属(入力欄) の3つ。 -->
+        <section v-if="!isPaid && membership !== 'joined'" class="panel">
           <p class="formlabel">紹介コード</p>
           <template v-if="!authReady" />
 
@@ -305,20 +307,6 @@ async function submitCode() {
             <p class="mb-2 text-[14.5px]">現在このアカウントはご利用いただけません。</p>
             <p class="text-[12.5px]" style="color: var(--ink-faint);">
               お手数ですがお問い合わせください。
-            </p>
-          </template>
-
-          <!-- 所属中: コード文字列そのものは表示しない(管理者のみが閲覧できる情報) -->
-          <template v-else-if="membership === 'joined'">
-            <p class="mb-2 text-[14.5px]">
-              <span style="color: var(--gold-deep);">✓</span>
-              {{ profile?.teamName || 'チーム' }}に所属しています
-            </p>
-            <p class="mb-2 text-[13px]" style="color: var(--ink-soft);">
-              チーム会員として、すべての診断結果をご覧いただけます。
-            </p>
-            <p class="text-[12.5px]" style="color: var(--ink-faint);">
-              変更をご希望の場合はお問い合わせください。
             </p>
           </template>
 
