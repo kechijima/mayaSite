@@ -16,7 +16,7 @@ defineProps<{
 
   <section v-else-if="access === 'signedOut'" class="panel text-center">
     <p class="mb-4 text-[13.5px] leading-[1.9]" style="color: var(--ink-soft);">
-      到達度診断テストはチーム会員の方向けの機能です。ログインしてからお進みください。
+      到達度診断テストはチーム会員・有料会員の方向けの機能です。ログインしてからお進みください。
     </p>
     <NuxtLink :to="loginLink" class="btn-gold">ログインする</NuxtLink>
   </section>
@@ -28,8 +28,11 @@ defineProps<{
 
   <section v-else-if="access === 'notTeam'" class="panel text-center">
     <p class="mb-4 text-[13.5px] leading-[1.9]" style="color: var(--ink-soft);">
-      到達度診断テストはチーム会員の方向けの機能です。ご紹介いただいたチームの紹介コードをマイページでご登録いただくと受けられるようになります。
+      到達度診断テストはチーム会員・有料会員の方向けの機能です。ご紹介いただいたチームの紹介コードをマイページでご登録いただくか、有料会員になると受けられるようになります。
     </p>
-    <NuxtLink :to="accountLink" class="btn-outline">紹介コードを登録する</NuxtLink>
+    <div class="flex flex-col gap-2.5 sm:flex-row sm:justify-center">
+      <NuxtLink :to="accountLink" class="btn-outline">紹介コードを登録する</NuxtLink>
+      <NuxtLink to="/plans" class="btn-gold">プランを見る</NuxtLink>
+    </div>
   </section>
 </template>

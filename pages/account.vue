@@ -11,7 +11,7 @@ import { DEFAULT_GENDER, genderLabel, isGender, type Gender } from '~/utils/gend
 // 2026-09-23: 「現在のプラン」の表示と「お支払いの管理」の導線を追加(決済フローの画面だけを
 // 先に作った段階)。「お支払いの管理」は Phase 2 で Stripe の Customer Portal へ送る。
 const { user, ready: authReady } = useAuth()
-const { profile, settled, suspended, purchasedKins, refresh: refreshEntitlement } = useEntitlement()
+const { profile, settled, suspended, entitled, purchasedKins, refresh: refreshEntitlement } = useEntitlement()
 const referral = useReferralCodeInput()
 const { withLoading } = useGlobalLoading()
 // 認証の復元と会員情報(users)の取得が終わるまで覆う。以前はここに「読み込み中…」を出していた。
@@ -275,7 +275,17 @@ async function submitCode() {
           </template>
         </section>
 
-        <section class="panel">
+        <!-- 到達度診断テスト。受けられる人(チーム会員・有料会員 = entitled)に出す。結果は /test 側。 -->
+        <section v-if="authReady && user && settled && entitled" class="panel">
+          <p class="formlabel">到達度診断テスト</p>
+          <p class="mb-3 text-[12.5px] leading-[1.8]" style="color: var(--ink-soft);">
+            あなたの太陽の紋章らしさがどこまで身についているか、25問の自己診断で確かめられます。何度でも受けられます。
+          </p>
+          <NuxtLink to="/test" class="btn-outline w-full">到達度診断テストを受ける</NuxtLink>
+        </section>
+
+        <!-- 紹介コード。サブスクの有料会員には紹介コードの概念が無いので出さない(ルール側でも登録を弾く、2026-09-30)。 -->
+        <section v-if="!isPaid" class="panel">
           <p class="formlabel">紹介コード</p>
           <template v-if="!authReady" />
 
@@ -310,14 +320,6 @@ async function submitCode() {
             <p class="text-[12.5px]" style="color: var(--ink-faint);">
               変更をご希望の場合はお問い合わせください。
             </p>
-            <!-- 到達度診断テスト(チーム会員限定)。結果は /test 側で出す。 -->
-            <div class="mt-4 border-t pt-3.5" style="border-color: var(--gold-line-soft);">
-              <p class="formlabel">到達度診断テスト</p>
-              <p class="mb-3 text-[12.5px] leading-[1.8]" style="color: var(--ink-soft);">
-                あなたの太陽の紋章らしさがどこまで身についているか、25問の自己診断で確かめられます。何度でも受けられます。
-              </p>
-              <NuxtLink to="/test" class="btn-outline w-full">到達度診断テストを受ける</NuxtLink>
-            </div>
           </template>
 
           <!-- 未所属: 一度も所属していない人も、管理者に外された人も、ここで入力できる -->
