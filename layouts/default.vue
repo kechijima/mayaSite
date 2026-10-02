@@ -28,14 +28,18 @@ const RESULT_LINKS = [
 </script>
 
 <template>
-  <!-- ヘッダーはトップページと診断結果ページのみ。メニューの中身がいずれもページ内セクション
-       への移動なので、他ページでは出す意味がない。コンポーネント自体を生成しないことで、
+  <!-- ヘッダーはトップページ・診断結果ページ・到達度診断テストのみ。他のページ(登録・ログイン・
+       プラン・決済など)は1画面で完結する導線なので出さない。コンポーネント自体を生成しないことで、
        他ページではスクロール監視などの処理も走らない。
        診断結果ページはファーストビュー(ヒーロー)が縦に長く、開いた直後からヘッダーが被さると
        邪魔になるため hide-until-scrolled でスクロールするまで非表示にする(トップページは
        従来通り最上部でも透過状態で常時表示)。 -->
   <SiteHeader v-if="route.path === '/'" :links="HOME_LINKS" />
   <SiteHeader v-else-if="route.path === '/result'" :links="RESULT_LINKS" hide-until-scrolled />
+  <!-- 到達度診断テスト(/test, /test/take)にも出す(2026-10-02: 受験中に他の画面へ移る手段が無かった)。
+       項目はトップページと同じ(トップの各セクションへ)。名前からマイページへも行ける。
+       ページ側は .paper-page--header で固定ヘッダーぶんの余白を取る。 -->
+  <SiteHeader v-else-if="route.path === '/test' || route.path.startsWith('/test/')" :links="HOME_LINKS" />
   <slot />
   <SiteFooter v-if="!footerless" />
   <LoadingOverlay />

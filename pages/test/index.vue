@@ -36,7 +36,7 @@ const CATEGORY_NAME: Record<string, string> = { thinking: '思考', action: '行
 </script>
 
 <template>
-  <div class="paper-page paper-page--focus">
+  <div class="paper-page paper-page--focus paper-page--header">
     <IconSprite />
     <div class="sheet">
       <div class="masthead masthead--plain">

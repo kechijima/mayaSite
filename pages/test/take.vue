@@ -100,7 +100,7 @@ const sealName = computed(() => (sealIndex.value === null ? '' : SEALS[sealIndex
 </script>
 
 <template>
-  <div class="paper-page paper-page--focus">
+  <div class="paper-page paper-page--focus paper-page--header">
     <IconSprite />
     <div class="sheet">
       <div class="masthead masthead--plain">
