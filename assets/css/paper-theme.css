@@ -55,6 +55,8 @@
 .paper-page--focus { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; justify-content: safe center; padding-bottom: 0; }
 .paper-page--focus > .sheet { width: 100%; padding-top: 20px; padding-bottom: 20px; }
 .paper-page--focus .masthead--plain { padding-top: 0; }
+/* 固定ヘッダー(SiteHeader)を出すページは、その高さぶん上に余白を取る(到達度診断テスト)。 */
+.paper-page--header.paper-page--focus > .sheet { padding-top: calc(var(--header-h) + 20px); }
 
 .sheet { position: relative; padding: 34px 20px 56px; max-width: 1180px; margin: 0 auto; }
 @media (min-width: 640px) { .sheet { padding: 40px 40px 64px; } }
