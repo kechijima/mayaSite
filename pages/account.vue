@@ -6,6 +6,8 @@ import { USER_STATUS_LABEL, userStatus } from '~/utils/userAdmin'
 import { cancelMockSubscription } from '~/utils/checkout'
 import { DEFAULT_GENDER, genderLabel, isGender, type Gender } from '~/utils/gender'
 
+definePageMeta({ middleware: 'member-auth' })
+
 // 紹介コードの後追い入力ページ。既に会員登録済みの人がチームとコードを入力すると、
 // そのチームに所属しチーム会員になる。新規登録と同時に入力する場合は pages/signup/referral.vue。
 // 2026-09-23: 「現在のプラン」の表示と「お支払いの管理」の導線を追加(決済フローの画面だけを

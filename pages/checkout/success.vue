@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { PLANS, formatYen, isValidOrder, readCheckoutParams } from '~/utils/checkout'
 
+definePageMeta({ middleware: 'member-auth' })
+
 // お支払い完了(Stripe の success_url 相当)。
 // 決済モックでは仮の決済画面が遷移前に解放を書いて refresh 済みなので、ここでは結果を表示する
 // だけ。Phase 2 では Stripe から戻ってきた時点でまだ Webhook が users/{uid} を更新していないことが
