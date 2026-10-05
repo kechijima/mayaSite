@@ -2,6 +2,8 @@
 import type { Firestore } from 'firebase/firestore'
 import { PLANS, applyMockPurchase, buildPlansLink, buildSuccessLink, formatYen, isValidOrder, readCheckoutParams } from '~/utils/checkout'
 
+definePageMeta({ middleware: 'member-auth' })
+
 // 【仮の決済画面】Stripe がホストする Checkout ページの置き換え。決済導入後は Stripe の
 // ページそのものに遷移するので、このファイルは削除する(utils/checkout.ts のコメント参照)。
 // カード入力欄は見た目だけで、何も検証せず、どこにも送らない。

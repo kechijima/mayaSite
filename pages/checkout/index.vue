@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { PLANS, buildPayLink, buildPlansLink, formatYen, isValidOrder, readCheckoutParams } from '~/utils/checkout'
 
+definePageMeta({ middleware: 'member-auth' })
+
 // 注文内容の確認(決済フローの1画面目)。/plans でプランを選ぶとここに来る。
 // 未ログインの場合、/plans は先に会員登録へ送り、登録後にこのページへ戻す(purchases は
 // ログイン必須 — Phase 2 の合意)。

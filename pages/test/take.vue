@@ -16,6 +16,8 @@ import { fetchAchievementTest, saveTestResult } from '~/utils/achievementTestRes
 import { diagnoseBirthdate } from '~/utils/mayaCalc'
 import { SEALS } from '~/utils/mayaData'
 
+definePageMeta({ middleware: 'member-auth' })
+
 // 到達度診断テストの受験画面。本人の太陽の紋章の 25 問をカテゴリごとに並べ、全問答えたら
 // 採点して users/{uid}/testResults に保存し、結果(総合点とカテゴリ別の割合)を出す。
 // 原本(Google フォーム)と同じく1画面に全問を並べる。途中でページを離れると記録は残らない。
