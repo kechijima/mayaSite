@@ -23,3 +23,6 @@ assets/images/male/*.png
 # 到達度診断テストの回答実例(Google フォームの回答そのまま)。回答者の実名・生年月日・メールが
 # 入っているので追跡しない。問題の原本(赤系/白系/青系/黄系.xlsx)は追跡する。
 docs/到達度診断テスト/赤系の結果.xlsx
+
+# 操作マニュアルの PDF を作る途中で出る HTML(docs/manual/build.mjs が毎回作り直す)。
+docs/manual/html/
