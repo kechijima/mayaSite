@@ -1023,7 +1023,8 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .testhistory li { display: flex; gap: 12px; }
 .testhistory__total { margin-left: auto; color: var(--ink); }
 
-/* 受験画面。カテゴリごとに1枚の panel、各問は文 + 3択のボタン。 */
+/* 受験画面。25問を1枚の panel にランダムな順で並べ、各問は文 + 3択のボタン。
+   .survey__title / .survey__desc はカテゴリ見出しを出していた頃のもの(2026-10-07 まで)。 */
 .survey__title { margin: 0; font-size: 16px; font-weight: 700; color: var(--ink); }
 .survey__desc { margin: 4px 0 14px; font-size: 12.5px; line-height: 1.8; color: var(--ink-soft); }
 .survey__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
