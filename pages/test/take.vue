@@ -18,9 +18,12 @@ import { SEALS } from '~/utils/mayaData'
 
 definePageMeta({ middleware: 'member-auth' })
 
-// 到達度診断テストの受験画面。本人の太陽の紋章の 25 問をカテゴリごとに並べ、全問答えたら
+// 到達度診断テストの受験画面。本人の太陽の紋章の 25 問を1画面に並べ、全問答えたら
 // 採点して users/{uid}/testResults に保存し、結果(総合点とカテゴリ別の割合)を出す。
-// 原本(Google フォーム)と同じく1画面に全問を並べる。途中でページを離れると記録は残らない。
+// 途中でページを離れると記録は残らない。
+// 2026-10-07: 出題はカテゴリ見出しを出さず、受けるたびに 25 問をランダムな順に並べる(要望)。
+// 並べ替えるのは表示だけで、answers は元の flattenQuestions() の添字(q.index)で持ち、保存も
+// その順のまま — 採点・保存形式・管理画面の答案表示は変わらない。
 const { access, user, profile, loginLink, accountLink } = useTestAccess()
 const { withLoading } = useGlobalLoading()
 
@@ -43,8 +46,21 @@ const saved = ref(false)
 const showUnanswered = ref(false)
 
 const flat = computed(() => (test.value ? flattenQuestions(test.value) : []))
+// 表示順。flat の添字の並べ替えで、問題の読み込み時と「もう一度受ける」のたびに作り直す。
+const order = ref<number[]>([])
+const shuffled = computed(() => order.value.map((i) => flat.value[i]).filter(Boolean))
 const answeredCount = computed(() => Object.keys(answers.value).length)
-const firstUnanswered = computed(() => flat.value.find((q) => !answers.value[q.index])?.index ?? null)
+// 未回答の案内は画面の上から順に探す(表示順の最初の未回答へスクロールする)。
+const firstUnanswered = computed(() => shuffled.value.find((q) => !answers.value[q.index])?.index ?? null)
+
+function shuffleOrder() {
+  const idx = flat.value.map((_, i) => i)
+  for (let i = idx.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[idx[i], idx[j]] = [idx[j], idx[i]]
+  }
+  order.value = idx
+}
 
 watch(
   [access, sealIndex],
@@ -55,6 +71,7 @@ watch(
       const { $firestore } = useNuxtApp()
       const doc = await withLoading(() => fetchAchievementTest($firestore as Firestore, s))
       test.value = doc
+      shuffleOrder()
       loadState.value = doc ? 'ready' : 'missing'
     } catch {
       loadState.value = 'error'
@@ -90,6 +107,7 @@ async function submit() {
 }
 
 function retry() {
+  shuffleOrder()
   answers.value = {}
   result.value = null
   saved.value = false
@@ -154,18 +172,17 @@ const sealName = computed(() => (sealIndex.value === null ? '' : SEALS[sealIndex
 
           <!-- 出題 -->
           <form v-else-if="test" class="space-y-4" @submit.prevent="submit">
-            <section v-for="category in test.categories" :key="category.key" class="panel survey">
-              <h2 class="survey__title">{{ category.name }}</h2>
-              <p class="survey__desc">{{ category.description }}</p>
+            <!-- カテゴリ見出しは出さず、ランダムな順の 25 問を1枚に並べる。番号は表示順。 -->
+            <section class="panel survey">
               <ol class="survey__list">
                 <li
-                  v-for="q in flat.filter((f) => f.category === category)"
+                  v-for="(q, pos) in shuffled"
                   :id="`q-${q.index}`"
                   :key="q.index"
                   class="survey__item"
                   :class="{ 'is-missing': showUnanswered && !answers[q.index] }"
                 >
-                  <p class="survey__q"><span class="survey__num">{{ q.index + 1 }}</span>{{ q.question.text }}</p>
+                  <p class="survey__q"><span class="survey__num">{{ pos + 1 }}</span>{{ q.question.text }}</p>
                   <div class="survey__choices" role="radiogroup">
                     <button
                       v-for="a in TEST_ANSWERS"

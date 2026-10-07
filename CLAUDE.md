@@ -349,7 +349,10 @@ statements for **their own 太陽の紋章** (sun seal only, agreed 2026-09-29; 
 Entry points: the site header's 到達度診断テスト link and マイページ (`/account`), both shown only while `entitled` →
 [pages/test/index.vue](pages/test/index.vue)
 (sun seal + latest result with bars + history) → [pages/test/take.vue](pages/test/take.vue) (all 25 statements on one
-page grouped by category, like the original Google Form; unanswered ones are highlighted on submit; result screen).
+page; unanswered ones are highlighted on submit; result screen). Since 2026-10-07 (on request) the statements are shown
+**without category headings, in a random order reshuffled on every attempt** (`shuffleOrder()`); only the display is
+shuffled — `answers` stays keyed by the `flattenQuestions()` index, so scoring, the stored `answers[25]` order and the
+admin answer sheet are unchanged, and the result screen still shows the per-category bars.
 
 - **Format** (mirrors the workbook exactly): 5 categories 思考/行動/人間関係/信念/スキル × 5 statements; three answers
   そう思う/どちらでもない/思わない; each statement has `scores: [4,2,0]` or `[0,2,4]` (the seal-typical answer scores 4).
