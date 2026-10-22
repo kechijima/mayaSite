@@ -45,8 +45,8 @@
     "firebase": "^11.3.1",
     "firebase-admin": "^14.2.0",
     "html-to-image": "^1.11.13",
-    "nuxt": "^3.21.9",
-    "vue": "^3.5.13",
+    "nuxt": "^3.21.11",
+    "vue": "^3.5.44",
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
