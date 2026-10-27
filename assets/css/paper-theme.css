@@ -1046,3 +1046,59 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .survey__choice:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .survey__submit { padding: 4px 0 0; text-align: center; }
 .survey__count { margin: 0 0 8px; font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+
+/* 結果画面(components/TestResultSheet.vue、2026-10-27)。手書きのレイアウト案どおり、PC は
+   左列(キャラ全身像 → 段階)/右列(合計・カテゴリ → フィードバック)、下にカード3枚。
+   スマホは1列で キャラ → 合計 → 段階 → フィードバック → カード。 */
+.testresult { display: grid; gap: 16px; grid-template-columns: 1fr; grid-template-areas: "art" "score" "bands" "feedback" "cta"; }
+.testresult__art { grid-area: art; margin: 0; display: flex; flex-direction: column; align-items: center; }
+.testresult__art img { width: min(240px, 62vw); aspect-ratio: 640 / 925; object-fit: contain; display: block; }
+.testresult__art figcaption { margin-top: 4px; font-family: "Shippori Mincho", serif; font-size: 17px; letter-spacing: .08em; color: var(--gold-deep); }
+.testresult__score { grid-area: score; }
+.testresult__bands { grid-area: bands; padding: 18px; }
+.testresult__feedback { grid-area: feedback; padding: 18px; }
+.testresult__cta { grid-area: cta; margin-top: 8px; text-align: center; }
+@media (min-width: 768px) {
+  .testresult { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); grid-template-areas: "art score" "bands feedback" "cta cta"; align-items: start; gap: 20px 24px; }
+  .testresult__art { align-self: end; }
+  .testresult__art img { width: min(100%, 280px); }
+  /* フィードバックが無い紋章では右下が空くので、段階の枠を横いっぱいに使う */
+  .testresult:not(:has(.testresult__feedback)) .testresult__bands { grid-column: 1 / -1; }
+}
+.testresult__total { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--gold-line-soft); }
+.testresult__totallabel { font-family: "Cormorant Garamond", serif; font-size: 15px; font-weight: 700; letter-spacing: .3em; color: var(--gold-deep); }
+.testresult__total p { margin: 0; font-family: "Shippori Mincho", serif; color: var(--gold-deep); line-height: 1; }
+.testresult__total strong { font-size: 52px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.testresult__total small { margin-left: 2px; font-size: 18px; }
+.testresult__score .testscore__meta { text-align: right; line-height: 1.7; }
+
+.testbands { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.testbands li { display: grid; grid-template-columns: 6.2em 1fr auto; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--gold-line-soft); border-radius: 8px; font-size: 12.5px; color: var(--ink-faint); }
+.testbands__range { font-variant-numeric: tabular-nums; }
+.testbands li.is-current { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 12%, var(--paper-panel)); color: var(--ink); font-weight: 700; }
+.testbands li.is-current .testbands__range { color: var(--gold-deep); }
+.testbands__you { padding: 2px 9px; border-radius: 999px; background: var(--gold-deep); color: #fffaf0; font-size: 10.5px; letter-spacing: .1em; }
+.testbands__message { margin: 12px 0 0; font-size: 13px; line-height: 1.85; color: var(--ink); }
+
+.testfeedback { margin: 0; display: grid; gap: 14px; }
+.testfeedback > div + div { padding-top: 14px; border-top: 1px solid var(--gold-line-soft); }
+.testfeedback dt { display: flex; align-items: baseline; gap: 8px; font-size: 14px; font-weight: 700; color: var(--gold-deep); }
+.testfeedback dt span { font-size: 12px; font-weight: 400; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.testfeedback dd { margin: 4px 0 0; font-size: 13.5px; line-height: 1.9; color: var(--ink); }
+
+.testcta__lead { margin: 0; font-family: "Shippori Mincho", serif; font-size: 19px; font-weight: 600; letter-spacing: .04em; color: var(--gold-deep); }
+.testcta__sub { margin: 6px 0 16px; font-size: 12.5px; color: var(--ink-soft); }
+.testcta__cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: 1fr; }
+@media (min-width: 640px) { .testcta__cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.testcta__card { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 10px; min-height: 150px; padding: 26px 16px 18px; border: 1px solid var(--gold-line); border-radius: 14px; background: radial-gradient(140% 120% at 50% 0%, color-mix(in srgb, var(--gold) 10%, var(--paper-panel)) 0%, var(--paper-panel) 70%); box-shadow: var(--shadow); }
+.testcta__card .btn-gold { width: 100%; padding: 12px 16px; font-size: 14px; }
+.testcta__card.is-soon { border-style: dashed; background: var(--paper-panel-2); box-shadow: none; }
+.testcta__soon { position: absolute; top: -11px; left: 50%; transform: translateX(-50%); padding: 3px 14px; border-radius: 999px; background: var(--ink-soft); color: #fffaf0; font-family: "Cormorant Garamond", serif; font-size: 13px; font-weight: 700; letter-spacing: .12em; white-space: nowrap; }
+.testcta__name { margin: 0; font-size: 16px; font-weight: 700; line-height: 1.5; color: var(--ink); }
+.testcta__card.is-soon .testcta__name { color: var(--ink-soft); }
+.testcta__price { margin: 0; font-family: "Shippori Mincho", serif; font-size: 22px; font-variant-numeric: tabular-nums; color: var(--gold-deep); }
+.testcta__disabled { font-size: 12px; color: var(--ink-faint); }
+/* /test の履歴の行は、その回の結果ページへのリンク */
+.testhistory a { display: flex; gap: 12px; width: 100%; color: inherit; text-decoration: none; }
+.testhistory a:hover { color: var(--gold-deep); }
+.testcta__price small { margin-left: 2px; font-family: inherit; font-size: 11px; color: var(--ink-faint); }

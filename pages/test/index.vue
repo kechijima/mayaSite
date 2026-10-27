@@ -81,12 +81,16 @@ const CATEGORY_NAME: Record<string, string> = { thinking: '思考', action: '行
                     <span class="testbars__value">{{ Math.round((latest.categoryScores[key] / CATEGORY_MAX_SCORE) * 100) }}%</span>
                   </li>
                 </ul>
+                <NuxtLink :to="`/test/result/${latest.id}`" class="btn-outline mt-4 w-full">結果とフィードバックを見る</NuxtLink>
               </div>
+              <!-- 各行はその回の結果ページ(/test/result/[id])へのリンク -->
               <ul v-if="results.length > 1" class="testhistory">
                 <li v-for="r in results.slice(1)" :key="r.id">
-                  <span>{{ formatTestDateTime(r.takenAt) }}</span>
-                  <span>{{ r.sealName }}</span>
-                  <span class="testhistory__total">{{ r.total }}点</span>
+                  <NuxtLink :to="`/test/result/${r.id}`">
+                    <span>{{ formatTestDateTime(r.takenAt) }}</span>
+                    <span>{{ r.sealName }}</span>
+                    <span class="testhistory__total">{{ r.total }}点 ›</span>
+                  </NuxtLink>
                 </li>
               </ul>
             </template>

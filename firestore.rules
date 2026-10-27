@@ -233,11 +233,24 @@ service cloud.firestore {
     // 到達度診断テストの問題(紋章ごと 25 問。scripts/seedAchievementTests.ts が入れる)。
     // 講師の教材なので誰でも読める形にはせず、受けられる人(チーム会員・有料会員)と管理者だけに開ける。
     // 画面側の出し分け(composables/useTestAccess.ts)と同じ条件。
+    function canTakeTest() {
+      return request.auth != null
+        && userDoc().get('suspended', false) != true
+        && (userDoc().get('teamId', null) != null || userDoc().get('plan', 'free') == 'paid');
+    }
     match /achievementTests/{sealIndex} {
-      allow read: if isAdmin()
-        || (request.auth != null
-            && userDoc().get('suspended', false) != true
-            && (userDoc().get('teamId', null) != null || userDoc().get('plan', 'free') == 'paid'));
+      allow read: if isAdmin() || canTakeTest();
+      allow write: if isAdmin();
+    }
+    // 結果画面のフィードバック文(紋章ごと、カテゴリ × 4段階。scripts/seedAchievementFeedback.ts と
+    // /admin/tests/[sealIndex] が書く)と、段階の名前・一言・購入カードの表示設定(achievementTestSettings/display、
+    // /admin/test-settings が書く)。問題文と同じく講師の教材なので、受けられる人と管理者だけが読める(2026-10-27)。
+    match /achievementFeedback/{sealIndex} {
+      allow read: if isAdmin() || canTakeTest();
+      allow write: if isAdmin();
+    }
+    match /achievementTestSettings/{docId} {
+      allow read: if isAdmin() || canTakeTest();
       allow write: if isAdmin();
     }
     match /diagnosisHistory/{docId} {

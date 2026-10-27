@@ -20,6 +20,8 @@
     "seed:celebrities:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/seedCelebrities.ts",
     "seed:tests": "tsx --env-file=.env scripts/seedAchievementTests.ts",
     "seed:tests:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/seedAchievementTests.ts",
+    "seed:feedback": "tsx --env-file=.env scripts/seedAchievementFeedback.ts",
+    "seed:feedback:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/seedAchievementFeedback.ts",
     "cleanup:legacy-content": "tsx --env-file=.env scripts/deleteLegacyContent.ts",
     "cleanup:legacy-content:emulator": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 tsx scripts/deleteLegacyContent.ts",
     "backfill:caution-split": "tsx --env-file=.env scripts/backfillCautionSplit.ts",

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { doc, getDoc, serverTimestamp, setDoc, type Firestore } from 'firebase/firestore'
+import { doc, getDoc, serverTimestamp, writeBatch, type Firestore } from 'firebase/firestore'
 import { QUESTIONS_PER_CATEGORY, TEST_CATEGORY_KEYS, type AchievementTestDoc, type TestCategory, type TestCategoryKey } from '~/utils/achievementTest'
+import { TEST_BAND_RANGE, TEST_CATEGORY_LABEL, normalizeFeedback, type FeedbackTexts } from '~/utils/achievementTestFeedback'
 import { SEALS } from '~/utils/mayaData'
 
 definePageMeta({ layout: 'admin' })
@@ -11,6 +12,10 @@ definePageMeta({ layout: 'admin' })
 // 採点(utils/achievementTest.ts)と rules の answers.size() == 25 がその前提のため。
 // 問題文はドキュメントにだけあり、受験結果には保存していない。ここで文を直すと、管理画面の
 // 過去の答案にも直した後の文が出る(回答と点数は当時のまま)。
+//
+// 2026-10-27: 結果画面のフィードバック文(achievementFeedback/{sealIndex}、カテゴリ × 4段階)も同じ画面で直す。
+// 保存は問題と同じ「保存する」で、2つのドキュメントを writeBatch でまとめて書く。文は空でもよい(空の段階は
+// 結果画面に出ないだけ)。
 
 const route = useRoute()
 const sealIndex = Number(route.params.sealIndex)
@@ -38,6 +43,7 @@ interface DraftCategory {
 }
 
 const categories = ref<DraftCategory[]>([])
+const feedback = ref<FeedbackTexts>(normalizeFeedback(null))
 const loading = ref(true)
 useLoadingWhile('admin-test-edit', () => loading.value)
 const isNew = ref(false)
@@ -81,7 +87,11 @@ onMounted(async () => {
   }
   try {
     const { $firestore } = useNuxtApp()
-    const snap = await getDoc(doc($firestore as Firestore, 'achievementTests', String(sealIndex)))
+    const [snap, feedbackSnap] = await Promise.all([
+      getDoc(doc($firestore as Firestore, 'achievementTests', String(sealIndex))),
+      getDoc(doc($firestore as Firestore, 'achievementFeedback', String(sealIndex)))
+    ])
+    feedback.value = normalizeFeedback(feedbackSnap.exists() ? feedbackSnap.data().feedback : null)
     if (snap.exists()) {
       categories.value = toDraft(snap.data() as AchievementTestDoc)
     } else {
@@ -117,7 +127,12 @@ async function save() {
   saving.value = true
   try {
     const { $firestore } = useNuxtApp()
-    await withLoading(() => setDoc(doc($firestore as Firestore, 'achievementTests', String(sealIndex)), { ...toDoc(), updatedAt: serverTimestamp() }))
+    const firestore = $firestore as Firestore
+    const batch = writeBatch(firestore)
+    batch.set(doc(firestore, 'achievementTests', String(sealIndex)), { ...toDoc(), updatedAt: serverTimestamp() })
+    const trimmed = Object.fromEntries(Object.entries(feedback.value).map(([k, list]) => [k, list.map((t) => t.trim())]))
+    batch.set(doc(firestore, 'achievementFeedback', String(sealIndex)), { sealIndex, sealName, feedback: trimmed, updatedAt: serverTimestamp() })
+    await withLoading(() => batch.commit())
     isNew.value = false
     saved.value = true
   } catch (err) {
@@ -202,12 +217,37 @@ async function save() {
           </ol>
         </div>
 
+        <!-- 結果画面のフィードバック文。カテゴリごとに、そのカテゴリの％が入る段階の文が出る。 -->
+        <div class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5.5 dark:border-slate-800 dark:bg-slate-900">
+          <div class="mb-4">
+            <p class="text-sm font-bold">結果画面のフィードバック文</p>
+            <span class="text-xs text-slate-500 dark:text-slate-400">
+              カテゴリごとに、そのカテゴリの％（5問の点数 ÷ 20点）が入る段階の文が結果画面に出ます。空欄の段階は表示されません。
+            </span>
+          </div>
+          <div class="space-y-5">
+            <div v-for="key in TEST_CATEGORY_KEYS" :key="key">
+              <p class="mb-2 text-[13px] font-bold text-brass-700 dark:text-gold-300">{{ TEST_CATEGORY_LABEL[key] }}</p>
+              <div class="grid gap-2 lg:grid-cols-2">
+                <label v-for="(range, bi) in TEST_BAND_RANGE" :key="range" class="flex flex-col gap-1">
+                  <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">{{ range }}</span>
+                  <textarea
+                    v-model="feedback[key][bi]"
+                    rows="4"
+                    class="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-[13px] leading-relaxed dark:border-slate-800 dark:bg-slate-900"
+                  ></textarea>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5.5 dark:border-slate-800 dark:bg-slate-900">
           <div v-if="saveError" class="mb-3 text-xs font-semibold text-red-600 dark:text-red-400">{{ saveError }}</div>
           <div v-if="saved" class="mb-3 text-xs font-semibold text-emerald-600 dark:text-emerald-400">保存しました。</div>
           <div class="flex flex-wrap items-center justify-between gap-3">
             <p class="text-[12px] text-slate-500 dark:text-slate-400">
-              保存すると、次に受ける人からこの内容で出題されます。過去の受験結果の点数は変わりません。
+              保存すると、次に受ける人からこの内容で出題されます。過去の受験結果の点数は変わりません。フィードバック文は過去の結果を開いたときも新しい文で表示されます。
             </p>
             <div class="ml-auto flex gap-2">
               <NuxtLink to="/admin/tests" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold dark:border-slate-700">キャンセル</NuxtLink>
