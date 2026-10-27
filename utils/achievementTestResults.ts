@@ -23,6 +23,12 @@ import {
   type TestResultDoc,
   type TestScore
 } from '~/utils/achievementTest'
+import {
+  normalizeDisplaySettings,
+  normalizeFeedback,
+  type FeedbackTexts,
+  type TestDisplaySettings
+} from '~/utils/achievementTestFeedback'
 
 // 到達度診断テストの問題の取得と、結果の読み書き。
 // 問題: achievementTests/{sealIndex}(チーム会員と管理者だけ読める)。
@@ -32,6 +38,18 @@ import {
 export async function fetchAchievementTest(firestore: Firestore, sealIndex: number): Promise<AchievementTestDoc | null> {
   const snap = await getDoc(doc(firestore, 'achievementTests', String(sealIndex)))
   return snap.exists() ? (snap.data() as AchievementTestDoc) : null
+}
+
+// 結果画面のフィードバック文(achievementFeedback/{sealIndex})。無ければ全部空の 5 × 4。
+export async function fetchAchievementFeedback(firestore: Firestore, sealIndex: number): Promise<FeedbackTexts> {
+  const snap = await getDoc(doc(firestore, 'achievementFeedback', String(sealIndex)))
+  return normalizeFeedback(snap.exists() ? (snap.data().feedback as Record<string, unknown>) : null)
+}
+
+// 結果画面の段階の名前・一言と購入カード(achievementTestSettings/display)。無い項目は既定値。
+export async function fetchTestDisplaySettings(firestore: Firestore): Promise<TestDisplaySettings> {
+  const snap = await getDoc(doc(firestore, 'achievementTestSettings', 'display'))
+  return normalizeDisplaySettings(snap.exists() ? (snap.data() as Partial<TestDisplaySettings>) : null)
 }
 
 export interface TestResultRow extends Omit<TestResultDoc, 'takenAt'> {
@@ -68,6 +86,14 @@ export async function fetchTestResults(firestore: Firestore, uid: string): Promi
       const data = d.data() as TestResultDoc
       return { ...data, id: d.id, takenAt: (data.takenAt as Timestamp | undefined) ?? null }
     })
+}
+
+// 1回ぶんの結果(/test/result/[id])。本人のものしか読めない(firestore.rules)。
+export async function fetchTestResult(firestore: Firestore, uid: string, id: string): Promise<TestResultRow | null> {
+  const snap = await getDoc(doc(firestore, 'users', uid, 'testResults', id))
+  if (!snap.exists() || typeof snap.data().sealIndex !== 'number') return null
+  const data = snap.data() as TestResultDoc
+  return { ...data, id: snap.id, takenAt: (data.takenAt as Timestamp | undefined) ?? null }
 }
 
 // ---- 管理画面 /admin/test-history: 全会員の受験履歴を横断して新しい順に ----

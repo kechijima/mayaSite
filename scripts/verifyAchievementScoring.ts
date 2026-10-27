@@ -6,6 +6,8 @@
 //   - 「どちらでもない」が 5 つ以上のときだけ、その個数ぶん −1 点(4 つ以下は減点なし)
 //   - 総合点 = 合計 + 減点。0 未満にはしない
 import { ACHIEVEMENT_TEST_SEED } from './achievementTests.data'
+import { bandIndexFor, categoryPercent, normalizeDisplaySettings, normalizeFeedback } from '../utils/achievementTestFeedback'
+import { ACHIEVEMENT_FEEDBACK_SEED } from './achievementFeedback.data'
 import { NEUTRAL_PENALTY_THRESHOLD, flattenQuestions, scoreTest, type AchievementTestDoc, type TestAnswer } from '../utils/achievementTest'
 
 let passed = 0
@@ -61,6 +63,23 @@ check('全 20 紋章の配点が [4,2,0] か [0,2,4]',
     const s = q.question.scores.join(',')
     return s === '4,2,0' || s === '0,2,4'
   })))
+
+// 結果画面の段階(71％以上 / 51〜70％ / 31〜50％ / 30％以下)。境目の値がどちらに入るか。
+{
+  const cases: [number, number][] = [[100, 0], [71, 0], [70, 1], [51, 1], [50, 2], [31, 2], [30, 3], [0, 3]]
+  check('合計点の段階の境目(71 / 51 / 31 を含む側が上)', cases.every(([p, b]) => bandIndexFor(p) === b),
+    cases.map(([p]) => `${p}→${bandIndexFor(p)}`).join(' '))
+  // カテゴリは 20 点満点で 2 点刻み → 10％刻み。14 点 = 70％ は 51〜70％、16 点 = 80％ から 71％以上。
+  const cat: [number, number][] = [[20, 0], [16, 0], [14, 1], [12, 1], [10, 2], [8, 2], [6, 3], [0, 3]]
+  check('カテゴリの段階(16点以上 / 12・14点 / 8・10点 / 6点以下)', cat.every(([score, b]) => bandIndexFor(categoryPercent(score)) === b),
+    cat.map(([score]) => `${score}点=${categoryPercent(score)}%→${bandIndexFor(categoryPercent(score))}`).join(' '))
+}
+check('フィードバック文が無くても 5 カテゴリ × 4 段階の空欄で埋まる',
+  Object.values(normalizeFeedback(null)).every((l) => l.length === 4 && l.every((t) => t === '')))
+check('表示設定が無くても段階4つ・カード3枚の既定値になる',
+  (() => { const d = normalizeDisplaySettings(null); return d.bands.length === 4 && d.products.length === 3 })())
+check('フィードバック文の初稿は紋章ごとに 5 カテゴリ × 4 本で空欄なし',
+  ACHIEVEMENT_FEEDBACK_SEED.every((f) => Object.values(f.feedback).length === 5 && Object.values(f.feedback).every((l) => l.length === 4 && l.every((t) => t.trim()))))
 
 console.log(`\n${failed === 0 ? '\x1b[32m' : '\x1b[31m'}${passed} passed, ${failed} failed\x1b[0m\n`)
 process.exit(failed === 0 ? 0 : 1)

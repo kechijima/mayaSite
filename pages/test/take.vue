@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import type { Firestore } from 'firebase/firestore'
 import {
-  CATEGORY_MAX_SCORE,
-  NEUTRAL_PENALTY_THRESHOLD,
   TEST_ANSWERS,
   TEST_ANSWER_LABEL,
-  TEST_MAX_SCORE,
   flattenQuestions,
   scoreTest,
   type AchievementTestDoc,
   type TestAnswer,
+  type TestCategoryKey,
   type TestScore
 } from '~/utils/achievementTest'
 import { fetchAchievementTest, saveTestResult } from '~/utils/achievementTestResults'
@@ -116,6 +114,12 @@ function retry() {
   window.scrollTo({ top: 0 })
 }
 
+const resultCategoryScores = computed(() => {
+  const out = {} as Record<TestCategoryKey, number>
+  for (const c of result.value?.categories ?? []) out[c.key] = c.score
+  return out
+})
+
 const sealName = computed(() => (sealIndex.value === null ? '' : SEALS[sealIndex.value].name))
 </script>
 
@@ -129,7 +133,7 @@ const sealName = computed(() => (sealIndex.value === null ? '' : SEALS[sealIndex
         <p v-if="sealName" class="masthead__sub"><strong>{{ sealName }}</strong><template v-if="!result">　それぞれの文について、自分にあてはまるものを選んでください。</template></p>
       </div>
 
-      <div class="mx-auto mt-8 max-w-[620px] space-y-4">
+      <div class="mx-auto mt-8 space-y-4" :class="result ? 'max-w-[920px]' : 'max-w-[620px]'">
         <TestAccessNotice :access="access" :login-link="loginLink" :account-link="accountLink" />
 
         <template v-if="access === 'ok'">
@@ -146,28 +150,23 @@ const sealName = computed(() => (sealIndex.value === null ? '' : SEALS[sealIndex
             <p class="notice">問題を読み込めませんでした。時間をおいて再度お試しください。</p>
           </section>
 
-          <!-- 結果 -->
+          <!-- 結果(components/TestResultSheet.vue。/test/result/[id] と同じ見た目) -->
           <template v-else-if="result">
-            <section class="panel panel--plan text-center">
-              <p class="formlabel">結果</p>
-              <p class="testscore__total"><strong>{{ result.total }}</strong><small>／{{ TEST_MAX_SCORE }}点</small></p>
-              <p class="testscore__meta">
-                25問の合計 {{ result.rawTotal }}点<template v-if="result.penalty">、「どちらでもない」{{ result.neutralCount }}つで {{ result.penalty }}点</template><template v-else-if="result.neutralCount">、「どちらでもない」{{ result.neutralCount }}つ（{{ NEUTRAL_PENALTY_THRESHOLD }}つ未満なので減点なし）</template>
-              </p>
-              <ul class="testbars mt-4 text-left">
-                <li v-for="c in result.categories" :key="c.key">
-                  <span class="testbars__label">{{ c.name }}</span>
-                  <span class="testbars__track"><i :style="{ width: `${(c.score / c.max) * 100}%` }" /></span>
-                  <span class="testbars__value">{{ Math.round((c.score / c.max) * 100) }}%</span>
-                </li>
-              </ul>
-              <p v-if="saved" class="mt-4 text-[12px]" style="color: var(--ink-faint);">結果を記録しました。</p>
-              <p v-else-if="saveError" class="notice mt-4">{{ saveError }}</p>
-              <div class="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-center">
-                <button type="button" class="btn-gold" @click="retry">もう一度受ける</button>
-                <NuxtLink to="/test" class="btn-outline">結果一覧へ</NuxtLink>
-              </div>
-            </section>
+            <TestResultSheet
+              :seal-index="sealIndex"
+              :seal-name="sealName"
+              :gender="profile?.gender"
+              :total="result.total"
+              :category-scores="resultCategoryScores"
+              :neutral-count="result.neutralCount"
+              :penalty="result.penalty"
+            />
+            <p v-if="saved" class="text-center text-[12px]" style="color: var(--ink-faint);">結果を記録しました。</p>
+            <p v-else-if="saveError" class="notice">{{ saveError }}</p>
+            <div class="flex flex-col gap-2 sm:flex-row sm:justify-center">
+              <button type="button" class="btn-gold" @click="retry">もう一度受ける</button>
+              <NuxtLink to="/test" class="btn-outline">結果一覧へ</NuxtLink>
+            </div>
           </template>
 
           <!-- 出題 -->
