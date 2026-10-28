@@ -3,7 +3,7 @@ import { TEST_CATEGORY_KEYS } from '~/utils/achievementTest'
 import { TEST_BAND_RANGE, TEST_CATEGORY_LABEL, type FeedbackTexts } from '~/utils/achievementTestFeedback'
 
 // 1紋章ぶんのフィードバック文(5カテゴリ × 4段階)の入力欄。読み込み・保存は呼び出し側。
-// /admin/tests の「結果表示 › 紋章ごと」(2ペイン)と /admin/tests/[sealIndex] の「結果表示」タブで共用。
+// /admin/tests の「結果表示 › 紋章ごと」で紋章を開いたときの編集(components/AdminFeedbackEditor.vue)で使う。
 defineProps<{ feedback: FeedbackTexts }>()
 </script>
 

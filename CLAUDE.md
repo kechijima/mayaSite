@@ -376,7 +376,7 @@ admin answer sheet are unchanged, and the result screen still shows the per-cate
   ends with 「。」; スキル had no category description in the source, so one was written in the same style. Non-★ sheets
   (赤系 Sheet1 / 「赤い竜 (2)」, 黄系 Sheet9) are work notes and ignored; the A1 titles are copy-paste leftovers, sheet
   names are authoritative. **Admin editing**: [pages/admin/tests/index.vue](pages/admin/tests/index.vue) (20 seals, question
-  count, updated date) → [pages/admin/tests/[sealIndex].vue](pages/admin/tests/%5BsealIndex%5D.vue) edits the category
+  count, updated date) → [components/AdminTestQuestionsEditor.vue](components/AdminTestQuestionsEditor.vue) edits the category
   descriptions, the 25 statement texts and each statement's scoring direction (「そう思う」が4点 / 「思わない」が4点 — the
   only two shapes the data has), then `setDoc`s the whole document. The 5×5×3 structure is fixed in the UI on purpose:
   `scoreTest()` and the rules' `answers.size() == 25` assume it. Because `seed:tests` skips existing docs, admin edits
@@ -412,7 +412,7 @@ admin answer sheet are unchanged, and the result screen still shows the per-cate
   [utils/achievementTestFeedback.ts](utils/achievementTestFeedback.ts)) and apply to the total *and* each category; category ％ is
   score ÷ 20 so it moves in 10％ steps (16pt+ / 12–14 / 8–10 / ≤6). **Feedback text** is per seal × category × band (400 texts) in
   `achievementFeedback/{sealIndex}` (`{ feedback: { thinking: [4 texts in band order], … } }`), edited on
-  `/admin/tests/[sealIndex]`'s 結果表示 tab and saved in the same `writeBatch` as the questions; empty texts are just not shown. The first
+  `/admin/tests?tab=result&sub=seal&seal=N` (see "Admin layout" below); empty texts are just not shown. The first
   drafts were written by Claude from each seal's statements (`scripts/achievementFeedback.data.ts`, `npm run seed:feedback[:emulator]`,
   skips docs that already have text, `--force` overwrites admin edits). **Band names/messages and the purchase cards** (ベーシック /
   オラクル / 攻略ガイド: name, tax-included price as a number, external URL opened in a new tab — only http(s) accepted, Coming soon flag)
@@ -420,16 +420,19 @@ admin answer sheet are unchanged, and the result screen still shows the per-cate
   missing fields fall back to `DEFAULT_TEST_DISPLAY_SETTINGS`. The copy above the cards is fixed in the component (on request). Both
   collections use the same read rule as `achievementTests` (`canTakeTest()` in the rules: team/paid, not suspended) — they are the
   instructor's material too.
-- **Admin layout** (2026-10-28, on request): everything about the test lives under 到達度診断テスト管理, split by
-  [components/AdminTabs.vue](components/AdminTabs.vue) tabs (`?tab=result`, first tab has no query). `/admin/tests`: 出題文 = the
-  seal list; 結果表示 = a 共通設定 / 紋章ごと switch (`?sub=seal&seal=N`): the shared band/card settings, or a two-pane editor
-  ([components/AdminFeedbackBySeal.vue](components/AdminFeedbackBySeal.vue), 2026-10-28 — 20 seals with ○/20 on the left, that
-  seal's texts on the right, saved in place; a `<select>` replaces the left list below `lg`; leaving with unsaved edits asks
-  first via `confirm()` + route guards + `beforeunload`). The fields themselves are
-  [components/AdminFeedbackFields.vue](components/AdminFeedbackFields.vue), shared with the seal page. `/admin/tests/[sealIndex]`:
-  出題文 = questions; 結果表示 = that seal's 20 feedback texts; one 保存する saves both. `/admin/test-settings` only redirects to
-  `/admin/tests?tab=result` (it was a standalone page for one day). On both pages the title + tabs are `position: sticky` (same
-  recipe as `AdminSearchBar`: `top-14` under the phone top bar, `md:top-0`); the descriptions sit below them and scroll away.
+- **Admin layout** (2026-10-28, on request): everything about the test lives on one page, `/admin/tests`, under
+  [components/AdminTabs.vue](components/AdminTabs.vue) tabs 出題文 / 結果表示 (`?tab=result`). 結果表示 has a second switch
+  共通設定 / 紋章ごと (`?sub=seal`). 出題文 and 結果表示›紋章ごと show the **same seal table** (問題数 or feedback ○/20 + 更新日);
+  clicking a seal swaps the table for that seal's editor **in place** (`?seal=N`, no route change) —
+  [components/AdminTestQuestionsEditor.vue](components/AdminTestQuestionsEditor.vue) (saves `achievementTests/{N}`) or
+  [components/AdminFeedbackEditor.vue](components/AdminFeedbackEditor.vue) (saves `achievementFeedback/{N}`, fields in
+  [components/AdminFeedbackFields.vue](components/AdminFeedbackFields.vue)) — with ‹ 紋章一覧 / 前 / 次 in the sticky header and a
+  sticky [components/AdminSaveBar.vue](components/AdminSaveBar.vue). Each editor registers
+  [composables/useUnsavedGuard.ts](composables/useUnsavedGuard.ts): leaving with unsaved edits (query change, route change,
+  unload) asks `confirm()` first. 共通設定 is [components/AdminTestDisplaySettings.vue](components/AdminTestDisplaySettings.vue).
+  The title + tabs bar is `position: sticky` (same recipe as `AdminSearchBar`). `/admin/tests/[sealIndex]` and
+  `/admin/test-settings` only redirect (`?seal=N`, `?tab=result&sub=seal&seal=N`, `?tab=result`) — the layout went
+  separate page → two-pane → inline detail within one day.
 - `/test` and `/test/*` are footerless `.paper-page--focus` pages like `/plans`; [layouts/default.vue](layouts/default.vue)
   matches `/test/` by prefix. Styles are the `.testscore*` / `.testbars` / `.testhistory` / `.survey*` blocks at the end
   of [assets/css/paper-theme.css](assets/css/paper-theme.css).
