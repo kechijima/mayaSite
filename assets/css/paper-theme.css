@@ -1049,16 +1049,30 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 
 /* 結果画面(components/TestResultSheet.vue、2026-10-27)。手書きのレイアウト案どおり、PC は
    左列(キャラ全身像 → 段階)/右列(合計・カテゴリ → フィードバック)、下にカード3枚。
-   スマホは1列で キャラ → 合計 → 段階 → フィードバック → カード。 */
-.testresult { display: grid; gap: 16px; grid-template-columns: 1fr; grid-template-areas: "art" "score" "bands" "feedback" "cta"; }
+   スマホも上段だけは PC と同じく キャラ | 合計・カテゴリ の2列にし(2026-10-28 要望)、段階・フィードバック・
+   カードは横幅いっぱいに縦に積む。フィードバックまで2列にすると1行10字ほどになり読めないため。 */
+.testresult { display: grid; gap: 16px 10px; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); grid-template-areas: "art score" "bands bands" "feedback feedback" "cta cta"; align-items: center; }
 .testresult__art { grid-area: art; margin: 0; display: flex; flex-direction: column; align-items: center; }
-.testresult__art img { width: min(240px, 62vw); aspect-ratio: 640 / 925; object-fit: contain; display: block; }
-.testresult__art figcaption { margin-top: 4px; font-family: "Shippori Mincho", serif; font-size: 17px; letter-spacing: .08em; color: var(--gold-deep); }
+.testresult__art img { width: 100%; aspect-ratio: 640 / 925; object-fit: contain; display: block; }
+.testresult__art figcaption { margin-top: 4px; font-family: "Shippori Mincho", serif; font-size: 15px; letter-spacing: .08em; color: var(--gold-deep); }
 .testresult__score { grid-area: score; }
 .testresult__bands { grid-area: bands; padding: 18px; }
 .testresult__feedback { grid-area: feedback; padding: 18px; }
 .testresult__cta { grid-area: cta; margin-top: 8px; text-align: center; }
+/* スマホの右上は幅が 200px ほどしかないので、合計とバーを詰める */
+@media (max-width: 767px) {
+  .testresult__score { padding: 12px; }
+  .testresult__total { flex-direction: column; align-items: flex-start; gap: 2px; padding-bottom: 6px; }
+  .testresult__total p { align-self: flex-end; }
+  .testresult__total strong { font-size: 40px; }
+  .testresult__score .testscore__meta { font-size: 10.5px; }
+  .testresult__score .testbars { margin-top: 10px; gap: 7px; }
+  .testresult__score .testbars li { grid-template-columns: 4.2em 1fr 2.6em; gap: 6px; font-size: 11.5px; }
+  .testresult__score .testbars__track { height: 6px; }
+  .testresult__bands .testbands li { grid-template-columns: 5.2em 1fr auto; gap: 8px; padding: 8px 10px; }
+}
 @media (min-width: 768px) {
+  .testresult__art figcaption { font-size: 17px; }
   .testresult { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); grid-template-areas: "art score" "bands feedback" "cta cta"; align-items: start; gap: 20px 24px; }
   .testresult__art { align-self: end; }
   .testresult__art img { width: min(100%, 280px); }
