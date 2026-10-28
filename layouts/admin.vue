@@ -145,15 +145,17 @@ onBeforeUnmount(() => {
     />
 
     <!--
-      サイドバー。md 未満では fixed の左ドロワー(translate-x で出し入れ)、md 以上では従来どおり
-      flex の子として常設。md 以上で打ち消しているのはドロワー用の class だけなので、デスクトップの
-      見た目は変わらない。
+      サイドバー。md 未満では fixed の左ドロワー(translate-x で出し入れ)、md 以上では flex の子として常設。
+      md 以上は sticky + 画面の高さで固定し、本文だけがスクロールする(2026-10-28。それまでは static で、
+      長いページではサイドバーごと上へ流れ、ログアウトもページの最下部まで行かないと見えなかった)。
+      サイドバー自身の項目が画面に収まらないときは、サイドバーの中だけスクロールする(overflow-y-auto)。
+      sticky が効くのは html.admin-shell で overflow-x を clip にしているため(assets/css/main.css)。
     -->
     <aside
       id="admin-menu"
       ref="drawerEl"
       :inert="(!open && !isDesktop) || undefined"
-      class="fixed bottom-0 left-0 top-14 z-40 flex w-[216px] flex-none flex-col gap-1 overflow-y-auto border-r border-[#dde1de] bg-white p-3.5 transition-transform motion-reduce:transition-none md:static md:translate-x-0 md:overflow-visible md:shadow-none dark:border-[#2a3a32] dark:bg-[#16211c]"
+      class="fixed bottom-0 left-0 top-14 z-40 flex w-[216px] flex-none flex-col gap-1 overflow-y-auto border-r border-[#dde1de] bg-white p-3.5 transition-transform motion-reduce:transition-none md:sticky md:top-0 md:h-screen md:translate-x-0 md:self-start md:shadow-none dark:border-[#2a3a32] dark:bg-[#16211c]"
       :class="open ? 'translate-x-0 shadow-[18px_0_40px_-24px_rgba(0,0,0,.5)]' : '-translate-x-full'"
     >
       <div class="px-2.5 pb-4.5 pt-1 font-display text-base">
