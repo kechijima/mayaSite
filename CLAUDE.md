@@ -422,7 +422,11 @@ admin answer sheet are unchanged, and the result screen still shows the per-cate
   instructor's material too.
 - **Admin layout** (2026-10-28, on request): everything about the test lives under 到達度診断テスト管理, split by
   [components/AdminTabs.vue](components/AdminTabs.vue) tabs (`?tab=result`, first tab has no query). `/admin/tests`: 出題文 = the
-  seal list; 結果表示 = the shared band/card settings plus a seal list showing feedback filled ○/20. `/admin/tests/[sealIndex]`:
+  seal list; 結果表示 = a 共通設定 / 紋章ごと switch (`?sub=seal&seal=N`): the shared band/card settings, or a two-pane editor
+  ([components/AdminFeedbackBySeal.vue](components/AdminFeedbackBySeal.vue), 2026-10-28 — 20 seals with ○/20 on the left, that
+  seal's texts on the right, saved in place; a `<select>` replaces the left list below `lg`; leaving with unsaved edits asks
+  first via `confirm()` + route guards + `beforeunload`). The fields themselves are
+  [components/AdminFeedbackFields.vue](components/AdminFeedbackFields.vue), shared with the seal page. `/admin/tests/[sealIndex]`:
   出題文 = questions; 結果表示 = that seal's 20 feedback texts; one 保存する saves both. `/admin/test-settings` only redirects to
   `/admin/tests?tab=result` (it was a standalone page for one day). On both pages the title + tabs are `position: sticky` (same
   recipe as `AdminSearchBar`: `top-14` under the phone top bar, `md:top-0`); the descriptions sit below them and scroll away.
