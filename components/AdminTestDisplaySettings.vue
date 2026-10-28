@@ -13,7 +13,7 @@ import {
 // /admin/tests の「結果表示」タブに置く(2026-10-28 までは単独のページ /admin/test-settings だった)。
 //   - 段階(71％以上 / 51〜70％ / 31〜50％ / 30％以下)ごとの名前と一言。全紋章共通。区切りの値は固定。
 //   - 結果画面の下に出す購入カード3枚(ベーシック / オラクル / 攻略ガイド)の商品名・価格・リンク・Coming soon。
-// 紋章ごとのフィードバック文はここではなく /admin/tests/[sealIndex] の「結果表示」タブで編集する。
+// 紋章ごとのフィードバック文はここではなく、同じ「結果表示」タブの［紋章ごと］で編集する。
 // ドキュメントがまだ無いときは既定値(utils/achievementTestFeedback.ts)を出し、保存で作る。
 
 const settings = ref<TestDisplaySettings>(structuredClone(DEFAULT_TEST_DISPLAY_SETTINGS))
