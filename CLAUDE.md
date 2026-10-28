@@ -477,7 +477,8 @@ Tailwind `darkMode` is `'media'` (follows OS preference), not a manual toggle.
 
 **Admin on phones** (2026-09-23). [layouts/admin.vue](layouts/admin.vue) turns the sidebar into a left drawer below `md`
 (768px) with a hamburger top bar, mirroring `SiteHeader.vue`'s drawer (scrim, html+body scroll lock, Esc/route-change
-close). The same `<aside>` is the permanent sidebar from `md` up, so `inert` is applied only when "below md **and** closed"
+close). The same `<aside>` is the permanent sidebar from `md` up (`md:sticky md:top-0 md:h-screen` since 2026-10-28 — it used to be
+`static`, so on long pages it scrolled away together with the content and ログアウト sat at the very bottom of the page), so `inert` is applied only when "below md **and** closed"
 (via `matchMedia`) — copying SiteHeader's unconditional `!open` would freeze the desktop sidebar. Every admin list table
 is `hidden lg:block` with a `lg:hidden` card list beside it built from
 [components/AdminRecordCard.vue](components/AdminRecordCard.vue) (horizontal-scrolling tables were rejected as unreadable
