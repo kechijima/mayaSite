@@ -1047,8 +1047,8 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .survey__submit { padding: 4px 0 0; text-align: center; }
 .survey__count { margin: 0 0 8px; font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 
-/* 結果画面(components/TestResultSheet.vue、2026-10-27)。手書きのレイアウト案どおり、PC は
-   左列(キャラ全身像 → 段階)/右列(合計・カテゴリ → フィードバック)、下にカード3枚。
+/* 結果画面(components/TestResultSheet.vue、2026-10-27)。PC は左にキャラ全身像(2段ぶん)、右に合計・カテゴリ →
+   到達度(段階)、その下にフィードバックを横いっぱい、最後にカード3枚(2026-10-28 に到達度を右列へ移した)。
    スマホも上段だけは PC と同じく キャラ | 合計・カテゴリ の2列にし(2026-10-28 要望)、段階・フィードバック・
    カードは横幅いっぱいに縦に積む。フィードバックまで2列にすると1行10字ほどになり読めないため。 */
 .testresult { display: grid; gap: 16px 10px; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); grid-template-areas: "art score" "bands bands" "feedback feedback" "cta cta"; align-items: center; }
@@ -1073,11 +1073,10 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 }
 @media (min-width: 768px) {
   .testresult__art figcaption { font-size: 17px; }
-  .testresult { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); grid-template-areas: "art score" "bands feedback" "cta cta"; align-items: start; gap: 20px 24px; }
-  .testresult__art { align-self: end; }
-  .testresult__art img { width: min(100%, 280px); }
-  /* フィードバックが無い紋章では右下が空くので、段階の枠を横いっぱいに使う */
-  .testresult:not(:has(.testresult__feedback)) .testresult__bands { grid-column: 1 / -1; }
+  .testresult { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); grid-template-areas: "art score" "art bands" "feedback feedback" "cta cta"; align-items: start; gap: 20px 24px; }
+  .testresult__art { align-self: center; }
+  .testresult__art img { width: min(100%, 300px); }
+  .testresult__feedback { padding: 22px 26px; }
 }
 .testresult__total { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--gold-line-soft); }
 .testresult__totallabel { font-family: "Cormorant Garamond", serif; font-size: 15px; font-weight: 700; letter-spacing: .3em; color: var(--gold-deep); }

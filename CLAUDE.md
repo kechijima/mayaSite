@@ -405,9 +405,10 @@ admin answer sheet are unchanged, and the result screen still shows the per-cate
   default single-field indexes rather than adding to them.
 - **Result screen** (2026-10-27, from the client's hand-drawn layout): [components/TestResultSheet.vue](components/TestResultSheet.vue),
   shared by `/test/take` right after submitting and [pages/test/result/[id].vue](pages/test/result/%5Bid%5D.vue) (a past attempt,
-  linked from `/test`'s latest result and every history row). PC: sun-seal full-body cutout (member's gender) | TOTAL ％ + the
-  five category bars, then the 4 bands with the member's highlighted | the per-category feedback, then 3 purchase cards. Phone: one
-  column in that order. **Bands** are fixed at 71％以上 / 51〜70％ / 31〜50％ / 30％以下 (`bandIndexFor()` in
+  linked from `/test`'s latest result and every history row). PC: sun-seal full-body cutout (member's gender, spanning two rows) | TOTAL ％ + the
+  five category bars, then the 4 bands with the member's highlighted; below them the per-category feedback full width, then 3
+  purchase cards (bands moved to the right column 2026-10-28). Phone: the top row stays two columns (cutout | TOTAL + bars,
+  compacted), everything else full width. **Bands** are fixed at 71％以上 / 51〜70％ / 31〜50％ / 30％以下 (`bandIndexFor()` in
   [utils/achievementTestFeedback.ts](utils/achievementTestFeedback.ts)) and apply to the total *and* each category; category ％ is
   score ÷ 20 so it moves in 10％ steps (16pt+ / 12–14 / 8–10 / ≤6). **Feedback text** is per seal × category × band (400 texts) in
   `achievementFeedback/{sealIndex}` (`{ feedback: { thinking: [4 texts in band order], … } }`), edited on
