@@ -166,8 +166,12 @@ async function save() {
     <template v-else-if="loading" />
 
     <template v-else>
+      <!-- タイトルとタブはスクロールしても画面上部に固定する(2026-10-28) -->
+      <div class="sticky top-14 z-20 -mx-4 -mt-3 mb-3 bg-[#f4f5f3] px-4 pt-3 md:top-0 md:-mx-8 md:px-8 dark:bg-[#0e1512]">
+        <h1 class="mb-2 text-xl font-bold">編集：到達度診断テスト「{{ sealName }}」</h1>
+        <AdminTabs :tabs="TABS" class="!mb-0" />
+      </div>
       <div class="mb-4">
-        <h1 class="text-xl font-bold">編集：到達度診断テスト「{{ sealName }}」</h1>
         <span v-if="tab === 'result'" class="text-xs text-slate-500 dark:text-slate-400">
           結果画面で、カテゴリごとにそのカテゴリの％（5問の点数 ÷ 20点）が入る段階の文が表示されます。空欄の段階は表示されません。段階の名前と購入カードは一覧の「結果表示」タブで設定します。
         </span>
@@ -176,8 +180,6 @@ async function save() {
           <template v-if="isNew">この紋章の問題はまだ登録されていません。</template>
         </span>
       </div>
-
-      <AdminTabs :tabs="TABS" />
 
       <div class="space-y-4">
         <template v-if="tab === 'questions'">

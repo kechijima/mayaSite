@@ -84,15 +84,15 @@ function editLink(r: Row) {
 
 <template>
   <div>
-    <div class="mb-4">
-      <h1 class="text-xl font-bold">到達度診断テスト管理</h1>
-      <span class="text-xs text-slate-500 dark:text-slate-400">
-        <template v-if="tab === 'questions'">紋章ごとの自己診断(5カテゴリ × 5問)の問題文と配点を管理します</template>
-        <template v-else>結果画面に出す段階の名前・一言と購入カード(全紋章共通)、紋章ごとのフィードバック文を管理します</template>
-      </span>
+    <!-- タイトルとタブはスクロールしても画面上部に固定する(2026-10-28。AdminSearchBar と同じ sticky の作り) -->
+    <div class="sticky top-14 z-20 -mx-4 -mt-3 mb-3 bg-[#f4f5f3] px-4 pt-3 md:top-0 md:-mx-8 md:px-8 dark:bg-[#0e1512]">
+      <h1 class="mb-2 text-xl font-bold">到達度診断テスト管理</h1>
+      <AdminTabs :tabs="TABS" class="!mb-0" />
     </div>
-
-    <AdminTabs :tabs="TABS" />
+    <p class="mb-4 text-xs text-slate-500 dark:text-slate-400">
+      <template v-if="tab === 'questions'">紋章ごとの自己診断(5カテゴリ × 5問)の問題文と配点を管理します</template>
+      <template v-else>結果画面に出す段階の名前・一言と購入カード(全紋章共通)、紋章ごとのフィードバック文を管理します</template>
+    </p>
 
     <div v-if="loadError" class="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-2.5 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
       {{ loadError }}

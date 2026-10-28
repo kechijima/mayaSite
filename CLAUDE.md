@@ -424,7 +424,8 @@ admin answer sheet are unchanged, and the result screen still shows the per-cate
   [components/AdminTabs.vue](components/AdminTabs.vue) tabs (`?tab=result`, first tab has no query). `/admin/tests`: 出題文 = the
   seal list; 結果表示 = the shared band/card settings plus a seal list showing feedback filled ○/20. `/admin/tests/[sealIndex]`:
   出題文 = questions; 結果表示 = that seal's 20 feedback texts; one 保存する saves both. `/admin/test-settings` only redirects to
-  `/admin/tests?tab=result` (it was a standalone page for one day).
+  `/admin/tests?tab=result` (it was a standalone page for one day). On both pages the title + tabs are `position: sticky` (same
+  recipe as `AdminSearchBar`: `top-14` under the phone top bar, `md:top-0`); the descriptions sit below them and scroll away.
 - `/test` and `/test/*` are footerless `.paper-page--focus` pages like `/plans`; [layouts/default.vue](layouts/default.vue)
   matches `/test/` by prefix. Styles are the `.testscore*` / `.testbars` / `.testhistory` / `.survey*` blocks at the end
   of [assets/css/paper-theme.css](assets/css/paper-theme.css).
