@@ -412,14 +412,19 @@ admin answer sheet are unchanged, and the result screen still shows the per-cate
   [utils/achievementTestFeedback.ts](utils/achievementTestFeedback.ts)) and apply to the total *and* each category; category ％ is
   score ÷ 20 so it moves in 10％ steps (16pt+ / 12–14 / 8–10 / ≤6). **Feedback text** is per seal × category × band (400 texts) in
   `achievementFeedback/{sealIndex}` (`{ feedback: { thinking: [4 texts in band order], … } }`), edited on
-  `/admin/tests/[sealIndex]` below the questions and saved in the same `writeBatch`; empty texts are just not shown. The first
+  `/admin/tests/[sealIndex]`'s 結果表示 tab and saved in the same `writeBatch` as the questions; empty texts are just not shown. The first
   drafts were written by Claude from each seal's statements (`scripts/achievementFeedback.data.ts`, `npm run seed:feedback[:emulator]`,
   skips docs that already have text, `--force` overwrites admin edits). **Band names/messages and the purchase cards** (ベーシック /
   オラクル / 攻略ガイド: name, tax-included price as a number, external URL opened in a new tab — only http(s) accepted, Coming soon flag)
-  live in one doc `achievementTestSettings/display`, edited on [pages/admin/test-settings.vue](pages/admin/test-settings.vue);
+  live in one doc `achievementTestSettings/display`, edited in [components/AdminTestDisplaySettings.vue](components/AdminTestDisplaySettings.vue);
   missing fields fall back to `DEFAULT_TEST_DISPLAY_SETTINGS`. The copy above the cards is fixed in the component (on request). Both
   collections use the same read rule as `achievementTests` (`canTakeTest()` in the rules: team/paid, not suspended) — they are the
   instructor's material too.
+- **Admin layout** (2026-10-28, on request): everything about the test lives under 到達度診断テスト管理, split by
+  [components/AdminTabs.vue](components/AdminTabs.vue) tabs (`?tab=result`, first tab has no query). `/admin/tests`: 出題文 = the
+  seal list; 結果表示 = the shared band/card settings plus a seal list showing feedback filled ○/20. `/admin/tests/[sealIndex]`:
+  出題文 = questions; 結果表示 = that seal's 20 feedback texts; one 保存する saves both. `/admin/test-settings` only redirects to
+  `/admin/tests?tab=result` (it was a standalone page for one day).
 - `/test` and `/test/*` are footerless `.paper-page--focus` pages like `/plans`; [layouts/default.vue](layouts/default.vue)
   matches `/test/` by prefix. Styles are the `.testscore*` / `.testbars` / `.testhistory` / `.survey*` blocks at the end
   of [assets/css/paper-theme.css](assets/css/paper-theme.css).

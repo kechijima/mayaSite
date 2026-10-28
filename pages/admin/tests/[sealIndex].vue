@@ -16,8 +16,15 @@ definePageMeta({ layout: 'admin' })
 // 2026-10-27: 結果画面のフィードバック文(achievementFeedback/{sealIndex}、カテゴリ × 4段階)も同じ画面で直す。
 // 保存は問題と同じ「保存する」で、2つのドキュメントを writeBatch でまとめて書く。文は空でもよい(空の段階は
 // 結果画面に出ないだけ)。
+// 2026-10-28: 「出題文」「結果表示」のタブで切り替える(?tab=result)。保存はどちらのタブからでも両方まとめて。
+const TABS = [
+  { key: 'questions', label: '出題文' },
+  { key: 'result', label: '結果表示' }
+]
 
 const route = useRoute()
+const router = useRouter()
+const tab = computed(() => (route.query.tab === 'result' ? 'result' : 'questions'))
 const sealIndex = Number(route.params.sealIndex)
 const valid = Number.isInteger(sealIndex) && sealIndex >= 0 && sealIndex < SEALS.length
 const sealName = valid ? SEALS[sealIndex].name : ''
@@ -122,6 +129,7 @@ async function save() {
   saved.value = false
   if (missing.value.length) {
     saveError.value = `問題文が空の項目があります: ${missing.value.join('、')}`
+    if (tab.value !== 'questions') router.replace({ query: { ...route.query, tab: undefined } })
     return
   }
   saving.value = true
@@ -147,7 +155,7 @@ async function save() {
 
 <template>
   <div>
-    <NuxtLink to="/admin/tests" class="mb-4 inline-block text-xs font-semibold text-brass-700 hover:underline dark:text-gold-300">‹ 到達度診断テスト一覧に戻る</NuxtLink>
+    <NuxtLink :to="tab === 'result' ? '/admin/tests?tab=result' : '/admin/tests'" class="mb-4 inline-block text-xs font-semibold text-brass-700 hover:underline dark:text-gold-300">‹ 到達度診断テスト一覧に戻る</NuxtLink>
 
     <div v-if="!valid" class="rounded-lg border border-red-300 bg-red-50 px-4 py-2.5 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
       指定された紋章が見つかりませんでした。
@@ -158,15 +166,21 @@ async function save() {
     <template v-else-if="loading" />
 
     <template v-else>
-      <div class="mb-6">
+      <div class="mb-4">
         <h1 class="text-xl font-bold">編集：到達度診断テスト「{{ sealName }}」</h1>
-        <span class="text-xs text-slate-500 dark:text-slate-400">
+        <span v-if="tab === 'result'" class="text-xs text-slate-500 dark:text-slate-400">
+          結果画面で、カテゴリごとにそのカテゴリの％（5問の点数 ÷ 20点）が入る段階の文が表示されます。空欄の段階は表示されません。段階の名前と購入カードは一覧の「結果表示」タブで設定します。
+        </span>
+        <span v-else class="text-xs text-slate-500 dark:text-slate-400">
           各問の点数配分は、4点にする答え（そう思う / 思わない）を押して切り替えます。反対の答えは0点、「どちらでもない」は常に2点です。
           <template v-if="isNew">この紋章の問題はまだ登録されていません。</template>
         </span>
       </div>
 
+      <AdminTabs :tabs="TABS" />
+
       <div class="space-y-4">
+        <template v-if="tab === 'questions'">
         <div v-for="(c, ci) in categories" :key="c.key" class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5.5 dark:border-slate-800 dark:bg-slate-900">
           <div class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
             <p class="text-sm font-bold">{{ c.name }}</p>
@@ -217,13 +231,12 @@ async function save() {
           </ol>
         </div>
 
+        </template>
+
         <!-- 結果画面のフィードバック文。カテゴリごとに、そのカテゴリの％が入る段階の文が出る。 -->
-        <div class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5.5 dark:border-slate-800 dark:bg-slate-900">
+        <div v-else class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5.5 dark:border-slate-800 dark:bg-slate-900">
           <div class="mb-4">
-            <p class="text-sm font-bold">結果画面のフィードバック文</p>
-            <span class="text-xs text-slate-500 dark:text-slate-400">
-              カテゴリごとに、そのカテゴリの％（5問の点数 ÷ 20点）が入る段階の文が結果画面に出ます。空欄の段階は表示されません。
-            </span>
+            <p class="text-sm font-bold">フィードバック文</p>
           </div>
           <div class="space-y-5">
             <div v-for="key in TEST_CATEGORY_KEYS" :key="key">
@@ -247,10 +260,10 @@ async function save() {
           <div v-if="saved" class="mb-3 text-xs font-semibold text-emerald-600 dark:text-emerald-400">保存しました。</div>
           <div class="flex flex-wrap items-center justify-between gap-3">
             <p class="text-[12px] text-slate-500 dark:text-slate-400">
-              保存すると、次に受ける人からこの内容で出題されます。過去の受験結果の点数は変わりません。フィードバック文は過去の結果を開いたときも新しい文で表示されます。
+              「出題文」「結果表示」の両方のタブの内容をまとめて保存します。次に受ける人からこの内容で出題されます。過去の受験結果の点数は変わりません。フィードバック文は過去の結果を開いたときも新しい文で表示されます。
             </p>
             <div class="ml-auto flex gap-2">
-              <NuxtLink to="/admin/tests" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold dark:border-slate-700">キャンセル</NuxtLink>
+              <NuxtLink :to="tab === 'result' ? '/admin/tests?tab=result' : '/admin/tests'" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold dark:border-slate-700">キャンセル</NuxtLink>
               <button class="rounded-lg bg-brass-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-60" :disabled="saving" @click="save">
                 {{ saving ? '保存中…' : '保存する' }}
               </button>
