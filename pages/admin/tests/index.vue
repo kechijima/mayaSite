@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { collection, getDocs, type Firestore, type Timestamp } from 'firebase/firestore'
 import { questionCount, type AchievementTestDoc } from '~/utils/achievementTest'
-import { TEST_BAND_COUNT, normalizeFeedback } from '~/utils/achievementTestFeedback'
 import { SEALS, sealColor } from '~/utils/mayaData'
 
 definePageMeta({ layout: 'admin' })
@@ -9,15 +8,32 @@ definePageMeta({ layout: 'admin' })
 // 到達度診断テスト管理。タブで「出題文」と「結果表示」を切り替える(2026-10-28、要望でここに集約。それまで結果表示の
 // 設定は単独のページ /admin/test-settings だった)。
 //   出題文:   問題(achievementTests/{sealIndex})の一覧。紋章は 20 固定なので SEALS から行を作り、問題数・更新日を重ねる。
-//   結果表示: 全紋章共通の段階・購入カード(components/AdminTestDisplaySettings.vue)と、紋章ごとのフィードバック文
-//             (achievementFeedback/{sealIndex})の入力状況の一覧。
-// どちらのタブでも行を押すと /admin/tests/[sealIndex] の同じタブが開く。
+//   結果表示: さらに［共通設定］［紋章ごと］(?sub=seal)に分かれる。
+//             共通設定 = 全紋章共通の段階・購入カード(components/AdminTestDisplaySettings.vue)
+//             紋章ごと = 左に20紋章・右にその紋章のフィードバック文の2ペイン(components/AdminFeedbackBySeal.vue、2026-10-28)。
+//             以前は共通設定の下に紋章一覧を置き、押すと /admin/tests/[sealIndex] へ移っていたが、遷移が分かりにくかった。
+// 出題文タブの行を押すと /admin/tests/[sealIndex] が開く。
 const TABS = [
   { key: 'questions', label: '出題文' },
   { key: 'result', label: '結果表示' }
 ]
 const route = useRoute()
+const router = useRouter()
 const tab = computed(() => (route.query.tab === 'result' ? 'result' : 'questions'))
+const SUBS = [
+  { key: 'common', label: '共通設定' },
+  { key: 'seal', label: '紋章ごとのフィードバック文' }
+]
+const sub = computed(() => (route.query.sub === 'seal' ? 'seal' : 'common'))
+function selectSub(key: string) {
+  const query = { ...route.query }
+  if (key === 'seal') query.sub = 'seal'
+  else {
+    delete query.sub
+    delete query.seal
+  }
+  router.replace({ query })
+}
 
 interface Row {
   sealIndex: number
@@ -25,15 +41,10 @@ interface Row {
   color: string
   questions: number | null
   updated: string
-  feedbackFilled: number | null
-  feedbackUpdated: string
 }
 
-const FEEDBACK_TOTAL = 5 * TEST_BAND_COUNT
 const COLOR_LABEL: Record<string, string> = { red: '赤', white: '白', blue: '青', yellow: '黄' }
-const rows = ref<Row[]>(SEALS.map((s, i) => ({
-  sealIndex: i, name: s.name, color: COLOR_LABEL[sealColor(i)], questions: null, updated: '—', feedbackFilled: null, feedbackUpdated: '—'
-})))
+const rows = ref<Row[]>(SEALS.map((s, i) => ({ sealIndex: i, name: s.name, color: COLOR_LABEL[sealColor(i)], questions: null, updated: '—' })))
 const loadError = ref('')
 // 行は SEALS から先に作れるが、問題数・更新日が届くまでは「未登録」に見えてしまうので、届くまで覆う。
 const loading = ref(true)
@@ -46,23 +57,13 @@ function dateOf(ts: Timestamp | undefined) {
 onMounted(async () => {
   try {
     const { $firestore } = useNuxtApp()
-    const [tests, feedback] = await Promise.all([
-      getDocs(collection($firestore as Firestore, 'achievementTests')),
-      getDocs(collection($firestore as Firestore, 'achievementFeedback'))
-    ])
+    const tests = await getDocs(collection($firestore as Firestore, 'achievementTests'))
     tests.forEach((d) => {
       const row = rows.value[Number(d.id)]
       if (!row) return
       const data = d.data() as AchievementTestDoc & { updatedAt?: Timestamp }
       row.questions = questionCount(data)
       row.updated = dateOf(data.updatedAt)
-    })
-    feedback.forEach((d) => {
-      const row = rows.value[Number(d.id)]
-      if (!row) return
-      const data = d.data() as { feedback?: Record<string, unknown>; updatedAt?: Timestamp }
-      row.feedbackFilled = Object.values(normalizeFeedback(data.feedback)).flat().filter((t) => t.trim()).length
-      row.feedbackUpdated = dateOf(data.updatedAt)
     })
   } catch {
     loadError.value = '読み込みに失敗しました。時間をおいて再度お試しください。'
@@ -74,11 +75,8 @@ onMounted(async () => {
 function questionsLabel(r: Row) {
   return r.questions === null ? '未登録' : `${r.questions}問`
 }
-function feedbackLabel(r: Row) {
-  return `${r.feedbackFilled ?? 0} / ${FEEDBACK_TOTAL}`
-}
 function editLink(r: Row) {
-  return tab.value === 'result' ? `/admin/tests/${r.sealIndex}?tab=result` : `/admin/tests/${r.sealIndex}`
+  return `/admin/tests/${r.sealIndex}`
 }
 </script>
 
@@ -99,13 +97,24 @@ function editLink(r: Row) {
     </div>
 
     <template v-if="tab === 'result'">
-      <p class="mb-3 text-sm font-bold">全紋章共通の設定</p>
-      <AdminTestDisplaySettings class="mb-8" />
-      <p class="mb-1 text-sm font-bold">紋章ごとのフィードバック文</p>
-      <p class="mb-3 text-xs text-slate-500 dark:text-slate-400">5カテゴリ × 4段階 = {{ FEEDBACK_TOTAL }}本のうち、入力済みの本数です。紋章を押すと編集できます。</p>
+      <!-- 結果表示の中の切り替え(共通設定 / 紋章ごと) -->
+      <div class="mb-4 inline-flex rounded-lg border border-slate-200 bg-white p-1 dark:border-slate-800 dark:bg-slate-900" role="tablist" aria-label="結果表示の設定">
+        <button
+          v-for="s in SUBS"
+          :key="s.key"
+          type="button"
+          role="tab"
+          :aria-selected="sub === s.key"
+          class="rounded-md px-3.5 py-1.5 text-[13px] font-semibold transition-colors"
+          :class="sub === s.key ? 'bg-brass-700 text-white dark:bg-gold-300 dark:text-slate-900' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'"
+          @click="selectSub(s.key)"
+        >{{ s.label }}</button>
+      </div>
+      <AdminTestDisplaySettings v-if="sub === 'common'" />
+      <AdminFeedbackBySeal v-else />
     </template>
 
-    <div class="rounded-xl border border-slate-200 bg-white p-5.5 dark:border-slate-800 dark:bg-slate-900">
+    <div v-else class="rounded-xl border border-slate-200 bg-white p-5.5 dark:border-slate-800 dark:bg-slate-900">
       <!-- lg 未満はテーブルの代わりにカード一覧。タップで編集画面へ(AdminRecordCard 参照) -->
       <ul class="lg:hidden">
         <AdminRecordCard
@@ -113,9 +122,7 @@ function editLink(r: Row) {
           :key="r.sealIndex"
           :title="r.name"
           :subtitle="`${r.color}い紋章`"
-          :fields="tab === 'result'
-            ? [{ label: 'フィードバック文', value: feedbackLabel(r) }, { label: '更新日', value: r.feedbackUpdated }]
-            : [{ label: '問題数', value: questionsLabel(r) }, { label: '更新日', value: r.updated }]"
+          :fields="[{ label: '問題数', value: questionsLabel(r) }, { label: '更新日', value: r.updated }]"
           :to="editLink(r)"
         />
       </ul>
@@ -124,7 +131,7 @@ function editLink(r: Row) {
           <thead class="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-white [&_th]:pt-2.5 [&_th]:shadow-[inset_0_-1px_0_#e2e8f0] dark:[&_th]:bg-slate-900 dark:[&_th]:shadow-[inset_0_-1px_0_#1e293b]">
             <tr class="text-left text-[11px] uppercase tracking-wide text-slate-400">
               <th class="pb-2.5 pr-3">紋章</th><th class="pb-2.5 pr-3">色</th>
-              <th class="pb-2.5 pr-3 text-right">{{ tab === 'result' ? 'フィードバック文' : '問題数' }}</th><th class="pb-2.5">更新日</th>
+              <th class="pb-2.5 pr-3 text-right">問題数</th><th class="pb-2.5">更新日</th>
             </tr>
           </thead>
           <tbody>
@@ -136,14 +143,8 @@ function editLink(r: Row) {
             >
               <td class="py-2.5 pr-3 font-semibold">{{ r.name }}</td>
               <td class="py-2.5 pr-3">{{ r.color }}</td>
-              <template v-if="tab === 'result'">
-                <td class="py-2.5 pr-3 text-right tabular-nums" :class="(r.feedbackFilled ?? 0) < FEEDBACK_TOTAL ? 'text-red-600 dark:text-red-400' : ''">{{ feedbackLabel(r) }}</td>
-                <td class="py-2.5 tabular-nums text-slate-500 dark:text-slate-400">{{ r.feedbackUpdated }}</td>
-              </template>
-              <template v-else>
-                <td class="py-2.5 pr-3 text-right tabular-nums" :class="r.questions === null ? 'text-red-600 dark:text-red-400' : ''">{{ questionsLabel(r) }}</td>
-                <td class="py-2.5 tabular-nums text-slate-500 dark:text-slate-400">{{ r.updated }}</td>
-              </template>
+              <td class="py-2.5 pr-3 text-right tabular-nums" :class="r.questions === null ? 'text-red-600 dark:text-red-400' : ''">{{ questionsLabel(r) }}</td>
+              <td class="py-2.5 tabular-nums text-slate-500 dark:text-slate-400">{{ r.updated }}</td>
             </tr>
           </tbody>
         </table>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { doc, getDoc, serverTimestamp, writeBatch, type Firestore } from 'firebase/firestore'
 import { QUESTIONS_PER_CATEGORY, TEST_CATEGORY_KEYS, type AchievementTestDoc, type TestCategory, type TestCategoryKey } from '~/utils/achievementTest'
-import { TEST_BAND_RANGE, TEST_CATEGORY_LABEL, normalizeFeedback, type FeedbackTexts } from '~/utils/achievementTestFeedback'
+import { normalizeFeedback, type FeedbackTexts } from '~/utils/achievementTestFeedback'
 import { SEALS } from '~/utils/mayaData'
 
 definePageMeta({ layout: 'admin' })
@@ -155,7 +155,7 @@ async function save() {
 
 <template>
   <div>
-    <NuxtLink :to="tab === 'result' ? '/admin/tests?tab=result' : '/admin/tests'" class="mb-4 inline-block text-xs font-semibold text-brass-700 hover:underline dark:text-gold-300">‹ 到達度診断テスト一覧に戻る</NuxtLink>
+    <NuxtLink :to="tab === 'result' ? `/admin/tests?tab=result&sub=seal&seal=${sealIndex}` : '/admin/tests'" class="mb-4 inline-block text-xs font-semibold text-brass-700 hover:underline dark:text-gold-300">‹ 到達度診断テスト一覧に戻る</NuxtLink>
 
     <div v-if="!valid" class="rounded-lg border border-red-300 bg-red-50 px-4 py-2.5 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
       指定された紋章が見つかりませんでした。
@@ -240,21 +240,7 @@ async function save() {
           <div class="mb-4">
             <p class="text-sm font-bold">フィードバック文</p>
           </div>
-          <div class="space-y-5">
-            <div v-for="key in TEST_CATEGORY_KEYS" :key="key">
-              <p class="mb-2 text-[13px] font-bold text-brass-700 dark:text-gold-300">{{ TEST_CATEGORY_LABEL[key] }}</p>
-              <div class="grid gap-2 lg:grid-cols-2">
-                <label v-for="(range, bi) in TEST_BAND_RANGE" :key="range" class="flex flex-col gap-1">
-                  <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">{{ range }}</span>
-                  <textarea
-                    v-model="feedback[key][bi]"
-                    rows="4"
-                    class="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-[13px] leading-relaxed dark:border-slate-800 dark:bg-slate-900"
-                  ></textarea>
-                </label>
-              </div>
-            </div>
-          </div>
+          <AdminFeedbackFields :feedback="feedback" />
         </div>
 
         <div class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5.5 dark:border-slate-800 dark:bg-slate-900">
@@ -265,7 +251,7 @@ async function save() {
               「出題文」「結果表示」の両方のタブの内容をまとめて保存します。次に受ける人からこの内容で出題されます。過去の受験結果の点数は変わりません。フィードバック文は過去の結果を開いたときも新しい文で表示されます。
             </p>
             <div class="ml-auto flex gap-2">
-              <NuxtLink :to="tab === 'result' ? '/admin/tests?tab=result' : '/admin/tests'" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold dark:border-slate-700">キャンセル</NuxtLink>
+              <NuxtLink :to="tab === 'result' ? `/admin/tests?tab=result&sub=seal&seal=${sealIndex}` : '/admin/tests'" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold dark:border-slate-700">キャンセル</NuxtLink>
               <button class="rounded-lg bg-brass-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-60" :disabled="saving" @click="save">
                 {{ saving ? '保存中…' : '保存する' }}
               </button>
