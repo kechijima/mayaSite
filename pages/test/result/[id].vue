@@ -37,7 +37,7 @@ useLoadingWhile('test-result', () => pending.value)
         <p v-if="row" class="masthead__sub"><strong>{{ row.sealName }}</strong>　{{ formatTestDateTime(row.takenAt) }} の結果</p>
       </div>
 
-      <div class="mx-auto mt-8 max-w-[920px] space-y-4">
+      <div class="mx-auto mt-8 max-w-[1000px] space-y-4">
         <TestAccessNotice :access="access" :login-link="loginLink" :account-link="accountLink" />
 
         <template v-if="access === 'ok' && !pending">
