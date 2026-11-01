@@ -133,7 +133,7 @@ const sealName = computed(() => (sealIndex.value === null ? '' : SEALS[sealIndex
         <p v-if="sealName" class="masthead__sub"><strong>{{ sealName }}</strong><template v-if="!result">　それぞれの文について、自分にあてはまるものを選んでください。</template></p>
       </div>
 
-      <div class="mx-auto mt-8 space-y-4" :class="result ? 'max-w-[920px]' : 'max-w-[620px]'">
+      <div class="mx-auto mt-8 space-y-4" :class="result ? 'max-w-[1000px]' : 'max-w-[620px]'">
         <TestAccessNotice :access="access" :login-link="loginLink" :account-link="accountLink" />
 
         <template v-if="access === 'ok'">

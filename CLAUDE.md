@@ -420,6 +420,16 @@ admin answer sheet are unchanged, and the result screen still shows the per-cate
   missing fields fall back to `DEFAULT_TEST_DISPLAY_SETTINGS`. The copy above the cards is fixed in the component (on request). Both
   collections use the same read rule as `achievementTests` (`canTakeTest()` in the rules: team/paid, not suspended) — they are the
   instructor's material too.
+- **Scroll (巻物)** (2026-11-02, on request): the whole result sheet sits on a parchment scroll. The art is one AI-generated
+  image (`assets/images/test-scroll.png`, raw/gitignored like the other originals) that
+  [scripts/makeTestScroll.py](scripts/makeTestScroll.py) turns into `assets/images/optimized/test-scroll.webp`: white background
+  cut out, rebuilt as top rod 176px / a 400px paper band made vertically seamless / bottom rod 166px, sliced 190px inside the
+  gold caps. `.testscroll__paper` draws it with a 9-slice `border-image` (`stretch round`), so the paper grows with the content;
+  `--k` scales the rods (.26 phone — the scroll also bleeds 16px into the sheet gutter so the text column stays ~280px — .6
+  tablet, .9 desktop). Panels on it are translucent with no shadow. Unroll animation: until `is-open` (feedback/settings
+  loaded) the paper is clipped to "two rods touching"; then the clip opens downward while `.testscroll__roller` (the bottom row of
+  the same 9-slice) slides down with the edge, and the content fades in at the end. `prefers-reduced-motion` shows it open.
+  The clip-path insets are negative on the sides/bottom so the drop-shadow isn't cut into a hard line.
 - **Admin layout** (2026-10-28, on request): everything about the test lives on one page, `/admin/tests`, under
   [components/AdminTabs.vue](components/AdminTabs.vue) tabs 出題文 / 結果表示 (`?tab=result`). 結果表示 has a second switch
   共通設定 / 紋章ごと (`?sub=seal`). 出題文 and 結果表示›紋章ごと show the **same seal table** (問題数 or feedback ○/20 + 更新日);

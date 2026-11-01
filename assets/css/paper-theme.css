@@ -1115,3 +1115,70 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .testhistory a { display: flex; gap: 12px; width: 100%; color: inherit; text-decoration: none; }
 .testhistory a:hover { color: var(--gold-deep); }
 .testcta__price small { margin-left: 2px; font-family: inherit; font-size: 11px; color: var(--ink-faint); }
+
+/* 結果を巻物の上に載せる(components/TestResultSheet.vue、2026-11-02)。
+   画像は scripts/makeTestScroll.py が作る 1024×742 の1枚(上の軸 176px / 縦に繰り返す紙 400px / 下の軸 166px、
+   左右のキャップの内側 190px で切る)。border-image の 9 分割で、横は伸ばし(stretch)、縦は紙の帯を繰り返す(round)。
+   --k は巻き軸・キャップの縮尺。スマホは中身の幅を確保するため細くし、横の余白(シートの 20px)にも少しはみ出す。
+   紙の左右の端は元画像で x=124 / 900、上下の端は上から 114 / 下から 116。中身はそこから内側に置く。 */
+.testscroll { --k: .26; position: relative; margin: 0 -16px; }
+@media (min-width: 640px) { .testscroll { --k: .6; margin: 0; } }
+@media (min-width: 1024px) { .testscroll { --k: .9; } }
+.testscroll__paper,
+.testscroll__roller {
+  border-style: solid; border-color: transparent;
+  border-image-source: var(--scroll-img);
+  border-image-slice: 176 190 166 190 fill;
+  border-image-repeat: stretch round;
+}
+.testscroll__paper {
+  position: absolute; inset: 0;
+  border-width: calc(176px * var(--k)) calc(190px * var(--k)) calc(166px * var(--k));
+  filter: drop-shadow(0 16px 22px rgba(60, 40, 10, .18));
+}
+/* 下の軸だけを描く帯(上の境界線を 0 にすると、9 分割のうち下の段だけが描かれる) */
+.testscroll__roller {
+  position: absolute; left: 0; right: 0; top: calc(100% - 166px * var(--k)); height: calc(166px * var(--k)); box-sizing: border-box;
+  border-width: 0 calc(190px * var(--k)) calc(166px * var(--k));
+  visibility: hidden;
+}
+.testscroll__body {
+  position: relative;
+  padding: calc(114px * var(--k) + 26px) calc(150px * var(--k) + 10px) calc(116px * var(--k) + 30px);
+}
+@media (min-width: 640px) { .testscroll__body { padding-left: calc(150px * var(--k) + 18px); padding-right: calc(150px * var(--k) + 18px); } }
+
+/* 紙の上では白いカードを浮かせず、紙に描かれたように見せる(背景はうっすら、影なし、金の細線) */
+.testscroll .panel { background: rgba(255, 251, 240, .38); border-color: rgba(161, 117, 31, .3); box-shadow: none; }
+.testscroll .testcta__card { background: rgba(255, 251, 240, .55); box-shadow: none; }
+.testscroll .testcta__card.is-soon { background: rgba(120, 100, 70, .07); }
+.testscroll .testbands li { background: rgba(255, 251, 240, .35); }
+.testscroll .testbands li.is-current { background: color-mix(in srgb, var(--gold) 16%, rgba(255, 251, 240, .6)); }
+
+/* 開くアニメーション: 最初は上下の軸が重なった閉じた状態 → 下の軸が下へ転がるのに合わせて紙が上から開く →
+   開ききったら中身が浮かび上がる。読み込みが終わるまで(is-open が付くまで)は閉じた状態で待つ。 */
+.testscroll:not(.is-open) .testscroll__paper { clip-path: inset(-40px -40px calc(100% - 342px * var(--k)) -40px); }
+.testscroll:not(.is-open) .testscroll__roller { visibility: visible; top: calc(176px * var(--k)); }
+.testscroll:not(.is-open) .testscroll__body { opacity: 0; }
+.testscroll.is-open .testscroll__paper { animation: scroll-unroll 1.5s cubic-bezier(.5, .05, .25, 1) both; }
+.testscroll.is-open .testscroll__roller { animation: scroll-roller 1.5s cubic-bezier(.5, .05, .25, 1) both; }
+.testscroll.is-open .testscroll__body { animation: scroll-ink .7s ease-out 1.15s both; }
+/* 左右・下は影(drop-shadow)の分だけ外側まで見せる(0 にすると影が要素の外枠で切れて縦線に見える) */
+@keyframes scroll-unroll {
+  from { clip-path: inset(-40px -40px calc(100% - 342px * var(--k)) -40px); }
+  to { clip-path: inset(-40px -40px -60px -40px); }
+}
+@keyframes scroll-roller {
+  from { visibility: visible; top: calc(176px * var(--k)); }
+  99% { visibility: visible; }
+  to { visibility: hidden; top: calc(100% - 166px * var(--k)); }
+}
+@keyframes scroll-ink {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .testscroll .testscroll__paper, .testscroll .testscroll__roller, .testscroll .testscroll__body { animation: none !important; }
+  .testscroll:not(.is-open) .testscroll__paper { clip-path: none; }
+  .testscroll .testscroll__roller { visibility: hidden !important; }
+}

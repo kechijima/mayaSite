@@ -14,6 +14,7 @@ import {
 } from '~/utils/achievementTestFeedback'
 import { fetchAchievementFeedback, fetchTestDisplaySettings } from '~/utils/achievementTestResults'
 import { isGender, type Gender } from '~/utils/gender'
+import scrollImage from '~/assets/images/optimized/test-scroll.webp'
 
 // 到達度診断テストの結果1回ぶん(2026-10-27、手書きのレイアウト案どおり)。受けた直後(/test/take)と
 // 過去の結果(/test/result/[id])で共用する。
@@ -74,70 +75,82 @@ const feedbackItems = computed(() =>
     .filter((c) => c.text)
 )
 
+// 巻物(2026-11-02)。結果全体を巻物の紙の上に載せる。画像は scripts/makeTestScroll.py が作る 9 分割用の1枚で、
+// CSS の border-image で「上の軸 / 縦に繰り返す紙 / 下の軸」に組む(内容が長いほど紙が伸びる)。
+// 読み込み(フィードバック文・表示設定)が終わったら is-open を付けて、上から開くアニメーションを始める。
+const scrollStyle = { '--scroll-img': `url(${scrollImage})` }
+
 const products = computed(() =>
   settings.value.products.map((p) => ({ ...p, href: !p.comingSoon && isSafeExternalUrl(p.url) ? p.url.trim() : null }))
 )
 </script>
 
 <template>
-  <div class="testresult">
-    <figure class="testresult__art">
-      <img :src="portrait" :alt="sealName" decoding="async" />
-      <figcaption>{{ sealName }}</figcaption>
-    </figure>
+  <div class="testscroll" :class="{ 'is-open': !loading }" :style="scrollStyle">
+    <div class="testscroll__paper" aria-hidden="true" />
+    <!-- 開くアニメーションの間だけ動く下の巻き軸(紙の下の軸と同じ絵を、開いていく端に重ねる) -->
+    <div class="testscroll__roller" aria-hidden="true" />
+    <div class="testscroll__body">
+      <div class="testresult">
+        <figure class="testresult__art">
+          <img :src="portrait" :alt="sealName" decoding="async" />
+          <figcaption>{{ sealName }}</figcaption>
+        </figure>
 
-    <section class="panel panel--plan testresult__score">
-      <div class="testresult__total">
-        <span class="testresult__totallabel">TOTAL</span>
-        <p><strong>{{ total }}</strong><small>％</small></p>
+        <section class="panel panel--plan testresult__score">
+          <div class="testresult__total">
+            <span class="testresult__totallabel">TOTAL</span>
+            <p><strong>{{ total }}</strong><small>％</small></p>
+          </div>
+          <p class="testscore__meta">
+            {{ TEST_MAX_SCORE }}点満点中 {{ total }}点<template v-if="penalty">（25問の合計 {{ rawTotal }}点、「どちらでもない」{{ neutralCount }}つで {{ penalty }}点）</template><template v-else-if="neutralCount">（「どちらでもない」{{ neutralCount }}つ・{{ NEUTRAL_PENALTY_THRESHOLD }}つ未満なので減点なし）</template>
+            <template v-if="takenAtLabel"><br />{{ takenAtLabel }}</template>
+          </p>
+          <ul class="testbars">
+            <li v-for="c in categories" :key="c.key">
+              <span class="testbars__label">{{ c.label }}</span>
+              <span class="testbars__track"><i :style="{ width: `${c.percent}%` }" /></span>
+              <span class="testbars__value">{{ c.percent }}%</span>
+            </li>
+          </ul>
+        </section>
+
+        <section class="panel testresult__bands" aria-label="到達度の段階">
+          <p class="formlabel">あなたの到達度</p>
+          <ol class="testbands">
+            <li v-for="(range, i) in TEST_BAND_RANGE" :key="range" :class="{ 'is-current': i === totalBand }">
+              <span class="testbands__range">{{ range }}</span>
+              <span class="testbands__label">{{ settings.bands[i].label }}</span>
+              <span v-if="i === totalBand" class="testbands__you">あなた</span>
+            </li>
+          </ol>
+          <p v-if="settings.bands[totalBand].message" class="testbands__message">{{ settings.bands[totalBand].message }}</p>
+        </section>
+
+        <section v-if="feedbackItems.length" class="panel testresult__feedback" aria-label="フィードバック">
+          <p class="formlabel">{{ sealName }}のあなたへのフィードバック</p>
+          <dl class="testfeedback">
+            <div v-for="c in feedbackItems" :key="c.key">
+              <dt>{{ c.label }}<span>{{ c.percent }}%</span></dt>
+              <dd>{{ c.text }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="testresult__cta" aria-label="おすすめの講座">
+          <p class="testcta__lead">マヤ暦で、もっと運気を上げたいあなたへ</p>
+          <p class="testcta__sub">紋章の力を日々の暮らしに生かす学びを用意しています。</p>
+          <ul class="testcta__cards">
+            <li v-for="p in products" :key="p.key" class="testcta__card" :class="{ 'is-soon': p.comingSoon }">
+              <span v-if="p.comingSoon" class="testcta__soon">Coming soon</span>
+              <p class="testcta__name">{{ p.name }}</p>
+              <p v-if="p.price !== null && !p.comingSoon" class="testcta__price">￥{{ p.price.toLocaleString('ja-JP') }}<small>（税込）</small></p>
+              <a v-if="p.href" :href="p.href" target="_blank" rel="noopener noreferrer" class="btn-gold">詳しく見る</a>
+              <span v-else class="testcta__disabled">{{ p.comingSoon ? '準備中です' : 'ご案内準備中' }}</span>
+            </li>
+          </ul>
+        </section>
       </div>
-      <p class="testscore__meta">
-        {{ TEST_MAX_SCORE }}点満点中 {{ total }}点<template v-if="penalty">（25問の合計 {{ rawTotal }}点、「どちらでもない」{{ neutralCount }}つで {{ penalty }}点）</template><template v-else-if="neutralCount">（「どちらでもない」{{ neutralCount }}つ・{{ NEUTRAL_PENALTY_THRESHOLD }}つ未満なので減点なし）</template>
-        <template v-if="takenAtLabel"><br />{{ takenAtLabel }}</template>
-      </p>
-      <ul class="testbars">
-        <li v-for="c in categories" :key="c.key">
-          <span class="testbars__label">{{ c.label }}</span>
-          <span class="testbars__track"><i :style="{ width: `${c.percent}%` }" /></span>
-          <span class="testbars__value">{{ c.percent }}%</span>
-        </li>
-      </ul>
-    </section>
-
-    <section class="panel testresult__bands" aria-label="到達度の段階">
-      <p class="formlabel">あなたの到達度</p>
-      <ol class="testbands">
-        <li v-for="(range, i) in TEST_BAND_RANGE" :key="range" :class="{ 'is-current': i === totalBand }">
-          <span class="testbands__range">{{ range }}</span>
-          <span class="testbands__label">{{ settings.bands[i].label }}</span>
-          <span v-if="i === totalBand" class="testbands__you">あなた</span>
-        </li>
-      </ol>
-      <p v-if="settings.bands[totalBand].message" class="testbands__message">{{ settings.bands[totalBand].message }}</p>
-    </section>
-
-    <section v-if="feedbackItems.length" class="panel testresult__feedback" aria-label="フィードバック">
-      <p class="formlabel">{{ sealName }}のあなたへのフィードバック</p>
-      <dl class="testfeedback">
-        <div v-for="c in feedbackItems" :key="c.key">
-          <dt>{{ c.label }}<span>{{ c.percent }}%</span></dt>
-          <dd>{{ c.text }}</dd>
-        </div>
-      </dl>
-    </section>
-
-    <section class="testresult__cta" aria-label="おすすめの講座">
-      <p class="testcta__lead">マヤ暦で、もっと運気を上げたいあなたへ</p>
-      <p class="testcta__sub">紋章の力を日々の暮らしに生かす学びを用意しています。</p>
-      <ul class="testcta__cards">
-        <li v-for="p in products" :key="p.key" class="testcta__card" :class="{ 'is-soon': p.comingSoon }">
-          <span v-if="p.comingSoon" class="testcta__soon">Coming soon</span>
-          <p class="testcta__name">{{ p.name }}</p>
-          <p v-if="p.price !== null && !p.comingSoon" class="testcta__price">￥{{ p.price.toLocaleString('ja-JP') }}<small>（税込）</small></p>
-          <a v-if="p.href" :href="p.href" target="_blank" rel="noopener noreferrer" class="btn-gold">詳しく見る</a>
-          <span v-else class="testcta__disabled">{{ p.comingSoon ? '準備中です' : 'ご案内準備中' }}</span>
-        </li>
-      </ul>
-    </section>
+    </div>
   </div>
 </template>
