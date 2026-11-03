@@ -1102,8 +1102,20 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .testfeedback dt span { font-size: 13px; font-weight: 400; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
 .testfeedback dd { margin: 4px 0 0; font-size: 15px; line-height: 1.9; color: var(--ink); }
 
-.testcta__lead { margin: 0; font-family: "Shippori Mincho", serif; font-size: 19px; font-weight: 600; letter-spacing: .04em; color: var(--gold-deep); }
-.testcta__sub { margin: 6px 0 16px; font-size: 13.5px; color: var(--ink-soft); }
+/* 購入の見出し(2026-11-03、もっと強調したいという要望で 19px → PC 28px / スマホ 22px、英字の小見出しと金の飾り線) */
+.testresult__cta { margin-top: 20px; }
+.testcta__eyebrow { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 0 0 6px; font-family: "Cormorant Garamond", serif; font-size: 13px; font-weight: 700; letter-spacing: .32em; white-space: nowrap; color: var(--gold); }
+.testcta__eyebrow::before, .testcta__eyebrow::after { content: ""; width: 24px; height: 1px; background: linear-gradient(90deg, transparent, var(--gold)); }
+.testcta__eyebrow::after { transform: scaleX(-1); }
+.testcta__lead { margin: 0; font-family: "Shippori Mincho", serif; font-size: 22px; font-weight: 700; line-height: 1.45; letter-spacing: .06em; color: var(--gold-deep); text-shadow: 0 1px 0 rgba(255, 252, 240, .8); }
+.testcta__lead span { display: inline-block; }
+/* スマホは2行目「もっと運気を上げたいあなたへ」(14字)が1行に収まる大きさにする。100vw - 92px が紙の上の本文の幅 */
+@media (max-width: 767px) { .testcta__lead { font-size: clamp(16px, calc((100vw - 92px) / 15), 22px); letter-spacing: .03em; } }
+@media (min-width: 768px) { .testcta__lead { font-size: 28px; } .testcta__eyebrow::before, .testcta__eyebrow::after { width: 44px; } }
+.testcta__ornament { position: relative; display: block; width: 180px; height: 12px; margin: 10px auto 0; }
+.testcta__ornament::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: linear-gradient(90deg, transparent, var(--gold) 30%, var(--gold) 70%, transparent); }
+.testcta__ornament i { position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; background: var(--gold); transform: translate(-50%, -50%) rotate(45deg); box-shadow: 0 0 0 3px rgba(255, 251, 240, .9); }
+.testcta__sub { margin: 12px 0 18px; font-size: 13.5px; color: var(--ink-soft); }
 .testcta__cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: 1fr; }
 @media (min-width: 640px) { .testcta__cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .testcta__card { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 10px; min-height: 150px; padding: 26px 16px 18px; border: 1px solid var(--gold-line); border-radius: 14px; background: radial-gradient(140% 120% at 50% 0%, color-mix(in srgb, var(--gold) 10%, var(--paper-panel)) 0%, var(--paper-panel) 70%); box-shadow: var(--shadow); }
