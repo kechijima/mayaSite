@@ -130,7 +130,10 @@ const products = computed(() =>
         </section>
 
         <section class="testresult__cta" aria-label="おすすめの講座">
-          <p class="testcta__lead">マヤ暦で、もっと運気を上げたいあなたへ</p>
+          <!-- 購入の見出しは強調する(2026-11-03 要望)。改行は「マヤ暦で、」の後ろだけで起きるように span で区切る -->
+          <p class="testcta__eyebrow">FOR YOUR FORTUNE</p>
+          <h2 class="testcta__lead"><span>マヤ暦で、</span><span>もっと運気を上げたいあなたへ</span></h2>
+          <span class="testcta__ornament" aria-hidden="true"><i /></span>
           <p class="testcta__sub">紋章の力を日々の暮らしに生かす学びを用意しています。</p>
           <ul class="testcta__cards">
             <li v-for="p in products" :key="p.key" class="testcta__card" :class="{ 'is-soon': p.comingSoon }">
