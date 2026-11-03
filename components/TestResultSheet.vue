@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Firestore } from 'firebase/firestore'
-import { NEUTRAL_PENALTY_THRESHOLD, TEST_CATEGORY_KEYS, TEST_MAX_SCORE, type TestCategoryKey } from '~/utils/achievementTest'
+import { TEST_CATEGORY_KEYS, type TestCategoryKey } from '~/utils/achievementTest'
 import {
   DEFAULT_TEST_DISPLAY_SETTINGS,
   TEST_BAND_RANGE,
@@ -33,16 +33,12 @@ const props = defineProps<{
   gender?: string | null
   total: number
   categoryScores: Record<TestCategoryKey, number>
-  neutralCount: number
-  penalty: number
-  takenAtLabel?: string
 }>()
 
 const { cutoutSrc } = useSealCutouts()
 const gender = computed<Gender>(() => (props.gender && isGender(props.gender) ? props.gender : 'female'))
 const portrait = computed(() => cutoutSrc(props.sealIndex, gender.value))
 
-const rawTotal = computed(() => TEST_CATEGORY_KEYS.reduce((n, k) => n + (props.categoryScores[k] ?? 0), 0))
 const totalBand = computed(() => bandIndexFor(props.total))
 const categories = computed(() =>
   TEST_CATEGORY_KEYS.map((key) => {
@@ -102,10 +98,6 @@ const products = computed(() =>
             <span class="testresult__totallabel">TOTAL</span>
             <p><strong>{{ total }}</strong><small>％</small></p>
           </div>
-          <p class="testscore__meta">
-            {{ TEST_MAX_SCORE }}点満点中 {{ total }}点<template v-if="penalty">（25問の合計 {{ rawTotal }}点、「どちらでもない」{{ neutralCount }}つで {{ penalty }}点）</template><template v-else-if="neutralCount">（「どちらでもない」{{ neutralCount }}つ・{{ NEUTRAL_PENALTY_THRESHOLD }}つ未満なので減点なし）</template>
-            <template v-if="takenAtLabel"><br />{{ takenAtLabel }}</template>
-          </p>
           <ul class="testbars">
             <li v-for="c in categories" :key="c.key">
               <span class="testbars__label">{{ c.label }}</span>

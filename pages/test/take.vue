@@ -158,8 +158,6 @@ const sealName = computed(() => (sealIndex.value === null ? '' : SEALS[sealIndex
               :gender="profile?.gender"
               :total="result.total"
               :category-scores="resultCategoryScores"
-              :neutral-count="result.neutralCount"
-              :penalty="result.penalty"
             />
             <p v-if="saved" class="text-center text-[12px]" style="color: var(--ink-faint);">結果を記録しました。</p>
             <p v-else-if="saveError" class="notice">{{ saveError }}</p>

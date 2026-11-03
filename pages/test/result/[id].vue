@@ -48,8 +48,6 @@ useLoadingWhile('test-result', () => pending.value)
             :gender="profile?.gender"
             :total="row.total"
             :category-scores="row.categoryScores"
-            :neutral-count="row.neutralCount"
-            :penalty="row.penalty"
           />
           <section v-else class="panel text-center">
             <p class="text-[13.5px]" style="color: var(--ink-soft);">この結果は見つかりませんでした。</p>
