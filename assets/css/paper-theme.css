@@ -1073,7 +1073,6 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .testresult__total p { margin: 0; font-family: "Shippori Mincho", serif; color: var(--gold-deep); line-height: 1; }
 .testresult__total strong { font-size: 52px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .testresult__total small { margin-left: 2px; font-size: 18px; }
-.testresult__score .testscore__meta { text-align: right; line-height: 1.7; }
 /* スマホの右上は幅が 200px ほどしかないので、合計とバーを詰める。
    基本の指定(.testresult__total strong 52px など)より後ろに置くこと — 前にあると同じ強さの指定に負ける
    (2026-11-03 まで合計の数字が 40px にならず 52px のままだった)。 */
@@ -1082,7 +1081,6 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
   .testresult__total { flex-direction: column; align-items: flex-start; gap: 2px; padding-bottom: 6px; }
   .testresult__total p { align-self: flex-end; }
   .testresult__total strong { font-size: 40px; }
-  .testresult__score .testscore__meta { font-size: 12px; line-height: 1.6; }
   .testresult__score .testbars { margin-top: 10px; gap: 8px; }
   .testresult__score .testbars li { grid-template-columns: 4.1em 1fr 2.7em; gap: 6px; font-size: 13px; }
   .testresult__score .testbars__track { height: 6px; }
