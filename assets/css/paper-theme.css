@@ -1012,9 +1012,9 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .testscore__total { margin: 2px 0 0; font-family: "Shippori Mincho", serif; color: var(--gold-deep); line-height: 1.1; }
 .testscore__total strong { font-size: 44px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .testscore__total small { margin-left: 4px; font-size: 14px; color: var(--ink-soft); }
-.testscore__meta { margin: 6px 0 0; font-size: 12px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.testscore__meta { margin: 6px 0 0; font-size: 13px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
 .testbars { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
-.testbars li { display: grid; grid-template-columns: 5em 1fr 3.2em; align-items: center; gap: 10px; font-size: 12.5px; }
+.testbars li { display: grid; grid-template-columns: 5em 1fr 3.2em; align-items: center; gap: 10px; font-size: 13.5px; }
 .testbars__label { color: var(--ink-soft); }
 .testbars__track { height: 8px; border-radius: 999px; background: var(--gold-line-soft); overflow: hidden; }
 .testbars__track i { display: block; height: 100%; border-radius: 999px; background: var(--gold); transition: width .3s ease; }
@@ -1056,21 +1056,11 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .testresult__art img { width: 100%; aspect-ratio: 640 / 925; object-fit: contain; display: block; }
 .testresult__art figcaption { margin-top: 4px; font-family: "Shippori Mincho", serif; font-size: 15px; letter-spacing: .08em; color: var(--gold-deep); }
 .testresult__score { grid-area: score; }
+/* 結果の中の小見出し(「あなたの到達度」など)は共通の .formlabel(11px)より大きく */
+.testresult .formlabel { font-size: 12.5px; }
 .testresult__bands { grid-area: bands; padding: 18px; }
 .testresult__feedback { grid-area: feedback; padding: 18px; }
 .testresult__cta { grid-area: cta; margin-top: 8px; text-align: center; }
-/* スマホの右上は幅が 200px ほどしかないので、合計とバーを詰める */
-@media (max-width: 767px) {
-  .testresult__score { padding: 12px; }
-  .testresult__total { flex-direction: column; align-items: flex-start; gap: 2px; padding-bottom: 6px; }
-  .testresult__total p { align-self: flex-end; }
-  .testresult__total strong { font-size: 40px; }
-  .testresult__score .testscore__meta { font-size: 10.5px; }
-  .testresult__score .testbars { margin-top: 10px; gap: 7px; }
-  .testresult__score .testbars li { grid-template-columns: 4.2em 1fr 2.6em; gap: 6px; font-size: 11.5px; }
-  .testresult__score .testbars__track { height: 6px; }
-  .testresult__bands .testbands li { grid-template-columns: 5.2em 1fr auto; gap: 8px; padding: 8px 10px; }
-}
 @media (min-width: 768px) {
   .testresult__art figcaption { font-size: 17px; }
   .testresult { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); grid-template-areas: "art score" "art bands" "feedback feedback" "cta cta"; align-items: start; gap: 20px 24px; }
@@ -1084,23 +1074,38 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .testresult__total strong { font-size: 52px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .testresult__total small { margin-left: 2px; font-size: 18px; }
 .testresult__score .testscore__meta { text-align: right; line-height: 1.7; }
+/* スマホの右上は幅が 200px ほどしかないので、合計とバーを詰める。
+   基本の指定(.testresult__total strong 52px など)より後ろに置くこと — 前にあると同じ強さの指定に負ける
+   (2026-11-03 まで合計の数字が 40px にならず 52px のままだった)。 */
+@media (max-width: 767px) {
+  .testresult__score { padding: 12px; }
+  .testresult__total { flex-direction: column; align-items: flex-start; gap: 2px; padding-bottom: 6px; }
+  .testresult__total p { align-self: flex-end; }
+  .testresult__total strong { font-size: 40px; }
+  .testresult__score .testscore__meta { font-size: 12px; line-height: 1.6; }
+  .testresult__score .testbars { margin-top: 10px; gap: 8px; }
+  .testresult__score .testbars li { grid-template-columns: 4.1em 1fr 2.7em; gap: 6px; font-size: 13px; }
+  .testresult__score .testbars__track { height: 6px; }
+  .testresult__bands .testbands li { grid-template-columns: 5em 1fr auto; gap: 8px; padding: 9px 10px; }
+  .testresult__bands, .testresult__feedback { padding: 14px 12px; }
+}
 
 .testbands { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.testbands li { display: grid; grid-template-columns: 6.2em 1fr auto; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--gold-line-soft); border-radius: 8px; font-size: 12.5px; color: var(--ink-faint); }
+.testbands li { display: grid; grid-template-columns: 6.2em 1fr auto; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--gold-line-soft); border-radius: 8px; font-size: 14px; color: var(--ink-faint); }
 .testbands__range { font-variant-numeric: tabular-nums; }
 .testbands li.is-current { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 12%, var(--paper-panel)); color: var(--ink); font-weight: 700; }
 .testbands li.is-current .testbands__range { color: var(--gold-deep); }
-.testbands__you { padding: 2px 9px; border-radius: 999px; background: var(--gold-deep); color: #fffaf0; font-size: 10.5px; letter-spacing: .1em; }
-.testbands__message { margin: 12px 0 0; font-size: 13px; line-height: 1.85; color: var(--ink); }
+.testbands__you { padding: 2px 9px; border-radius: 999px; background: var(--gold-deep); color: #fffaf0; font-size: 11.5px; letter-spacing: .1em; white-space: nowrap; }
+.testbands__message { margin: 12px 0 0; font-size: 14.5px; line-height: 1.85; color: var(--ink); }
 
 .testfeedback { margin: 0; display: grid; gap: 14px; }
 .testfeedback > div + div { padding-top: 14px; border-top: 1px solid var(--gold-line-soft); }
-.testfeedback dt { display: flex; align-items: baseline; gap: 8px; font-size: 14px; font-weight: 700; color: var(--gold-deep); }
-.testfeedback dt span { font-size: 12px; font-weight: 400; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
-.testfeedback dd { margin: 4px 0 0; font-size: 13.5px; line-height: 1.9; color: var(--ink); }
+.testfeedback dt { display: flex; align-items: baseline; gap: 8px; font-size: 16px; font-weight: 700; color: var(--gold-deep); }
+.testfeedback dt span { font-size: 13px; font-weight: 400; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.testfeedback dd { margin: 4px 0 0; font-size: 15px; line-height: 1.9; color: var(--ink); }
 
 .testcta__lead { margin: 0; font-family: "Shippori Mincho", serif; font-size: 19px; font-weight: 600; letter-spacing: .04em; color: var(--gold-deep); }
-.testcta__sub { margin: 6px 0 16px; font-size: 12.5px; color: var(--ink-soft); }
+.testcta__sub { margin: 6px 0 16px; font-size: 13.5px; color: var(--ink-soft); }
 .testcta__cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: 1fr; }
 @media (min-width: 640px) { .testcta__cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .testcta__card { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 10px; min-height: 150px; padding: 26px 16px 18px; border: 1px solid var(--gold-line); border-radius: 14px; background: radial-gradient(140% 120% at 50% 0%, color-mix(in srgb, var(--gold) 10%, var(--paper-panel)) 0%, var(--paper-panel) 70%); box-shadow: var(--shadow); }
@@ -1144,7 +1149,7 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 }
 .testscroll__body {
   position: relative;
-  padding: calc(114px * var(--k) + 26px) calc(150px * var(--k) + 10px) calc(116px * var(--k) + 30px);
+  padding: calc(114px * var(--k) + 26px) calc(130px * var(--k) + 8px) calc(116px * var(--k) + 30px);
 }
 @media (min-width: 640px) { .testscroll__body { padding-left: calc(150px * var(--k) + 18px); padding-right: calc(150px * var(--k) + 18px); } }
 
