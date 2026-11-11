@@ -21,10 +21,10 @@ const signupLink = computed(() =>
   typeof route.query.redirect === 'string' ? `/signup?redirect=${encodeURIComponent(route.query.redirect)}` : '/signup'
 )
 
-// 既にログイン済みの状態でこのページに来た場合は、フォームを出さずそのまま遷移先へ流す。
-watchEffect(() => {
-  if (ready.value && currentUser.value) navigateTo(redirectTarget())
-})
+// ログイン済みでもフォームを出す(別のアカウントでログインし直せるように)。
+// 以前はログイン済みなら戻り先(無ければトップ)へ自動で送っていたが、URLを直接開いた人が
+// 理由も分からずトップへ飛ばされ、ログイン後に「戻る」を押すとここで送り返されて
+// 前の画面へ戻れなかった(2026-11-12)。
 
 const { withLoading } = useGlobalLoading()
 
@@ -38,7 +38,9 @@ async function submit() {
     // 認証と遷移が終わるまで画面全体を覆う。押したのに何も起きていないように見える間を作らない。
     await withLoading(async () => {
       await signInWithEmailAndPassword(auth, email.value, password.value)
-      await navigateTo(redirectTarget())
+      // 履歴を置き換える。積むと「戻る」でこのログイン画面に戻ってきてしまい、
+      // ログインする前に見ていた画面へ戻れない。
+      await navigateTo(redirectTarget(), { replace: true })
     })
   } catch {
     errorMessage.value = 'メールアドレスまたはパスワードが正しくありません'

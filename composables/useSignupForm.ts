@@ -27,7 +27,6 @@ export function useSignupForm() {
   // アカウント自体は作成済みなので、コード無しで作り直したうえでここに表示する。
   const codeWarning = ref('')
   const { withLoading } = useGlobalLoading()
-  const { user: currentUser, ready } = useAuth()
 
   const redirect = computed(() => safeRedirect(route.query.redirect))
   function redirectTarget(): string {
@@ -40,13 +39,9 @@ export function useSignupForm() {
     redirect.value ? `/login?redirect=${encodeURIComponent(redirect.value)}` : '/login'
   )
 
-  // 既にログイン済みの状態でこのページに来た場合は、登録フォームを出さずそのまま遷移先へ流す。
-  // ただしコードが適用できなかった案内を出している間は止める — 自動遷移してしまうと
-  // 「登録はできたがコードは付いていない」ことを本人が知らないまま先に進んでしまうため。
-  watchEffect(() => {
-    if (codeWarning.value) return
-    if (ready.value && currentUser.value) navigateTo(redirectTarget())
-  })
+  // ログイン済みでも登録フォームを出す(別のアカウントを作れるように)。以前はログイン済みなら
+  // 戻り先(無ければトップ)へ自動で送っていたが、紹介コードのURLを開いた会員が理由も分からず
+  // トップへ飛ばされ、登録後に「戻る」を押すとここで送り返されて前の画面へ戻れなかった(2026-11-12)。
 
   function mapAuthError(err: unknown): string {
     const code = (err as { code?: string } | null)?.code
@@ -103,13 +98,14 @@ export function useSignupForm() {
             await setDoc(userRef, { ...baseProfile, ...unaffiliatedFields() })
             codeWarning.value = 'アカウントは作成されましたが、紹介コードは適用されませんでした。下のボタンから再度お試しください。'
             submitting.value = false
-            // 案内を読ませるためこの先の遷移は行わない(watchEffect側もcodeWarningで止まる)。
+            // 案内を読ませるためこの先の遷移は行わない。
             return
           }
         } else {
           await setDoc(userRef, { ...baseProfile, ...unaffiliatedFields() })
         }
-        await navigateTo(redirectTarget())
+        // 履歴を置き換える。積むと「戻る」でこの登録画面に戻ってきてしまう。
+        await navigateTo(redirectTarget(), { replace: true })
       })
     } catch (err) {
       errorMessage.value = mapAuthError(err)

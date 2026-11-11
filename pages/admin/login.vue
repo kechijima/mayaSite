@@ -33,7 +33,8 @@ async function submit() {
         await signOut(auth)
         return true
       }
-      await navigateTo(redirectTarget())
+      // 履歴を置き換える(pages/login.vue と同じ。「戻る」でログイン画面に戻らないように)。
+      await navigateTo(redirectTarget(), { replace: true })
       return false
     })
     if (denied) {
