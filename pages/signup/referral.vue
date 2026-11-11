@@ -60,6 +60,7 @@ async function submit() {
           >
             {{ submitting ? '登録中…' : 'チーム会員として登録する' }}
           </button>
+          <LegalConsent action="登録する" />
         </form>
 
         <template v-if="!codeWarning">

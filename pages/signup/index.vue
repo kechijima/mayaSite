@@ -23,6 +23,7 @@ const { submitting, errorMessage, loginLink } = form
           <button type="submit" class="btn-gold" :disabled="submitting">
             {{ submitting ? '登録中…' : '会員登録する' }}
           </button>
+          <LegalConsent action="会員登録する" />
         </form>
 
         <p class="mt-4 text-center text-[12.5px]" style="color: var(--ink-faint);">

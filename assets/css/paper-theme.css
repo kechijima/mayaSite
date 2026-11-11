@@ -704,6 +704,30 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
   .legallist dt { padding-top: 2px; }
 }
 
+/* 利用規約・プライバシーポリシー(components/LegalDocument.vue)。長文なので本文は 13.5px・行間広め。 */
+.legaldoc { font-size: 13.5px; line-height: 1.95; color: var(--ink); }
+.legaldoc p { margin: 0; }
+.legaldoc p + p, .legaldoc p + ol, .legaldoc p + ul, .legaldoc ol + p, .legaldoc ul + p { margin-top: 10px; }
+.legaldoc__intro { padding-bottom: 6px; }
+.legaldoc__section { margin-top: 26px; }
+.legaldoc__heading { font-size: 14.5px; font-weight: 700; letter-spacing: .04em; color: var(--ink); padding-bottom: 6px; margin-bottom: 10px; border-bottom: 1px solid var(--gold-line-soft); }
+.legaldoc__items { margin: 0; padding-left: 1.6em; list-style: decimal; }
+.legaldoc__items > li + li, .legaldoc__bullets > li + li { margin-top: 6px; }
+.legaldoc__bullets { margin: 0; padding-left: 1.3em; list-style: disc; }
+.legaldoc__items > li::marker, .legaldoc__bullets > li::marker { color: var(--ink-soft); }
+.legaldoc__dates { margin-top: 30px !important; text-align: right; font-size: 12px; color: var(--ink-soft); }
+@media (min-width: 640px) { .legaldoc { padding: 32px 36px; } }
+
+/* 規約類の相互リンク(components/LegalLinks.vue)とフッターのリンク列で共用 */
+.legallinks { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; margin-top: 22px; font-size: 12px; }
+.legallinks a { color: var(--gold-deep); text-decoration: none; }
+.legallinks a:hover { text-decoration: underline; }
+
+/* 送信ボタン近くの同意文(components/LegalConsent.vue) */
+.legalconsent { margin: 0; text-align: center; font-size: 11.5px; line-height: 1.8; color: var(--ink-faint); }
+.legalconsent a { color: var(--gold-deep); text-decoration: none; }
+.legalconsent a:hover { text-decoration: underline; }
+
 .panel { border: 1px solid var(--gold-line-soft); background: var(--paper-panel); box-shadow: var(--shadow); border-radius: 12px; padding: 24px; }
 .panel--plan { border-color: var(--gold-line); background: radial-gradient(140% 170% at 30% 0%, var(--paper-panel) 0%, var(--paper-panel-2) 100%); padding: 16px 18px; }
 .panel--danger { border-color: color-mix(in srgb, var(--seal-red) 45%, transparent); background: color-mix(in srgb, var(--seal-red) 6%, var(--paper-panel)); }
@@ -774,6 +798,7 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
    — 持たせないと、ここだけ地の白が出てしまう。 */
 .sitefooter { background: var(--paper); color: var(--ink-faint); border-top: 1px solid var(--gold-line-soft); }
 .sitefooter__inner { max-width: 720px; margin: 0 auto; padding: 26px 20px 34px; text-align: center; }
+.sitefooter__links { margin: 0 0 14px; }
 .sitefooter__notice { font-size: 11.5px; line-height: 1.9; letter-spacing: .02em; }
 .sitefooter__copy { margin-top: 12px; font-size: 11px; letter-spacing: .06em; color: var(--ink-faint); }
 @media (min-width: 640px) { .sitefooter__inner { padding: 30px 40px 40px; } }

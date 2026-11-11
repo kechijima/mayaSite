@@ -332,7 +332,18 @@ names/prices and the query plumbing live in [utils/checkout.ts](utils/checkout.t
 server-only in the rules, and the deleted localStorage flag was deliberately not revived. `/checkout` refuses
 suspended members, tells team members they need not pay, and tells paid members they already have it, per the Phase 2
 rules. `/account` (now titled マイページ) shows the derived plan and a disabled お支払いの管理 button (Customer Portal
-later). [pages/legal/tokushoho.vue](pages/legal/tokushoho.vue) is the 特定商取引法 skeleton linked from `/checkout`.
+later). [pages/legal/tokushoho.vue](pages/legal/tokushoho.vue) is the 特定商取引法 page linked from `/checkout`.
+
+**Legal pages** (2026-11-11): `/legal/terms` (利用規約), `/legal/privacy` (プライバシーポリシー) and `/legal/tokushoho`,
+linked from [components/SiteFooter.vue](components/SiteFooter.vue) and from each other ([components/LegalLinks.vue](components/LegalLinks.vue)).
+The item layout follows mayadan.jp's privacy policy and /law; mayadan.jp has no 利用規約, so that one was written from the
+usual structure of membership/fortune sites, fitted to this app (tiers, referral codes, single-article purchases, the
+achievement test). Operator name/contacts and the enactment dates live only in [utils/legalInfo.ts](utils/legalInfo.ts)
+(`（準備中）` until decided); prices come from `PLANS`. The privacy policy lists exactly what the app stores (signup fields,
+diagnosis inputs incl. non-members' `diagnosisHistory`, test results, purchases) and says no analytics tool is used —
+**update it and add `revised` to `PRIVACY_DATES` when that changes** (analytics, Stripe go-live, new collected fields).
+[components/LegalConsent.vue](components/LegalConsent.vue) puts the 「〜することで…に同意したものとみなします」 line under the
+submit buttons of `/signup`, `/signup/referral` and `/checkout`; its links open in a new tab so the form isn't lost.
 In Phase 2, `/checkout`'s お支払いへ進む calls the Cloud Function and `/checkout/success` polls
 `useEntitlement().refresh()` until the webhook has written `plan` / `purchases`.
 
@@ -488,7 +499,7 @@ General visitors can self-register via [pages/signup/index.vue](pages/signup/ind
 
 ### Two visual worlds
 The app deliberately uses two unrelated design systems, matching the mockup:
-- **Public/user pages** (`/`, `/result`, `/plans`, `/account`, `/signup`, `/signup/referral`, `/login`, `/compatibility`, `/kin/[sealIndex]`, `/kin/[kin]/detail`; `layouts/default.vue`) share the "paper" (羊皮紙) theme — `paper-page`/`sheet`/`masthead`/`panel`/`formlabel`/`formfield`/`btn-gold`/`plancard` etc. in [assets/css/paper-theme.css](assets/css/paper-theme.css), serif `font-display`/`font-body` (Cormorant Garamond / Shippori Mincho B1). `/account` was migrated onto this shared theme from an earlier one-off slate/brass style (see the `2026-08-17` comment there); the raw `bg-ink-950`/`gold-*` Tailwind utilities in [tailwind.config.ts](tailwind.config.ts) predate that unification and aren't the current styling mechanism for these pages — check the mockup before assuming either naming scheme is still authoritative.
+- **Public/user pages** (`/`, `/result`, `/plans`, `/account`, `/signup`, `/signup/referral`, `/login`, `/compatibility`, `/kin/[sealIndex]`, `/kin/[kin]/detail`, `/legal/*`; `layouts/default.vue`) share the "paper" (羊皮紙) theme — `paper-page`/`sheet`/`masthead`/`panel`/`formlabel`/`formfield`/`btn-gold`/`plancard` etc. in [assets/css/paper-theme.css](assets/css/paper-theme.css), serif `font-display`/`font-body` (Cormorant Garamond / Shippori Mincho B1). `/account` was migrated onto this shared theme from an earlier one-off slate/brass style (see the `2026-08-17` comment there); the raw `bg-ink-950`/`gold-*` Tailwind utilities in [tailwind.config.ts](tailwind.config.ts) predate that unification and aren't the current styling mechanism for these pages — check the mockup before assuming either naming scheme is still authoritative.
 - **Admin pages** (`/admin/**`, `layouts/admin.vue`) use a neutral, theme-aware (light/dark via `media`) console style with `brass-700` accents, sans-serif body text, and a fixed sidebar. Admin pages set `definePageMeta({ layout: 'admin' })` individually.
 
 Tailwind `darkMode` is `'media'` (follows OS preference), not a manual toggle.

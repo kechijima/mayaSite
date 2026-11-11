@@ -102,11 +102,7 @@ const blocker = computed<'suspended' | 'team' | 'already-paid' | 'already-bought
             <NuxtLink :to="payLink" class="btn-gold mt-5 w-full">お支払いへ進む</NuxtLink>
           </section>
 
-          <p class="text-center text-[11.5px] leading-[1.8]" style="color: var(--ink-faint);">
-            お支払いに進むことで
-            <NuxtLink to="/legal/tokushoho" class="hover:underline" style="color: var(--gold-deep);">特定商取引法に基づく表記</NuxtLink>
-            に同意したものとみなします。
-          </p>
+          <LegalConsent action="お支払いに進む" with-tokushoho />
         </template>
 
         <NuxtLink :to="plansLink" class="mt-2 block text-center text-[12px] hover:underline" style="color: var(--ink-faint);">
