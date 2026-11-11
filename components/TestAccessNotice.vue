@@ -10,8 +10,8 @@ const props = defineProps<{
   accountLink: string
 }>()
 
-// 会員情報の無いアカウント(noProfile)からの出口。ログイン画面はログイン済みだと戻り先へ送り返すので、
-// ログアウトしてから送る。
+// 会員情報の無いアカウント(noProfile)からの出口。ログアウトしてからログイン画面へ送る
+// (ログインし直しに失敗しても、会員情報の無いアカウントのまま残らないように)。
 const { withLoading } = useGlobalLoading()
 async function relogin() {
   const target = props.loginLink
