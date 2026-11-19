@@ -7,7 +7,8 @@ import { fetchPublishedDoc } from '~/composables/useDiagnosisContent'
 // 配置と順番は mayadan.jp/character に合わせる: 上に Red / White / Blue / Yellow の目次、
 // 色ごとに5つずつ(赤い竜・赤い蛇・赤い月・赤い空歩く人・赤い地球 …)。紋章の番号 i の色は i % 4
 // (utils/mayaData.ts の sealColor)なので、色ごとに i の小さい順に並べるとこの順になる。
-// 各行は顔のアイコンを女性・男性で並べ、英語名・紋章名・タイプ名を添える。押すとその紋章のページ(/kin/N)へ。
+// 各紋章は診断結果の「KINの関係性」と同じカードで、胸像を女性・男性で並べる(2026-11-19 要望で顔の丸アイコンから変更)。
+// 英語名・紋章名・タイプ名・キーワードを添え、押すとその紋章のページ(/kin/N)へ。
 // mayadan のキャラクター名(人名)は先方の創作物なので使わず、このサイトのタイプ名(CMS の archetype)を出す。
 
 const GROUPS = [
@@ -54,22 +55,27 @@ const { data: archetypes } = useAsyncData(
         <h2 class="sealgroup__title font-display">
           <span aria-hidden="true">❦</span>{{ g.label }}<span aria-hidden="true">❦</span>
         </h2>
-        <ul class="seallist">
-          <li v-for="(s, i) in g.seals" :key="s.index">
-            <NuxtLink :to="`/kin/${s.index}`" class="sealrow" :class="{ 'is-rev': i % 2 === 1 }">
-              <span class="sealrow__faces">
-                <MayaGlyph :seal-index="s.index" gender="female" size="xl" />
-                <MayaGlyph :seal-index="s.index" gender="male" size="xl" />
-              </span>
-              <span class="sealrow__band">
-                <span class="sealrow__en font-display">{{ s.english }}</span>
-                <span class="sealrow__name">{{ s.name }}</span>
-                <span class="sealrow__rule" aria-hidden="true" />
-                <span class="sealrow__type">{{ archetypes[s.index] || s.keyword }}</span>
-              </span>
-            </NuxtLink>
-          </li>
-        </ul>
+        <!-- 診断結果の「KINの関係性」と同じカード(.relcard)に、胸像を女性・男性で並べる(2026-11-19 要望) -->
+        <div class="relwrap sealcards">
+          <NuxtLink
+            v-for="s in g.seals"
+            :key="s.index"
+            :to="`/kin/${s.index}`"
+            class="relcard relcard--link"
+            :class="`relcard--${g.key}`"
+          >
+            <div class="relcard__figure sealcards__figure">
+              <MayaBust :seal-index="s.index" gender="female" :alt="`${s.name}（女性）`" />
+              <MayaBust :seal-index="s.index" gender="male" :alt="`${s.name}（男性）`" />
+            </div>
+            <div class="relcard__body">
+              <span class="relcard__label">{{ s.english }}</span>
+              <h3 class="font-display relcard__name">{{ s.name }}<span v-if="archetypes[s.index]" class="relcard__type">{{ archetypes[s.index] }}</span></h3>
+              <p class="relcard__desc">{{ s.keyword }}</p>
+              <span class="relcard__cta"><span class="relcard__cta-icon"><svg><use href="#i-search" /></svg></span>詳しく見る</span>
+            </div>
+          </NuxtLink>
+        </div>
       </section>
     </div>
   </div>
