@@ -1338,9 +1338,11 @@ a.kinduo__cap:hover .kinduo__seal { text-decoration: underline; text-underline-o
   /* 名前の欄は幅を固定して狭くし(折り返し可、2026-11-19 要望)、残りの幅をすべてキャラクターに使う */
   .sealcards__figure { flex: 1 1 auto; width: auto; min-width: 0; margin: -70px 0 0 -10px; align-self: flex-end; }
   .sealcards .relcard.is-rev .sealcards__figure { margin: -70px -10px 0 0; }
-  /* 男女の重なりを減らす(2026-11-19 要望)。2体の合計が枠より広くなるので、中央に寄せて左右の端を切る。
-     clip-path は左右だけ切り、上(枠からはみ出す頭)と下の影は残す */
-  .sealcards__figure { justify-content: center; clip-path: inset(-200px 0 -40px 0); }
+  /* 男女の重なりを減らす(2026-11-19 要望)。2体の合計が枠より広くなるぶんは切らずに名前の欄の側へはみ出させ、
+     名前の文字をキャラクターより手前に出す(カードの外側の端はそろえたまま) */
+  .sealcards__figure { justify-content: flex-start; }
+  .sealcards .relcard.is-rev .sealcards__figure { justify-content: flex-end; }
+  .sealcards .relcard__body { position: relative; z-index: 3; text-shadow: 0 0 3px rgba(255, 250, 240, .95), 0 0 8px rgba(255, 250, 240, .85); }
   .sealcards__figure img { width: 74% !important; }
   .sealcards__figure img + img { margin-left: -34%; }
   /* 名前の欄は幅 92px のまま、内側の左に余白を取る(2026-11-19 要望) */
