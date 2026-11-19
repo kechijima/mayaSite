@@ -25,7 +25,7 @@ const input = computed(() => {
 })
 const { result } = useDiagnosis(input)
 // ピッタリ到達度テストへの導線(ヘッダー・固定フッター)に、この結果の KIN と性別を渡す
-const { last: lastDiagnosis, testLink } = useLastDiagnosis()
+const { last: lastDiagnosis } = useLastDiagnosis()
 watchEffect(() => {
   lastDiagnosis.value = { kin: result.value.kin, gender: result.value.gender }
 })
@@ -558,21 +558,6 @@ async function shareResult() {
             style="background: var(--gold); color: #241a06;"
           >
             相性診断をはじめる
-          </NuxtLink>
-        </div>
-      </section>
-
-      <!-- ピッタリ到達度テストへの導線(2026-11-19 要望: 相性診断の下にボタン。固定フッターにも出す — TestFloatingCta) -->
-      <section id="test-cta" class="section">
-        <div class="mx-auto max-w-[560px] rounded-xl p-6 text-center" style="border: 1px solid var(--gold-line-soft); background: var(--paper-panel); box-shadow: var(--shadow);">
-          <div class="mb-2 font-display text-[17px]" style="color: var(--gold-deep);">ピッタリ到達度テスト</div>
-          <p class="mb-4 text-[13px]" style="color: var(--ink-soft);">{{ result.sun.seal.name }}らしさがどこまで身についているか、25問の自己診断で確かめてみましょう。</p>
-          <NuxtLink
-            :to="testLink"
-            class="inline-block rounded-full px-8 py-3 text-[14px] font-bold tracking-[.03em]"
-            style="background: var(--gold); color: #241a06;"
-          >
-            ピッタリ到達度テストを受ける
           </NuxtLink>
         </div>
       </section>
