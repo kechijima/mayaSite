@@ -72,7 +72,8 @@ const { data: archetypes } = useAsyncData(
             </div>
             <div class="relcard__body">
               <span class="relcard__label">{{ s.english }}</span>
-              <h3 class="font-display relcard__name">{{ s.name }}</h3>
+              <!-- 長い紋章名(白い世界の橋渡し)は「の」の後ろでだけ折り返す(スマホの横並びで幅が狭いため) -->
+              <h3 class="font-display relcard__name"><template v-for="(part, pi) in s.name.split(/(?<=の)/)" :key="pi"><wbr v-if="pi" />{{ part }}</template></h3>
               <!-- 3行目はタイプ名(2026-11-19 要望でキーワードの説明から差し替え) -->
               <p v-if="archetypes[s.index]" class="relcard__desc sealcards__type">{{ archetypes[s.index] }}</p>
             </div>
