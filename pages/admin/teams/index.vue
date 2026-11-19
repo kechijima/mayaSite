@@ -88,6 +88,16 @@ function statusChip(status: TeamRow['status']) {
 function statusLabel(status: TeamRow['status']) {
   return status === 'active' ? '有効' : status === 'disabled' ? '無効' : 'コード未作成'
 }
+// 登録画面(/signup/referral・/account)のチーム選択での扱い(2026-11-19)。
+// 「選択肢に出す」設定(listed)でも、コードが無効なら選択肢には出ない(usePublicTeams が active で絞る)。
+function signupLabel(row: TeamRow) {
+  if (!row.listed) return 'その他から入力'
+  return row.status === 'active' ? '選択肢に表示' : '表示設定（コード無効のため非表示）'
+}
+function signupChip(row: TeamRow) {
+  if (row.listed && row.status === 'active') return 'bg-amber-50 text-brass-700 dark:bg-amber-950/40 dark:text-gold-300'
+  return 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+}
 </script>
 
 <template>
@@ -95,7 +105,7 @@ function statusLabel(status: TeamRow['status']) {
     <div class="mb-6">
       <h1 class="text-xl font-bold">チーム管理</h1>
       <span class="text-xs text-slate-500 dark:text-slate-400">
-        チームを作成すると紹介コードが1つ発行されます。コードを入力した会員はそのチームに所属し、所属している間はチーム会員として扱われます。チーム名は紹介コード付き会員登録ページのチーム選択に表示されます。
+        チームを作成すると紹介コードが1つ発行されます。コードを入力した会員はそのチームに所属し、所属している間はチーム会員として扱われます。「登録画面」が「選択肢に表示」のチームは、紹介コード付き会員登録ページのチーム選択に出て、選ぶとコードが自動で入ります。それ以外のチームは「その他」を選んでコードを入力すると所属できます（切り替えはチームの詳細画面）。
       </span>
     </div>
 
@@ -152,6 +162,7 @@ function statusLabel(status: TeamRow['status']) {
             :title="row.name"
             :subtitle="row.code"
             :fields="[
+              { label: '登録画面', value: signupLabel(row) },
               { label: 'メンバー', value: `${row.members}名` },
               { label: '作成日', value: formatDate(row) }
             ]"
@@ -169,6 +180,7 @@ function statusLabel(status: TeamRow['status']) {
                 <th class="pb-2.5 pr-3">チーム名</th>
                 <th class="pb-2.5 pr-3">コード</th>
                 <th class="pb-2.5 pr-3">状態</th>
+                <th class="pb-2.5 pr-3">登録画面</th>
                 <th class="pb-2.5 pr-3 text-right">メンバー</th>
                 <th class="pb-2.5">作成日</th>
               </tr>
@@ -179,6 +191,9 @@ function statusLabel(status: TeamRow['status']) {
                 <td class="py-2.5 pr-3 font-mono tracking-[.05em]">{{ row.code }}</td>
                 <td class="py-2.5 pr-3">
                   <span class="rounded-full px-2.5 py-0.5 text-[11.5px] font-bold" :class="statusChip(row.status)">{{ statusLabel(row.status) }}</span>
+                </td>
+                <td class="py-2.5 pr-3">
+                  <span class="rounded-full px-2.5 py-0.5 text-[11.5px] font-bold" :class="signupChip(row)">{{ signupLabel(row) }}</span>
                 </td>
                 <td class="py-2.5 pr-3 text-right tabular-nums">{{ row.members }}</td>
                 <td class="py-2.5 tabular-nums text-slate-500 dark:text-slate-400">{{ formatDate(row) }}</td>
