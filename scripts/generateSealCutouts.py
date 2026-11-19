@@ -101,6 +101,29 @@ def limit_width(im: Image.Image, max_w: int) -> Image.Image:
 # previous set) — so every other bust only ever gets a bottom crop, never a side crop.
 
 
+# 2026-11-19: 体が細いキャラクターは、上の normalize_bust_ar で下(体)を大きく削られ、胸像が
+# 「頭だけ」になっていた(全身の高さに対して残るのが 2割前後。他は 3〜4割)。20の紋章の一覧で
+# 指摘があったものだけ、全身の高さのこの割合までを必ず残し、足りない横幅は透明で左右に足して
+# 縦横比を揃える(下を削らない)。そのぶん画面上では人物が少し小さく、体まで見えるようになる。
+# キーは (sealIndex, suffix)。'' が女性、'-male' が男性。
+BUST_KEEP_MIN: dict[tuple[int, str], float] = {
+    (14, '-male'): 0.34,  # 青い鷲(男性)
+    (9, ''): 0.34,        # 白い犬(女性)
+    (9, '-male'): 0.34,   # 白い犬(男性)
+    (11, '-male'): 0.34,  # 黄色い人(男性)
+    (12, '-male'): 0.34,  # 赤い空歩く人(男性)
+    (13, ''): 0.34,       # 白い魔法使い(女性)
+}
+
+
+def keep_body_bust(full: Image.Image, keep: float, target_ar: float) -> Image.Image:
+    slice_ = alpha_crop(full.crop((0, 0, full.width, round(full.height * keep))), pad=4)
+    w, h = slice_.size
+    if w / h > target_ar:  # 横に広い(装飾が張り出す)ときは従来どおり下を削る
+        return normalize_bust_ar(slice_, target_ar)
+    return pad_to_ar(slice_, target_ar)
+
+
 def normalize_bust_ar(im: Image.Image, target_ar: float) -> Image.Image:
     w, h = im.size
     ar = w / h
@@ -206,12 +229,14 @@ def main():
         name = SEAL_NAMES[seal_index]
         print(f'[{seal_index:2d}]{suffix or " (female)"} {name}')
 
+        full_unpadded = full
         full = pad_to_ar(full, target_cutout_ar)
         full = zoom_cutout(full, CUTOUT_ZOOM.get((seal_index, suffix), 1))
         full_path = os.path.join(OUT_DIR, f'seal-{seal_index}-cutout{suffix}.webp')
         limit_width(full, MAX_CUTOUT_WIDTH).save(full_path, 'WEBP', quality=88, method=6)
 
-        bust = normalize_bust_ar(bust_slice, target_bust_ar)
+        keep = BUST_KEEP_MIN.get((seal_index, suffix))
+        bust = keep_body_bust(full_unpadded, keep, target_bust_ar) if keep else normalize_bust_ar(bust_slice, target_bust_ar)
         bust_path = os.path.join(OUT_DIR, f'seal-{seal_index}-bust{suffix}.webp')
         bust.save(bust_path, 'WEBP', quality=88, method=6)
 
