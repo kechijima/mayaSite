@@ -1315,26 +1315,12 @@ a.kinduo__cap:hover .kinduo__seal { text-decoration: underline; text-underline-o
 .sealgroup.is-yellow { --c: var(--seal-yellow); }
 .sealgroup__title { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 0 0 16px; padding-bottom: 10px; border-bottom: 1px solid var(--gold-line-soft); font-size: 34px; font-weight: 600; color: var(--c); }
 .sealgroup__title span { font-size: 18px; opacity: .7; }
-.seallist { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
-.sealrow { display: flex; align-items: center; gap: 0; text-decoration: none; color: inherit; }
-.sealrow.is-rev { flex-direction: row-reverse; }
-.sealrow__faces { position: relative; z-index: 1; display: flex; gap: 6px; flex-shrink: 0; }
-.sealrow__faces .medal__ring { width: 72px !important; height: 72px !important; }
-.sealrow__band { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; margin-left: -18px; padding: 12px 12px 12px 30px; border-radius: 10px; text-align: center;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--c) 6%, var(--paper-panel)) 0%, color-mix(in srgb, var(--c) 22%, var(--paper-panel)) 100%);
-  border: 1px solid color-mix(in srgb, var(--c) 30%, transparent); }
-.sealrow.is-rev .sealrow__band { margin-left: 0; margin-right: -18px; padding: 12px 30px 12px 12px; background: linear-gradient(270deg, color-mix(in srgb, var(--c) 6%, var(--paper-panel)) 0%, color-mix(in srgb, var(--c) 22%, var(--paper-panel)) 100%); }
-.sealrow__en { font-size: 15px; color: var(--c); letter-spacing: .04em; }
-.sealrow__name { font-family: "Shippori Mincho B1", serif; font-size: 18px; font-weight: 700; color: var(--ink); }
-.sealrow__rule { width: 60%; max-width: 160px; height: 1px; margin: 4px 0; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
-.sealrow__type { font-size: 13px; color: var(--ink-soft); }
-.sealrow:hover .sealrow__name { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
-@media (min-width: 640px) {
-  .sealrow__faces { gap: 10px; }
-  .sealrow__faces .medal__ring { width: 104px !important; height: 104px !important; }
-  .sealrow__band { margin-left: -26px; padding: 18px 20px 18px 46px; }
-  .sealrow.is-rev .sealrow__band { margin-right: -26px; padding: 18px 46px 18px 20px; }
-  .sealrow__en { font-size: 18px; }
-  .sealrow__name { font-size: 22px; }
-  .sealrow__type { font-size: 14px; }
+.sealcards { margin-top: 64px; }
+/* 胸像2体(女性・男性)を横に並べる。1体ぶんは .relcard__figure と同じ比率で、少し重ねて幅を抑える */
+.sealcards__figure { display: flex; align-items: flex-end; width: 400px; margin: -46px 0 0 -24px; }
+.sealcards__figure img { width: 50% !important; flex: none; }
+.sealcards__figure img + img { margin-left: -6%; }
+@media (max-width: 560px) {
+  .sealcards { margin-top: 40px; }
+  .sealcards__figure { width: 300px; margin: 0; }
 }
