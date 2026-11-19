@@ -1315,12 +1315,15 @@ a.kinduo__cap:hover .kinduo__seal { text-decoration: underline; text-underline-o
 .sealgroup.is-yellow { --c: var(--seal-yellow); }
 .sealgroup__title { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 0 0 16px; padding-bottom: 10px; border-bottom: 1px solid var(--gold-line-soft); font-size: 34px; font-weight: 600; color: var(--c); }
 .sealgroup__title span { font-size: 18px; opacity: .7; }
-.sealcards { margin-top: 64px; }
-/* 胸像2体(女性・男性)を横に並べる。1体ぶんは .relcard__figure と同じ比率で、少し重ねて幅を抑える */
-.sealcards__figure { display: flex; align-items: flex-end; width: 400px; margin: -46px 0 0 -24px; }
-.sealcards__figure img { width: 50% !important; flex: none; }
-.sealcards__figure img + img { margin-left: -6%; }
+.sealcards { margin-top: 80px; gap: 72px; }
+/* 胸像2体(女性・男性)を横に並べ、カードの枠から上へはみ出させる(2026-11-19 要望)。
+   カードの高さは文字側で決まるので、胸像の高さがそれを上回るぶんだけ上に飛び出す */
+.sealcards__figure { display: flex; align-items: flex-end; width: 440px; margin: -70px 0 0 -20px; }
+.sealcards__figure img { width: 54% !important; flex: none; }
+.sealcards__figure img + img { margin-left: -8%; }
+.sealcards .relcard__body { padding: 26px 0 24px; }
 @media (max-width: 560px) {
-  .sealcards { margin-top: 40px; }
-  .sealcards__figure { width: 300px; margin: 0; }
+  .sealcards { margin-top: 70px; gap: 64px; }
+  .sealcards__figure { width: 310px; margin: -56px 0 0; }
+  .sealcards .relcard__body { padding: 6px 22px 0; }
 }
