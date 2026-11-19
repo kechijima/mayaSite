@@ -1322,6 +1322,7 @@ a.kinduo__cap:hover .kinduo__seal { text-decoration: underline; text-underline-o
 .sealcards__figure img { width: 54% !important; flex: none; }
 .sealcards__figure img + img { margin-left: -8%; }
 .sealcards .relcard__body { padding: 26px 0 24px; }
+.sealcards__type { font-size: 14px; font-weight: 700; color: var(--ink-soft); letter-spacing: .04em; }
 /* 偶数枚目はキャラクターを右に(左右交互、2026-11-19 要望) */
 .sealcards .relcard.is-rev { flex-direction: row-reverse; padding: 0 0 0 30px; }
 .sealcards .relcard.is-rev .sealcards__figure { margin: -70px -20px 0 0; }

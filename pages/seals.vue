@@ -8,7 +8,7 @@ import { fetchPublishedDoc } from '~/composables/useDiagnosisContent'
 // 色ごとに5つずつ(赤い竜・赤い蛇・赤い月・赤い空歩く人・赤い地球 …)。紋章の番号 i の色は i % 4
 // (utils/mayaData.ts の sealColor)なので、色ごとに i の小さい順に並べるとこの順になる。
 // 各紋章は診断結果の「KINの関係性」と同じカードで、胸像を女性・男性で並べる(2026-11-19 要望で顔の丸アイコンから変更)。
-// 英語名・紋章名・タイプ名・キーワードを添え、押すとその紋章のページ(/kin/N)へ。胸像はカードの枠から上へはみ出させ、
+// 英語名・紋章名・タイプ名を添え、押すとその紋章のページ(/kin/N)へ。胸像はカードの枠から上へはみ出させ、
 // 「詳しく見る」ボタンは出さない(2026-11-19 要望。カード全体がリンク)。キャラクターは色ごとに左・右・左…と交互に置く(PC のみ。
 // スマホは縦積みなので変わらない)。
 // mayadan のキャラクター名(人名)は先方の創作物なので使わず、このサイトのタイプ名(CMS の archetype)を出す。
@@ -72,8 +72,9 @@ const { data: archetypes } = useAsyncData(
             </div>
             <div class="relcard__body">
               <span class="relcard__label">{{ s.english }}</span>
-              <h3 class="font-display relcard__name">{{ s.name }}<span v-if="archetypes[s.index]" class="relcard__type">{{ archetypes[s.index] }}</span></h3>
-              <p class="relcard__desc">{{ s.keyword }}</p>
+              <h3 class="font-display relcard__name">{{ s.name }}</h3>
+              <!-- 3行目はタイプ名(2026-11-19 要望でキーワードの説明から差し替え) -->
+              <p v-if="archetypes[s.index]" class="relcard__desc sealcards__type">{{ archetypes[s.index] }}</p>
             </div>
           </NuxtLink>
         </div>
