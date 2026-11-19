@@ -9,7 +9,8 @@ import { fetchPublishedDoc } from '~/composables/useDiagnosisContent'
 // (utils/mayaData.ts の sealColor)なので、色ごとに i の小さい順に並べるとこの順になる。
 // 各紋章は診断結果の「KINの関係性」と同じカードで、胸像を女性・男性で並べる(2026-11-19 要望で顔の丸アイコンから変更)。
 // 英語名・紋章名・タイプ名・キーワードを添え、押すとその紋章のページ(/kin/N)へ。胸像はカードの枠から上へはみ出させ、
-// 「詳しく見る」ボタンは出さない(2026-11-19 要望。カード全体がリンク)。
+// 「詳しく見る」ボタンは出さない(2026-11-19 要望。カード全体がリンク)。キャラクターは色ごとに左・右・左…と交互に置く(PC のみ。
+// スマホは縦積みなので変わらない)。
 // mayadan のキャラクター名(人名)は先方の創作物なので使わず、このサイトのタイプ名(CMS の archetype)を出す。
 
 const GROUPS = [
@@ -59,11 +60,11 @@ const { data: archetypes } = useAsyncData(
         <!-- 診断結果の「KINの関係性」と同じカード(.relcard)に、胸像を女性・男性で並べる(2026-11-19 要望) -->
         <div class="relwrap sealcards">
           <NuxtLink
-            v-for="s in g.seals"
+            v-for="(s, i) in g.seals"
             :key="s.index"
             :to="`/kin/${s.index}`"
             class="relcard relcard--link"
-            :class="`relcard--${g.key}`"
+            :class="[`relcard--${g.key}`, { 'is-rev': i % 2 === 1 }]"
           >
             <div class="relcard__figure sealcards__figure">
               <MayaBust :seal-index="s.index" gender="female" :alt="`${s.name}（女性）`" />
