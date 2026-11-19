@@ -277,13 +277,13 @@ async function submitCode() {
           </template>
         </section>
 
-        <!-- 到達度診断テスト。受けられる人(チーム会員・有料会員 = entitled)に出す。結果は /test 側。 -->
-        <section v-if="authReady && user && settled && entitled" class="panel">
-          <p class="formlabel">到達度診断テスト</p>
+        <!-- ピッタリ到達度テスト。2026-11-19 から全員が受けられる(無料会員は結果をぼかす)。結果は /test 側。 -->
+        <section v-if="authReady && user && settled && !suspended" class="panel">
+          <p class="formlabel">ピッタリ到達度テスト</p>
           <p class="mb-3 text-[12.5px] leading-[1.8]" style="color: var(--ink-soft);">
             あなたの太陽の紋章らしさがどこまで身についているか、25問の自己診断で確かめられます。何度でも受けられます。
           </p>
-          <NuxtLink to="/test" class="btn-outline w-full">到達度診断テストを受ける</NuxtLink>
+          <NuxtLink to="/test" class="btn-outline w-full">ピッタリ到達度テストを受ける</NuxtLink>
         </section>
 
         <!-- 紹介コード。サブスクの有料会員には紹介コードの概念が無いので出さない(ルール側でも登録を弾く、2026-09-30)。

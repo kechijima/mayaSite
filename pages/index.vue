@@ -133,6 +133,22 @@ const todayLabel = computed(() => `${today.getFullYear()}年${today.getMonth() +
         </div>
       </section>
 
+      <!-- 20の紋章の一覧への入口(2026-11-19 要望) -->
+      <section id="seals" class="section">
+        <SectionDivider label="20の紋章" eyebrow="Character" />
+        <div class="mx-8 sm:mx-auto max-w-[560px] rounded-xl p-6 text-center" style="border: 1px solid var(--gold-line-soft); background: var(--paper-panel); box-shadow: var(--shadow);">
+          <div class="mb-2 font-display text-[17px]" style="color: var(--gold-deep);">20の紋章って、どんなものがあるの？</div>
+          <p class="mb-4 text-[13px]" style="color: var(--ink-soft);">赤・白・青・黄の4つの色に分かれた20の紋章と、それぞれのキャラクターをご紹介します。</p>
+          <NuxtLink
+            to="/seals"
+            class="inline-block rounded-full px-8 py-3 text-[14px] font-bold tracking-[.03em]"
+            style="background: var(--gold); color: #241a06;"
+          >
+            20の紋章を見る
+          </NuxtLink>
+        </div>
+      </section>
+
       <!-- ニュース: 現状はSNSアイコンのみ -->
       <section id="news" class="section">
         <SectionDivider label="ニュース" eyebrow="News &amp; Social" />

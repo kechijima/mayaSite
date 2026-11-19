@@ -137,3 +137,20 @@ export function diagnoseBirthdate(birthdate: string, today: Date = new Date()) {
   const now = kinInfo(dateToKin(today))
   return { birth, now, parsedBirthdate: parsed }
 }
+
+// その KIN になる日付(YYYY-MM-DD)を1つ返す。/result を KIN 番号だけで開く(?kin=)ときに使う
+// (2026-11-19 要望: 運命数字の KIN を押すと、その KIN の診断結果画面へ)。診断結果は日付から
+// dateToKin() を通すので、同じ KIN になる日付を探して渡す。2000-01-01 から1日ずつ進めれば
+// 260 日+うるう日のずれの範囲で必ず見つかる。表示する生年月日としては使わないこと(実在の誕生日ではない)。
+export function birthdateForKin(kin: number): string {
+  const start = new Date(2000, 0, 1)
+  for (let i = 0; i < 400; i++) {
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i)
+    if (dateToKin(d) === kin) {
+      const mm = String(d.getMonth() + 1).padStart(2, '0')
+      const dd = String(d.getDate()).padStart(2, '0')
+      return `${d.getFullYear()}-${mm}-${dd}`
+    }
+  }
+  throw new Error(`KIN ${kin} になる日付が見つかりません`)
+}

@@ -16,7 +16,7 @@ import { fetchAchievementFeedback, fetchTestDisplaySettings } from '~/utils/achi
 import { isGender, type Gender } from '~/utils/gender'
 import scrollImage from '~/assets/images/optimized/test-scroll.webp'
 
-// 到達度診断テストの結果1回ぶん(2026-10-27、手書きのレイアウト案どおり)。受けた直後(/test/take)と
+// ピッタリ到達度テストの結果1回ぶん(2026-10-27、手書きのレイアウト案どおり)。受けた直後(/test/take)と
 // 過去の結果(/test/result/[id])で共用する。
 //
 //   PC:     [キャラクター全身像] [合計％ + カテゴリ別％]
@@ -33,16 +33,26 @@ const props = defineProps<{
   gender?: string | null
   total: number
   categoryScores: Record<TestCategoryKey, number>
+  // 結果をぼかす(チーム会員・有料会員以外。2026-11-19 に全員へ開放したときに追加)。
+  // ぼかすときは本当の点数・段階・フィードバック文を DOM に出さない(LockedVeil と同じ考え方 —
+  // ブラーを掛けても値が DOM にあれば開発者ツールで読めてしまう)。フィードバック文は読みにも行かない。
+  locked?: boolean
+  // ぼかしたときの「結果を見る」ボタンの行き先(/plans)
+  unlockTo?: string
 }>()
 
 const { cutoutSrc } = useSealCutouts()
 const gender = computed<Gender>(() => (props.gender && isGender(props.gender) ? props.gender : 'female'))
 const portrait = computed(() => cutoutSrc(props.sealIndex, gender.value))
 
-const totalBand = computed(() => bandIndexFor(props.total))
+const archetype = useSealArchetype(toRef(props, 'sealIndex'))
+
+// ぼかすときに代わりに並べる見せかけの値(本当の値は使わない)
+const DUMMY_PERCENTS = [70, 40, 90, 60, 50]
+const totalBand = computed(() => (props.locked ? -1 : bandIndexFor(props.total)))
 const categories = computed(() =>
-  TEST_CATEGORY_KEYS.map((key) => {
-    const percent = categoryPercent(props.categoryScores[key] ?? 0)
+  TEST_CATEGORY_KEYS.map((key, i) => {
+    const percent = props.locked ? DUMMY_PERCENTS[i] : categoryPercent(props.categoryScores[key] ?? 0)
     return { key, label: TEST_CATEGORY_LABEL[key], percent, band: bandIndexFor(percent) }
   })
 )
@@ -57,7 +67,10 @@ watch(
   async (sealIndex) => {
     loading.value = true
     const firestore = useNuxtApp().$firestore as Firestore
-    const [f, s] = await Promise.allSettled([fetchAchievementFeedback(firestore, sealIndex), fetchTestDisplaySettings(firestore)])
+    const [f, s] = await Promise.allSettled([
+      props.locked ? Promise.resolve(normalizeFeedback(null)) : fetchAchievementFeedback(firestore, sealIndex),
+      fetchTestDisplaySettings(firestore)
+    ])
     feedback.value = f.status === 'fulfilled' ? f.value : normalizeFeedback(null)
     settings.value = s.status === 'fulfilled' ? s.value : DEFAULT_TEST_DISPLAY_SETTINGS
     loading.value = false
@@ -90,13 +103,17 @@ const products = computed(() =>
       <div class="testresult">
         <figure class="testresult__art">
           <img :src="portrait" :alt="sealName" decoding="async" />
-          <figcaption>{{ sealName }}</figcaption>
+          <!-- 紋章名とタイプ名を大きく(2026-11-19 要望) -->
+          <figcaption>
+            <span class="testresult__seal">{{ sealName }}</span>
+            <span v-if="archetype" class="testresult__type">{{ archetype }}</span>
+          </figcaption>
         </figure>
 
-        <section class="panel panel--plan testresult__score">
+        <section class="panel panel--plan testresult__score" :class="{ 'is-locked': locked }">
           <div class="testresult__total">
             <span class="testresult__totallabel">TOTAL</span>
-            <p><strong>{{ total }}</strong><small>％</small></p>
+            <p><strong>{{ locked ? '??' : total }}</strong><small>％</small></p>
           </div>
           <ul class="testbars">
             <li v-for="c in categories" :key="c.key">
@@ -107,7 +124,7 @@ const products = computed(() =>
           </ul>
         </section>
 
-        <section class="panel testresult__bands" aria-label="到達度の段階">
+        <section class="panel testresult__bands" :class="{ 'is-locked': locked }" aria-label="到達度の段階">
           <p class="formlabel">あなたの到達度</p>
           <ol class="testbands">
             <li v-for="(range, i) in TEST_BAND_RANGE" :key="range" :class="{ 'is-current': i === totalBand }">
@@ -116,10 +133,24 @@ const products = computed(() =>
               <span v-if="i === totalBand" class="testbands__you">あなた</span>
             </li>
           </ol>
-          <p v-if="settings.bands[totalBand].message" class="testbands__message">{{ settings.bands[totalBand].message }}</p>
+          <p v-if="totalBand >= 0 && settings.bands[totalBand].message" class="testbands__message">{{ settings.bands[totalBand].message }}</p>
         </section>
 
-        <section v-if="feedbackItems.length" class="panel testresult__feedback" aria-label="フィードバック">
+        <!-- ぼかした結果の案内。点数・段階・フィードバックは有料会員(またはチーム会員)になると見られる -->
+        <section v-if="locked" class="panel testresult__feedback testlock" aria-label="結果の続き">
+          <div class="testlock__mosaic" aria-hidden="true">
+            <p>思考 ― あなたの紋章らしい考え方が、日々の判断の中でどこまで生きているかをお伝えします。</p>
+            <p>行動 ― 紋章の力を行動に移すときの、あなたならではの強みと伸ばし方をまとめています。</p>
+            <p>人間関係 ― 周りとの関わりの中で、紋章の力をどう発揮できているかを読み解きます。</p>
+          </div>
+          <div class="testlock__pitch">
+            <p class="testlock__kicker"><svg><use href="#i-lock" /></svg>あなたの到達度とフィードバック</p>
+            <p class="testlock__lead">有料会員になると、点数・到達度の段階・{{ sealName }}のあなたへのフィードバックをすべてご覧いただけます。</p>
+            <NuxtLink :to="unlockTo ?? '/plans'" class="btn-gold">結果を見る</NuxtLink>
+          </div>
+        </section>
+
+        <section v-else-if="feedbackItems.length" class="panel testresult__feedback" aria-label="フィードバック">
           <p class="formlabel">{{ sealName }}のあなたへのフィードバック</p>
           <dl class="testfeedback">
             <div v-for="c in feedbackItems" :key="c.key">
@@ -139,7 +170,15 @@ const products = computed(() =>
             <li v-for="p in products" :key="p.key" class="testcta__card" :class="{ 'is-soon': p.comingSoon }">
               <span v-if="p.comingSoon" class="testcta__soon">Coming soon</span>
               <p class="testcta__name">{{ p.name }}</p>
-              <p v-if="p.price !== null && !p.comingSoon" class="testcta__price">￥{{ p.price.toLocaleString('ja-JP') }}<small>（税込）</small></p>
+              <template v-if="!p.comingSoon">
+                <p v-if="p.price !== null" class="testcta__price">
+                  <span v-if="p.nonMemberPrice !== null" class="testcta__pricelabel">会員</span>￥{{ p.price.toLocaleString('ja-JP') }}<small>（税込）</small>
+                </p>
+                <!-- 非会員価格を併記(2026-11-19 要望) -->
+                <p v-if="p.nonMemberPrice !== null" class="testcta__price testcta__price--sub">
+                  <span class="testcta__pricelabel">非会員</span>￥{{ p.nonMemberPrice.toLocaleString('ja-JP') }}<small>（税込）</small>
+                </p>
+              </template>
               <a v-if="p.href" :href="p.href" target="_blank" rel="noopener noreferrer" class="btn-gold">詳しく見る</a>
               <span v-else class="testcta__disabled">{{ p.comingSoon ? '準備中です' : 'ご案内準備中' }}</span>
             </li>

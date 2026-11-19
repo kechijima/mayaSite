@@ -9,7 +9,7 @@ import {
   type TestDisplaySettings
 } from '~/utils/achievementTestFeedback'
 
-// 到達度診断テストの結果画面の表示設定(2026-10-27)。achievementTestSettings/display に1つ。
+// ピッタリ到達度テストの結果画面の表示設定(2026-10-27)。achievementTestSettings/display に1つ。
 // /admin/tests の「結果表示」タブに置く(2026-10-28 までは単独のページ /admin/test-settings だった)。
 //   - 段階(71％以上 / 51〜70％ / 31〜50％ / 30％以下)ごとの名前と一言。全紋章共通。区切りの値は固定。
 //   - 結果画面の下に出す購入カード3枚(ベーシック / オラクル / 攻略ガイド)の商品名・価格・リンク・Coming soon。
@@ -19,6 +19,7 @@ import {
 const settings = ref<TestDisplaySettings>(structuredClone(DEFAULT_TEST_DISPLAY_SETTINGS))
 // 価格は入力欄では文字列で持つ(空欄 = 価格を出さない)
 const priceInputs = ref<string[]>([])
+const nonMemberPriceInputs = ref<string[]>([])
 const loading = ref(true)
 useLoadingWhile('admin-test-settings', () => loading.value)
 const isNew = ref(false)
@@ -30,6 +31,7 @@ const { withLoading } = useGlobalLoading()
 
 function syncPriceInputs() {
   priceInputs.value = settings.value.products.map((p) => (p.price === null ? '' : String(p.price)))
+  nonMemberPriceInputs.value = settings.value.products.map((p) => (p.nonMemberPrice === null ? '' : String(p.nonMemberPrice)))
 }
 
 onMounted(async () => {
@@ -55,13 +57,15 @@ const errors = computed(() => {
     if (!p.name.trim()) out.push(`カード${i + 1} の商品名が空です`)
     const price = priceInputs.value[i]?.trim() ?? ''
     if (price && !/^\d+$/.test(price)) out.push(`${p.name || `カード${i + 1}`} の価格は半角数字で入力してください`)
+    const nonMember = nonMemberPriceInputs.value[i]?.trim() ?? ''
+    if (nonMember && !/^\d+$/.test(nonMember)) out.push(`${p.name || `カード${i + 1}`} の非会員価格は半角数字で入力してください`)
     if (p.url.trim() && !isSafeExternalUrl(p.url)) out.push(`${p.name || `カード${i + 1}`} のリンクは http:// か https:// で始まるURLにしてください`)
   })
   return out
 })
 
-function pricePreview(i: number) {
-  const v = priceInputs.value[i]?.trim() ?? ''
+function pricePreview(inputs: string[], i: number) {
+  const v = inputs[i]?.trim() ?? ''
   return /^\d+$/.test(v) ? formatYen(Number(v)) : '（価格を表示しない）'
 }
 
@@ -78,7 +82,15 @@ async function save() {
     bands: settings.value.bands.map((b) => ({ label: b.label.trim(), message: b.message.trim() })),
     products: settings.value.products.map((p, i) => {
       const price = priceInputs.value[i]?.trim() ?? ''
-      return { key: p.key, name: p.name.trim(), price: price ? Number(price) : null, url: p.url.trim(), comingSoon: p.comingSoon }
+      const nonMember = nonMemberPriceInputs.value[i]?.trim() ?? ''
+      return {
+        key: p.key,
+        name: p.name.trim(),
+        price: price ? Number(price) : null,
+        nonMemberPrice: nonMember ? Number(nonMember) : null,
+        url: p.url.trim(),
+        comingSoon: p.comingSoon
+      }
     })
   }
   try {
@@ -139,9 +151,14 @@ const inputClass = 'w-full rounded-lg border border-slate-200 bg-white p-2.5 tex
               <input v-model="p.name" type="text" :class="inputClass" />
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">価格（税込・円、空欄なら表示しない）</span>
+              <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">会員価格（税込・円、空欄なら表示しない）</span>
               <input v-model="priceInputs[i]" type="text" inputmode="numeric" placeholder="5400" :class="inputClass" />
-              <span class="text-[11px] text-slate-400">表示：{{ pricePreview(i) }}</span>
+              <span class="text-[11px] text-slate-400">表示：{{ pricePreview(priceInputs, i) }}</span>
+            </label>
+            <label class="flex flex-col gap-1">
+              <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">非会員価格（税込・円、空欄なら表示しない）</span>
+              <input v-model="nonMemberPriceInputs[i]" type="text" inputmode="numeric" placeholder="51400" :class="inputClass" />
+              <span class="text-[11px] text-slate-400">表示：{{ pricePreview(nonMemberPriceInputs, i) }}</span>
             </label>
             <label class="flex flex-col gap-1">
               <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">リンク（購入ページのURL）</span>

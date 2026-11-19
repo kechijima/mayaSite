@@ -10,7 +10,12 @@ import { collection, getDocs, query, where, type Firestore } from 'firebase/fire
 export interface PublicTeam {
   id: string
   name: string
+  // 選んだら自動で入れる紹介コード(管理画面で「登録画面のチーム選択に出す」にしたチームだけ持つ)
+  code: string
 }
+
+// 「その他」の選択肢の値。選んだら紹介コードを手入力し、コードからチームを決める(2026-11-19)。
+export const OTHER_TEAM_ID = '__other__'
 
 export function usePublicTeams() {
   const { $firestore } = useNuxtApp()
@@ -18,9 +23,13 @@ export function usePublicTeams() {
     'public-teams',
     async (): Promise<PublicTeam[]> => {
       const snap = await getDocs(query(collection($firestore as Firestore, 'publicTeams'), where('active', '==', true)))
+      // 選択肢に出すのは listed のチームだけ(それ以外は「その他」+ コード入力で入る)
       return snap.docs
-        .map((d) => ({ id: d.id, name: (d.data() as { name?: string }).name ?? '' }))
-        .filter((t) => t.name)
+        .map((d) => {
+          const data = d.data() as { name?: string; listed?: boolean; code?: string | null }
+          return { id: d.id, name: data.name ?? '', code: data.listed && data.code ? data.code : '' }
+        })
+        .filter((t) => t.name && t.code)
         .sort((a, b) => a.name.localeCompare(b.name, 'ja'))
     },
     { server: false, lazy: true, default: () => [] }

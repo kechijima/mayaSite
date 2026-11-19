@@ -8,7 +8,9 @@ import {
   findUserByEmail,
   removeMember,
   renameTeam,
+  reissueCode,
   setCodeStatus,
+  setListed,
   updateNote,
   type ReferralTeam,
   type TeamMember
@@ -81,7 +83,7 @@ async function load() {
     const [code, list] = await Promise.all([fetchCodeStatus(db, data.code), fetchMembers(db, teamId)])
     status.value = code?.status ?? 'missing'
     members.value = list
-    // 到達度診断テストの要約も一覧の一部なので、覆いを外す前に揃える。
+    // ピッタリ到達度テストの要約も一覧の一部なので、覆いを外す前に揃える。
     await loadTestSummaries(list)
   } catch {
     loadError.value = 'チームの読み込みに失敗しました。時間をおいて再度お試しください。'
@@ -92,7 +94,7 @@ async function load() {
 
 onMounted(load)
 
-// メンバーごとの到達度診断テストの要約(「赤い竜 63点（2回・最新 2026-09-29）」)。
+// メンバーごとのピッタリ到達度テストの要約(「赤い竜 63点（2回・最新 2026-09-29）」)。
 // 結果は users/{uid}/testResults に散っているので、メンバー1人につき1クエリになる。
 // load() の中で await し、覆い(loading)が外れる前に全員ぶん揃える。
 const testSummaries = ref<Record<string, string>>({})
@@ -118,6 +120,33 @@ async function toggleStatus() {
     status.value = next
   } catch {
     actionError.value = 'コードの状態を変更できませんでした。'
+  }
+}
+
+// 紹介コードの再発行(2026-11-19)。古いコードは使えなくなるので、ボタンの下で確認してから実行する。
+const confirmReissue = ref(false)
+async function doReissue() {
+  if (!team.value) return
+  actionError.value = ''
+  try {
+    const code = await withLoading(() => reissueCode(firestore(), team.value!))
+    team.value = { ...team.value, code }
+    confirmReissue.value = false
+  } catch {
+    actionError.value = 'コードを再発行できませんでした。'
+  }
+}
+
+// 登録画面のチーム選択に出す(選ぶとコードが自動で入る)か
+async function toggleListed() {
+  if (!team.value) return
+  actionError.value = ''
+  const next = !team.value.listed
+  try {
+    await withLoading(() => setListed(firestore(), team.value!, next))
+    team.value = { ...team.value, listed: next }
+  } catch {
+    actionError.value = '登録画面の表示を変更できませんでした。'
   }
 }
 
@@ -242,6 +271,36 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
         <p class="mt-2.5 text-[11.5px] text-slate-500 dark:text-slate-400">
           無効にすると、以降このコードで新規登録できなくなります。<strong>既にメンバーの{{ members.length }}名の所属はそのまま維持されます。</strong>
         </p>
+
+        <div class="mt-4 border-t border-slate-100 pt-4 dark:border-slate-800">
+          <button
+            v-if="!confirmReissue"
+            type="button"
+            class="rounded-lg border border-slate-200 px-3.5 py-1.5 text-xs font-semibold dark:border-slate-700"
+            @click="confirmReissue = true"
+          >
+            コードを再発行する
+          </button>
+          <div v-else class="flex flex-wrap items-center gap-2.5 rounded-lg bg-amber-50 px-3.5 py-2.5 text-[12.5px] text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+            <span>新しいコードに差し替えます。今のコード <strong class="font-mono">{{ team.code }}</strong> では登録できなくなります。</span>
+            <button type="button" class="rounded-lg bg-brass-700 px-3 py-1.5 text-xs font-bold text-white" @click="doReissue">再発行する</button>
+            <button type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold dark:border-slate-600" @click="confirmReissue = false">やめる</button>
+          </div>
+          <p class="mt-2 text-[11.5px] text-slate-500 dark:text-slate-400">
+            新しいコードはランダムに作ります。既にいるメンバーの所属はそのまま維持されます。
+          </p>
+        </div>
+
+        <div class="mt-4 border-t border-slate-100 pt-4 dark:border-slate-800">
+          <label class="flex items-center gap-2 text-[13px] font-semibold">
+            <input type="checkbox" class="h-4 w-4" :checked="team.listed === true" @change="toggleListed" />
+            登録画面のチーム選択に出す（選ぶと紹介コードが自動で入ります）
+          </label>
+          <p class="mt-1.5 text-[11.5px] text-slate-500 dark:text-slate-400">
+            出さないチームは、登録画面で「その他」を選んで紹介コードを入力すると、コードからチームが決まります。
+            出すチームのコードは誰でも分かる状態になるため、そのチームには誰でも登録できます。
+          </p>
+        </div>
       </div>
 
       <!-- チーム情報 -->
@@ -325,7 +384,7 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
               :fields="[
                 { label: '所属経路', value: sourceLabel(m.entitlementSource) },
                 { label: '所属日', value: formatDate(m.joinedAt) },
-                { label: '到達度診断テスト', value: testSummaries[m.uid] ?? '—' }
+                { label: 'ピッタリ到達度テスト', value: testSummaries[m.uid] ?? '—' }
               ]"
             >
               <template #actions>
@@ -343,7 +402,7 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
                   <th class="pb-2.5 pr-3">メール</th>
                   <th class="pb-2.5 pr-3">所属経路</th>
                   <th class="pb-2.5 pr-3">所属日</th>
-                  <th class="pb-2.5 pr-3">到達度診断テスト</th>
+                  <th class="pb-2.5 pr-3">ピッタリ到達度テスト</th>
                   <th class="pb-2.5"></th>
                 </tr>
               </thead>

@@ -58,9 +58,11 @@ const gender = computed(() => {
 
 // 診断結果ページへ戻るリンク用。遷移元のname/birth/genderをそのまま持ち回し、
 // 戻ったときに同じ診断結果が出るようにする(指定が無ければresult.vue側の既定値に委ねる)。
+// 生年月日なしで開いた診断結果(?kin= — 運命数字から来た KIN)から来たときは、from の KIN で戻す
 const backQuery = computed(() => ({
   name: route.query.name as string | undefined,
   birth: route.query.birth as string | undefined,
+  kin: route.query.birth ? undefined : (route.query.from as string | undefined),
   gender: route.query.gender as string | undefined
 }))
 

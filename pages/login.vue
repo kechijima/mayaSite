@@ -21,6 +21,15 @@ const signupLink = computed(() =>
   typeof route.query.redirect === 'string' ? `/signup?redirect=${encodeURIComponent(route.query.redirect)}` : '/signup'
 )
 
+// パスワード再設定(2026-11-19)。入力済みのメールアドレスを引き継ぐ
+const resetLink = computed(() => {
+  const q = new URLSearchParams()
+  if (email.value.trim()) q.set('email', email.value.trim())
+  if (typeof route.query.redirect === 'string') q.set('redirect', route.query.redirect)
+  const qs = q.toString()
+  return qs ? `/password-reset?${qs}` : '/password-reset'
+})
+
 // ログイン済みでもフォームを出す(別のアカウントでログインし直せるように)。
 // 以前はログイン済みなら戻り先(無ければトップ)へ自動で送っていたが、URLを直接開いた人が
 // 理由も分からずトップへ飛ばされ、ログイン後に「戻る」を押すとここで送り返されて
@@ -72,6 +81,9 @@ async function submit() {
           <button type="submit" class="btn-gold mt-2 w-full" :disabled="submitting">
             {{ submitting ? 'ログイン中…' : 'ログイン' }}
           </button>
+          <NuxtLink :to="resetLink" class="block text-center text-[12.5px] hover:underline" style="color: var(--gold-deep);">
+            パスワードをお忘れの方
+          </NuxtLink>
         </form>
 
         <p class="mt-4 text-center text-[12.5px]" style="color: var(--ink-faint);">

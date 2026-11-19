@@ -11,7 +11,7 @@ import {
 
 definePageMeta({ layout: 'admin' })
 
-// 到達度診断テストの受験履歴を全会員ぶん横断して新しい順に出す。答案(25問の回答)は
+// ピッタリ到達度テストの受験履歴を全会員ぶん横断して新しい順に出す。答案(25問の回答)は
 // 行を押した先のユーザー詳細(/admin/users/[uid])で見る。
 // ページ送りの仕組みは /admin/history と同じ: PC は 100 件ずつ前へ/次へ、スマホは 20 件ずつ継ぎ足し。
 // 会員の名前・メール・チームは結果に入っていないので、ページを読むたびに users から引いて重ねる。
@@ -82,7 +82,7 @@ function userOf(r: TestResultLogRow): TestResultUserInfo {
 <template>
   <div>
     <div class="mb-6">
-      <h1 class="text-xl font-bold">到達度診断テスト履歴</h1>
+      <h1 class="text-xl font-bold">ピッタリ到達度テスト履歴</h1>
       <span class="text-xs text-slate-500 dark:text-slate-400">全会員の受験履歴を新しい順に確認できます。行を押すとその会員の詳細で答案を見られます</span>
     </div>
 

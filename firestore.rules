@@ -153,9 +153,10 @@ service cloud.firestore {
         allow update, delete: if false;
       }
 
-      // 到達度診断テストの結果(utils/achievementTestResults.ts)。1回の受験につき1ドキュメント。
-      // 受けられるのはチーム会員と有料会員(teamId があるか plan == 'paid'、かつ利用停止でない)
-      // — /test の画面側の出し分け(composables/useTestAccess.ts)と対。有料会員は 2026-09-30 に追加。
+      // ピッタリ到達度テストの結果(utils/achievementTestResults.ts)。1回の受験につき1ドキュメント。
+      // 2026-11-19: 全員に開放。記録できるのは利用停止でない会員本人(無料会員も含む — 結果は画面でぼかし、
+      // 有料会員になったら見えるようにするため残す)。/test の出し分け(composables/useTestAccess.ts)と対。
+      // それまではチーム会員と有料会員(teamId があるか plan == 'paid')だけだった。
       // 本人が create、本人と管理者が read。update / delete は誰にもさせない(受けた記録は残す)。
       // takenAt == request.time は serverTimestamp() を強制し、日時の偽装を弾く。
       // 点数はクライアントが採点して書く(answers 25件と紋章から再計算できるので、管理画面で
@@ -164,8 +165,6 @@ service cloud.firestore {
         allow read: if isOwner(uid) || isAdmin();
         allow create: if isOwner(uid)
           && get(/databases/$(database)/documents/users/$(uid)).data.get('suspended', false) != true
-          && (get(/databases/$(database)/documents/users/$(uid)).data.get('teamId', null) != null
-              || get(/databases/$(database)/documents/users/$(uid)).data.get('plan', 'free') == 'paid')
           && request.resource.data.sealIndex is int
           && request.resource.data.sealIndex >= 0
           && request.resource.data.sealIndex <= 19
@@ -230,27 +229,32 @@ service cloud.firestore {
       allow read: if isAdmin();
     }
 
-    // 到達度診断テストの問題(紋章ごと 25 問。scripts/seedAchievementTests.ts が入れる)。
-    // 講師の教材なので誰でも読める形にはせず、受けられる人(チーム会員・有料会員)と管理者だけに開ける。
-    // 画面側の出し分け(composables/useTestAccess.ts)と同じ条件。
+    // ピッタリ到達度テストの結果を全部見られる人(チーム会員・有料会員で、利用停止でない)。
+    // フィードバック文の読み取りに使う。名前は受験できる人だった頃のまま(2026-11-19 に受験は全員へ開放)。
     function canTakeTest() {
       return request.auth != null
         && userDoc().get('suspended', false) != true
         && (userDoc().get('teamId', null) != null || userDoc().get('plan', 'free') == 'paid');
     }
+    // ピッタリ到達度テストの問題(紋章ごと 25 問。scripts/seedAchievementTests.ts が入れる)。
+    // 2026-11-19: 全員(未ログイン含む)が受けられるよう、誰でも読めるようにした(要望・了承済み)。
+    // それまでは講師の教材としてチーム会員・有料会員だけに開けていた。
     match /achievementTests/{sealIndex} {
-      allow read: if isAdmin() || canTakeTest();
+      allow read: if true;
       allow write: if isAdmin();
     }
     // 結果画面のフィードバック文(紋章ごと、カテゴリ × 4段階。scripts/seedAchievementFeedback.ts と
     // /admin/tests の「結果表示 › 紋章ごと」が書く)と、段階の名前・一言・購入カードの表示設定(achievementTestSettings/display、
-    // /admin/tests の「結果表示」タブが書く)。問題文と同じく講師の教材なので、受けられる人と管理者だけが読める(2026-10-27)。
+    // /admin/tests の「結果表示」タブが書く)。
+    // フィードバック文は講師の教材で、結果を見られる人(チーム会員・有料会員)と管理者だけが読める(2026-10-27)。
+    // 表示設定は 2026-11-19 から誰でも読める — ぼかした結果画面にも段階の一覧と購入カードを出すため
+    // (段階の名前・商品名・価格・購入ページの URL だけで、教材は含まない)。
     match /achievementFeedback/{sealIndex} {
       allow read: if isAdmin() || canTakeTest();
       allow write: if isAdmin();
     }
     match /achievementTestSettings/{docId} {
-      allow read: if isAdmin() || canTakeTest();
+      allow read: if true;
       allow write: if isAdmin();
     }
     match /diagnosisHistory/{docId} {

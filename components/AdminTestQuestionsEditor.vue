@@ -3,7 +3,7 @@ import { doc, getDoc, serverTimestamp, setDoc, type Firestore } from 'firebase/f
 import { QUESTIONS_PER_CATEGORY, TEST_CATEGORY_KEYS, type AchievementTestDoc, type TestCategory, type TestCategoryKey } from '~/utils/achievementTest'
 import { SEALS } from '~/utils/mayaData'
 
-// 到達度診断テストの問題の編集(1紋章ぶん)。/admin/tests の「出題文」タブで紋章を選ぶと一覧と入れ替わって出る
+// ピッタリ到達度テストの問題の編集(1紋章ぶん)。/admin/tests の「出題文」タブで紋章を選ぶと一覧と入れ替わって出る
 // (2026-10-28。それまでは別ページ /admin/tests/[sealIndex])。5カテゴリ × 5問の文と、どちらの答えが 4 点かを直せる。
 // 保存は achievementTests/{sealIndex} を丸ごと書く(管理者のみ、firestore.rules)。
 // 構成(カテゴリ5つ・各5問・3択)は原本の形に固定していて、問を増減する UI は付けていない —
