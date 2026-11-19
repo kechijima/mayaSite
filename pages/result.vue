@@ -8,18 +8,27 @@ import { type ProfileSection, iconFor, freeProfileSections, premiumProfileSectio
 import { RELATION_DESCRIPTION } from '~/utils/kinRelations'
 import { RESULT_LOADING_KEY } from '~/composables/useGlobalLoading'
 import { waitForImages } from '~/utils/waitForImages'
+import { birthdateForKin, parseKin } from '~/utils/mayaCalc'
 
 const route = useRoute()
 const { user } = useAuth()
+// ?kin=N だけで開いたとき(生年月日なし)。運命数字の KIN から来る(2026-11-19 要望: 「KIN110のあなたへ」
+// ではなく診断結果の KIN110 の画面へ)。その KIN になる日付で診断し、生年月日は出さない。
+const kinOnly = computed(() => (route.query.birth ? null : parseKin(route.query.kin)))
 const input = computed(() => {
   const genderQuery = route.query.gender as string | undefined
   return {
     name: (route.query.name as string) || 'ゲスト',
-    birthdate: (route.query.birth as string) || '1992-10-16',
+    birthdate: kinOnly.value ? birthdateForKin(kinOnly.value) : (route.query.birth as string) || '1992-10-16',
     gender: genderQuery && isGender(genderQuery) ? genderQuery : DEFAULT_GENDER
   }
 })
 const { result } = useDiagnosis(input)
+// ピッタリ到達度テストへの導線(ヘッダー・固定フッター)に、この結果の KIN と性別を渡す
+const { last: lastDiagnosis, testLink } = useLastDiagnosis()
+watchEffect(() => {
+  lastDiagnosis.value = { kin: result.value.kin, gender: result.value.gender }
+})
 // 有料エリアの各LockedVeilに渡す遷移先 = 購入プラン選択(/plans)。単体購入の対象は表示中のKIN。
 const plansLink = usePlansLink(() => result.value.kin)
 
@@ -186,7 +195,15 @@ const destinyNumbers = computed(() => [
   { label: '絶対反対KIN', kin: result.value.destinyNumbers.absoluteOppositeKin }
 ])
 
+// 紋章のページ(/kin/[sealIndex])。戻ったときに同じ診断結果へ戻れるよう入力を引き継ぐ
+// KIN 番号だけで開いた結果(kinOnly)は、探した仮の日付を生年月日として渡さない(戻り先は from の KIN で開く)
+const backParams = computed(() => ({ name: result.value.name, birth: kinOnly.value ? undefined : input.value.birthdate, gender: result.value.gender }))
+function sealLink(sealIndex: number) {
+  return { path: `/kin/${sealIndex}`, query: { from: result.value.kin, ...backParams.value } }
+}
+
 const displayBirthdate = computed(() => {
+  if (kinOnly.value) return '—'
   const d = new Date(input.value.birthdate)
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
 })
@@ -313,17 +330,18 @@ async function shareResult() {
       <!-- 太陽の紋章 × ウェイブスペル。KIN/音の数字は上のherostatsへ移したので、
            ここは2体のアーキタイプだけを大きく見せる。 -->
       <div class="kinduo">
-        <div class="kinduo__art kinduo__art--l"><MayaPortraitFrame :seal-index="result.sealIndex" :gender="result.gender" /></div>
-        <div class="kinduo__art kinduo__art--r"><MayaPortraitFrame :seal-index="result.wavespellSealIndex" :gender="result.gender" /></div>
-        <div class="kinduo__cap kinduo__cap--l">
+        <!-- キャラクターと紋章名を押すと、その紋章のページへ(2026-11-19 要望) -->
+        <NuxtLink :to="sealLink(result.sealIndex)" class="kinduo__art kinduo__art--l" :aria-label="`${result.sun.seal.name}のページへ`"><MayaPortraitFrame :seal-index="result.sealIndex" :gender="result.gender" /></NuxtLink>
+        <NuxtLink :to="sealLink(result.wavespellSealIndex)" class="kinduo__art kinduo__art--r" :aria-label="`${result.wavespell.seal.name}のページへ`"><MayaPortraitFrame :seal-index="result.wavespellSealIndex" :gender="result.gender" /></NuxtLink>
+        <NuxtLink :to="sealLink(result.sealIndex)" class="kinduo__cap kinduo__cap--l">
           <span class="kinduo__role">太陽の紋章</span>
           <span class="font-display kinduo__seal">{{ result.sun.seal.name }}</span>
-        </div>
+        </NuxtLink>
         <span class="kinduo__x" aria-hidden="true"><svg><use href="#i-cross" /></svg></span>
-        <div class="kinduo__cap kinduo__cap--r">
+        <NuxtLink :to="sealLink(result.wavespellSealIndex)" class="kinduo__cap kinduo__cap--r">
           <span class="kinduo__role">ウェイブスペル</span>
           <span class="font-display kinduo__seal">{{ result.wavespell.seal.name }}</span>
-        </div>
+        </NuxtLink>
       </div>
 
       <div class="sharebar">
@@ -498,7 +516,7 @@ async function shareResult() {
           <NuxtLink
             v-for="r in relations"
             :key="r.label"
-            :to="{ path: `/kin/${r.seal.index}`, query: { label: r.label, from: result.kin, name: result.name, birth: input.birthdate, gender: result.gender } }"
+            :to="{ path: `/kin/${r.seal.index}`, query: { label: r.label, from: result.kin, ...backParams } }"
             class="relcard relcard--link"
             :class="`relcard--${sealColor(r.seal.index)}`"
           >
@@ -519,7 +537,7 @@ async function shareResult() {
         <div class="numrow">
           <div v-for="d in destinyNumbers" :key="d.label" class="numcell">
             <NuxtLink
-              :to="{ path: `/kin/${d.kin}/detail`, query: { from: result.kin, name: result.name, birth: input.birthdate, gender: result.gender } }"
+              :to="{ path: '/result', query: { kin: d.kin, gender: result.gender } }"
               class="numcell__link"
             >
               <GoldMedal :value="d.kin" :size="68" :num-font-size="20" />
@@ -540,6 +558,21 @@ async function shareResult() {
             style="background: var(--gold); color: #241a06;"
           >
             相性診断をはじめる
+          </NuxtLink>
+        </div>
+      </section>
+
+      <!-- ピッタリ到達度テストへの導線(2026-11-19 要望: 相性診断の下にボタン。固定フッターにも出す — TestFloatingCta) -->
+      <section id="test-cta" class="section">
+        <div class="mx-auto max-w-[560px] rounded-xl p-6 text-center" style="border: 1px solid var(--gold-line-soft); background: var(--paper-panel); box-shadow: var(--shadow);">
+          <div class="mb-2 font-display text-[17px]" style="color: var(--gold-deep);">ピッタリ到達度テスト</div>
+          <p class="mb-4 text-[13px]" style="color: var(--ink-soft);">{{ result.sun.seal.name }}らしさがどこまで身についているか、25問の自己診断で確かめてみましょう。</p>
+          <NuxtLink
+            :to="testLink"
+            class="inline-block rounded-full px-8 py-3 text-[14px] font-bold tracking-[.03em]"
+            style="background: var(--gold); color: #241a06;"
+          >
+            ピッタリ到達度テストを受ける
           </NuxtLink>
         </div>
       </section>

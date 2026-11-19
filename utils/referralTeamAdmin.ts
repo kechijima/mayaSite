@@ -18,8 +18,14 @@ import { generateCode, generateTeamId } from '~/utils/referralCode'
 // referralCodes・publicTeams)の同時作成になるため、ページ側に散らさずここへまとめている。
 //
 // publicTeams は /signup/referral と /account のチーム選択プルダウン用の公開コピー
-// ({ name, active } だけ)。referralTeams は管理者メモを含むため公開できない。
-// チームの作成・改名・コードの有効/無効切り替えの3か所で必ず一緒に更新する。
+// ({ name, active, listed, code })。referralTeams は管理者メモを含むため公開できない。
+// チームの作成・改名・コードの有効/無効切り替え・コードの再発行・選択肢への表示切り替えで必ず一緒に更新する
+// (中身は publicTeamData() で組み立てる)。
+//
+// 2026-11-19 要望: 登録画面のチーム選択は「選択肢に出すチーム(吉田チームなど)」+「その他」にした。
+// 選択肢に出すチーム(listed)は選ぶと紹介コードが自動で入る — そのため listed のチームに限り
+// publicTeams にコードを置く(誰でも読める = そのチームには誰でも入れる。了承済み)。
+// listed でないチームのコードは今までどおり公開しない(「その他」を選んで手入力する)。
 // 既存チームぶんは scripts/backfillPublicTeams.ts で作る。
 // 読み取り権限は firestore.rules で管理者に限定されているので、ここでの操作は
 // すべて管理者セッションでのみ成功する。
@@ -29,7 +35,15 @@ export interface ReferralTeam {
   name: string
   code: string
   note: string
+  // 登録画面のチーム選択に出し、選んだらコードを自動入力する(無ければ false)
+  listed?: boolean
   createdAt: Timestamp | null
+}
+
+// publicTeams/{teamId} の中身。コードは listed のときだけ載せる。
+export function publicTeamData(team: Pick<ReferralTeam, 'name' | 'code' | 'listed'>, active: boolean) {
+  const listed = team.listed === true
+  return { name: team.name, active, listed, code: listed ? team.code : null }
 }
 
 export interface ReferralCodeDoc {
@@ -78,7 +92,7 @@ export async function createTeam(firestore: Firestore, name: string): Promise<{ 
     updatedAt: serverTimestamp()
   })
   batch.set(doc(firestore, 'referralCodes', code), { teamId, teamName: name, status: 'active' })
-  batch.set(doc(firestore, 'publicTeams', teamId), { name, active: true })
+  batch.set(doc(firestore, 'publicTeams', teamId), publicTeamData({ name, code, listed: false }, true))
   await batch.commit()
   return { teamId, code }
 }
@@ -99,12 +113,38 @@ export async function fetchCodeStatus(firestore: Firestore, code: string): Promi
 // publicTeams は update でなく merge 付き set — 移行前のチームにはまだ存在しないことがあるため。
 export async function setCodeStatus(
   firestore: Firestore,
-  team: Pick<ReferralTeam, 'id' | 'name' | 'code'>,
+  team: Pick<ReferralTeam, 'id' | 'name' | 'code' | 'listed'>,
   status: 'active' | 'disabled'
 ) {
   const batch = writeBatch(firestore)
   batch.update(doc(firestore, 'referralCodes', team.code), { status })
-  batch.set(doc(firestore, 'publicTeams', team.id), { name: team.name, active: status === 'active' }, { merge: true })
+  batch.set(doc(firestore, 'publicTeams', team.id), publicTeamData(team, status === 'active'), { merge: true })
+  await batch.commit()
+}
+
+// 紹介コードの再発行(2026-11-19 要望: コードを変えたい)。新しいランダムなコードを作り、古いコードは
+// 無効にする(古いコードで新しく登録はできない。既にいるメンバーの所属はそのまま)。
+// 古いコードの文書は消さずに disabled で残す — メンバーの referralCodeId が「どのコードで入ったか」の履歴として指すため。
+// 新しいコードの有効/無効は古いコードの状態を引き継ぐ。
+export async function reissueCode(firestore: Firestore, team: ReferralTeam): Promise<string> {
+  const old = await fetchCodeStatus(firestore, team.code)
+  const status = old?.status ?? 'active'
+  const code = await pickUnused(firestore, 'referralCodes', () => generateCode(team.id))
+  const batch = writeBatch(firestore)
+  batch.set(doc(firestore, 'referralCodes', code), { teamId: team.id, teamName: team.name, status })
+  if (old) batch.update(doc(firestore, 'referralCodes', team.code), { status: 'disabled' })
+  batch.update(doc(firestore, 'referralTeams', team.id), { code, updatedAt: serverTimestamp() })
+  batch.set(doc(firestore, 'publicTeams', team.id), publicTeamData({ ...team, code }, status === 'active'), { merge: true })
+  await batch.commit()
+  return code
+}
+
+// 登録画面のチーム選択に出すか(出すと、選んだときにコードが自動で入る)。
+export async function setListed(firestore: Firestore, team: ReferralTeam, listed: boolean) {
+  const code = await fetchCodeStatus(firestore, team.code)
+  const batch = writeBatch(firestore)
+  batch.update(doc(firestore, 'referralTeams', team.id), { listed, updatedAt: serverTimestamp() })
+  batch.set(doc(firestore, 'publicTeams', team.id), publicTeamData({ ...team, listed }, code?.status === 'active'), { merge: true })
   await batch.commit()
 }
 
@@ -184,7 +224,7 @@ export async function renameTeam(firestore: Firestore, team: ReferralTeam, name:
     { ref: doc(firestore, 'referralTeams', team.id), data: { name, updatedAt: serverTimestamp() } },
     { ref: doc(firestore, 'referralCodes', team.code), data: { teamName: name } },
     // 移行前のチームには publicTeams がまだ無いことがあるので merge 付き set。
-    { ref: doc(firestore, 'publicTeams', team.id), data: { name, active: code?.status === 'active' }, merge: true },
+    { ref: doc(firestore, 'publicTeams', team.id), data: publicTeamData({ ...team, name }, code?.status === 'active'), merge: true },
     ...members.map((m) => ({ ref: doc(firestore, 'users', m.uid), data: { teamName: name } }))
   ]
   // Firestoreのバッチ上限は500件。メンバー数によっては超えるので分割する。

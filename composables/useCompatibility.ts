@@ -65,14 +65,28 @@ export interface PairCompatibility {
   // 運命数字(同じ番号/連番/鏡の向こうの自分/絶対反対KIN)によるKIN番号同士の相性。該当なしならnull
   destinyRelation: DestinyRelation | null
   destinyRelationLabel: string | null
+  // 「kin135のあなたとkin78のAさんは神秘KIN」の文1つぶん。両方向の関係と運命数字をまとめ、
+  // 同じ名前の関係は1つにする(2026-11-19 要望: 向きを分けず1文に。片方向だけ当てはまる
+  // ガイドKINも同じ形で出す)。運命数字の鏡/絶対反対は KIN の関係性と同じ名前なので重ならない。
+  statements: PairStatement[]
 }
+
+export interface PairStatement {
+  key: string
+  label: string
+  // 絶対反対KINだけ赤で出す
+  danger: boolean
+}
+
+// 関係の説明に出す種類。KINの関係性6種 + 運命数字の「同じ番号」「連番」
+export type ExplainedRelation = KinRelationType | 'same' | 'sequential'
 
 export interface CompatibilityResult {
   self: PersonProfile
   others: PersonProfile[]
   pairs: PairCompatibility[]
   // 結果のどこかに出てきた関係の種類(表示順)。説明文をまとめて出すのに使う
-  relationTypes: KinRelationType[]
+  relationTypes: ExplainedRelation[]
 }
 
 // Free acquisition feature — kept small enough that the form/results stay easy to scan and a
@@ -105,6 +119,16 @@ function buildProfile(person: PersonInput): PersonProfile {
   }
 }
 
+const EXPLAINED_ORDER: ExplainedRelation[] = [...KIN_RELATION_ORDER, 'same', 'sequential']
+
+export function explainedLabel(t: ExplainedRelation): string {
+  return t === 'same' || t === 'sequential' ? DESTINY_RELATION_CONTENT[t].label : KIN_RELATION_CONTENT[t].label
+}
+
+export function explainedText(t: ExplainedRelation): string {
+  return t === 'same' || t === 'sequential' ? DESTINY_RELATION_CONTENT[t].text : KIN_RELATION_CONTENT[t].text
+}
+
 function directional(from: PersonProfile, to: PersonProfile): DirectionalRelations {
   return {
     from,
@@ -130,20 +154,30 @@ export function useCompatibility(input: Ref<{ self: PersonInput; others: PersonI
         const a = people[i]
         const b = people[j]
         const destiny = destinyRelation(a.kin, b.kin)
+        const forward = directional(a, b)
+        const backward = directional(b, a)
+        const found = new Set<ExplainedRelation>([...forward.rows, ...backward.rows].map((r) => r.type))
+        if (destiny) found.add(destiny)
+        const statements = EXPLAINED_ORDER.filter((t) => found.has(t)).map((t) => ({
+          key: t,
+          label: explainedLabel(t),
+          danger: t === 'absoluteOpposite'
+        }))
         pairs.push({
           key: `${a.id}-${b.id}`,
           a,
           b,
-          forward: directional(a, b),
-          backward: directional(b, a),
+          forward,
+          backward,
           destinyRelation: destiny,
-          destinyRelationLabel: destiny ? DESTINY_RELATION_CONTENT[destiny].label : null
+          destinyRelationLabel: destiny ? DESTINY_RELATION_CONTENT[destiny].label : null,
+          statements
         })
       }
     }
 
-    const present = new Set(pairs.flatMap((p) => [...p.forward.rows, ...p.backward.rows].map((r) => r.type)))
-    const relationTypes = KIN_RELATION_ORDER.filter((t) => present.has(t))
+    const present = new Set(pairs.flatMap((p) => p.statements.map((st) => st.key as ExplainedRelation)))
+    const relationTypes = EXPLAINED_ORDER.filter((t) => present.has(t))
 
     return { self, others, pairs, relationTypes }
   })

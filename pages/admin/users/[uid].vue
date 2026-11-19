@@ -11,6 +11,7 @@ import {
   type UserRow,
   type UserStatus
 } from '~/utils/userAdmin'
+import { addMember, fetchTeams, removeMember, type ReferralTeam } from '~/utils/referralTeamAdmin'
 import {
   CATEGORY_MAX_SCORE,
   TEST_ANSWER_LABEL,
@@ -26,7 +27,9 @@ definePageMeta({ layout: 'admin' })
 
 // 会員の詳細と会員ステータスの変更。2026-09-23 に /admin/users のモーダルからページへ移した
 // (他の詳細がページなのにここだけモーダルで、スマホで扱いづらかったため)。
-// チームの出し入れは「誰の紹介で入会したか」の付け替えなのでチーム管理側(/admin/teams)。
+// 2026-11-19: ステータスに「チーム会員」を加え、ここからもチームを選んで加入させられるようにした(要望)。
+// 扱いは /admin/teams の「メンバーを追加」と同じ(addMember — entitlementSource 'admin'、コードは知らせない)。
+// チーム所属中に「無料会員」を適用するとチームから外れる。有料会員・利用停止は所属に触らない。
 
 const route = useRoute()
 const uid = route.params.uid as string
@@ -44,7 +47,11 @@ const statusSaved = ref(false)
 
 const { withLoading } = useGlobalLoading()
 
-// 到達度診断テストの受験履歴(新しい順)。チーム会員しか受けられないが、チームを外れた後も
+// 「チーム会員」を選んだときの加入先
+const teams = ref<ReferralTeam[]>([])
+const draftTeamId = ref('')
+
+// ピッタリ到達度テストの受験履歴(新しい順)。チーム会員しか受けられないが、チームを外れた後も
 // 過去の記録は残るので、所属の有無に関わらず出す(無ければ「まだ受けていません」)。
 // 答案を開くときに、その紋章の問題文を achievementTests から引いて並べる(結果には問題文を保存していない)。
 const testResults = ref<TestResultRow[]>([])
@@ -92,7 +99,9 @@ onMounted(async () => {
     }
     user.value = row
     draftStatus.value = row.status
+    draftTeamId.value = row.teamId ?? ''
     testResults.value = results
+    teams.value = await fetchTeams(firestore()).catch(() => [])
   } catch {
     loadError.value = '会員情報の読み込みに失敗しました。時間をおいて再度お試しください。'
   } finally {
@@ -105,23 +114,54 @@ onMounted(async () => {
 // チーム所属中の会員は「利用停止でない」状態がチーム会員になるので、
 // 無料会員の代わりにそれを出す — 無料会員を選べても所属がある限り紹介のままになるため。
 const statusOptions = computed<UserStatus[]>(() => {
-  const base = SELECTABLE_USER_STATUSES.map((s) => (s === 'free' && user.value?.teamId ? 'team' : s))
+  const base = [...SELECTABLE_USER_STATUSES]
   if (user.value && !base.includes(user.value.status)) base.unshift(user.value.status)
   return base
 })
 
+// 変更があるか(チーム会員はチームの付け替えも変更に数える)
+const statusChanged = computed(() => {
+  if (!user.value) return false
+  if (draftStatus.value === 'team') return user.value.status !== 'team' || draftTeamId.value !== (user.value.teamId ?? '')
+  return draftStatus.value !== user.value.status
+})
+
 async function applyStatus() {
-  if (!user.value || savingStatus.value || draftStatus.value === user.value.status) return
+  if (!user.value || savingStatus.value || !statusChanged.value) return
+  if (draftStatus.value === 'team' && !draftTeamId.value) {
+    statusError.value = '加入させるチームを選んでください。'
+    return
+  }
   savingStatus.value = true
   statusError.value = ''
   statusSaved.value = false
   try {
-    await withLoading(() => setUserStatus(firestore(), uid, draftStatus.value))
+    let teamId = user.value.teamId
+    let teamName = user.value.teamName
+    await withLoading(async () => {
+      const db = firestore()
+      if (draftStatus.value === 'team') {
+        const team = teams.value.find((t) => t.id === draftTeamId.value)!
+        await addMember(db, uid, team.id, team.name)
+        await setUserStatus(db, uid, 'free')
+        teamId = team.id
+        teamName = team.name
+      } else {
+        if (draftStatus.value === 'free' && teamId) {
+          await removeMember(db, uid)
+          teamId = null
+          teamName = ''
+        }
+        await setUserStatus(db, uid, draftStatus.value)
+      }
+    })
+    user.value.teamId = teamId
+    user.value.teamName = teamName
     // ステータスは導出値なので、書き込んだ plan/suspended と所属から導き直す。
     const next = userStatus({
       plan: draftStatus.value === 'paid' ? 'paid' : 'free',
       suspended: draftStatus.value === 'suspended',
-      teamId: user.value.teamId
+      teamId
     })
     user.value.status = next
     draftStatus.value = next
@@ -190,6 +230,13 @@ async function applyStatus() {
           </label>
         </div>
         <p class="mb-3 text-[12px] leading-[1.8] text-slate-500 dark:text-slate-400">{{ USER_STATUS_NOTE[draftStatus] }}</p>
+        <div v-if="draftStatus === 'team'" class="mb-3">
+          <label class="mb-1 flex text-xs text-slate-500 dark:text-slate-400" for="team-select">加入させるチーム</label>
+          <select id="team-select" v-model="draftTeamId" class="w-full max-w-[360px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
+            <option value="" disabled>チームを選んでください</option>
+            <option v-for="t in teams" :key="t.id" :value="t.id">{{ t.name }}</option>
+          </select>
+        </div>
         <p v-if="!statusOptions.includes('paid')" class="mb-3 text-[11.5px] text-slate-400">
           有料会員は決済機能の導入後に選択できるようになります。
         </p>
@@ -197,7 +244,7 @@ async function applyStatus() {
           <button
             type="button"
             class="rounded-lg bg-brass-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
-            :disabled="savingStatus || draftStatus === user.status"
+            :disabled="savingStatus || !statusChanged"
             @click="applyStatus"
           >
             {{ savingStatus ? '変更中…' : '変更を適用' }}
@@ -207,9 +254,9 @@ async function applyStatus() {
         </div>
       </div>
 
-      <!-- 到達度診断テスト。1回ごとに総合点とカテゴリ別、開くと25問の答案(回答と点数)が見える。 -->
+      <!-- ピッタリ到達度テスト。1回ごとに総合点とカテゴリ別、開くと25問の答案(回答と点数)が見える。 -->
       <div class="mb-4 rounded-xl border border-slate-200 bg-white p-5.5 dark:border-slate-800 dark:bg-slate-900">
-        <p class="mb-3 text-sm font-bold">到達度診断テスト</p>
+        <p class="mb-3 text-sm font-bold">ピッタリ到達度テスト</p>
         <p v-if="testLoadError" class="text-xs font-semibold text-red-600 dark:text-red-400">{{ testLoadError }}</p>
         <p v-else-if="!testResults.length" class="text-[12px] text-slate-500 dark:text-slate-400">まだ受けていません。</p>
         <ul v-else class="divide-y divide-slate-100 dark:divide-slate-800/60">

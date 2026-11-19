@@ -57,6 +57,8 @@
 .paper-page--focus .masthead--plain { padding-top: 0; }
 /* 固定ヘッダー(SiteHeader)を出すページは、その高さぶん上に余白を取る(到達度診断テスト)。 */
 .paper-page--header.paper-page--focus > .sheet { padding-top: calc(var(--header-h) + 20px); }
+/* フッターありのページで固定ヘッダーを出す場合(相性診断)。 */
+.paper-page--header:not(.paper-page--focus) > .sheet { padding-top: calc(var(--header-h) + 20px); }
 
 .sheet { position: relative; padding: 34px 20px 56px; max-width: 1180px; margin: 0 auto; }
 @media (min-width: 640px) { .sheet { padding: 40px 40px 64px; } }
@@ -1079,7 +1081,10 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .testresult { display: grid; gap: 16px 10px; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); grid-template-areas: "art score" "bands bands" "feedback feedback" "cta cta"; align-items: center; }
 .testresult__art { grid-area: art; margin: 0; display: flex; flex-direction: column; align-items: center; }
 .testresult__art img { width: 100%; aspect-ratio: 640 / 925; object-fit: contain; display: block; }
-.testresult__art figcaption { margin-top: 4px; font-family: "Shippori Mincho", serif; font-size: 15px; letter-spacing: .08em; color: var(--gold-deep); }
+.testresult__art figcaption { margin-top: 4px; font-family: "Shippori Mincho", serif; letter-spacing: .08em; color: var(--gold-deep); display: flex; flex-direction: column; align-items: center; line-height: 1.3; text-align: center; }
+/* 紋章名とタイプ名は大きく(2026-11-19 要望) */
+.testresult__seal { font-size: 21px; font-weight: 700; color: var(--ink); }
+.testresult__type { margin-top: 2px; font-size: 15px; font-weight: 700; color: var(--gold-deep); }
 .testresult__score { grid-area: score; }
 /* 結果の中の小見出し(「あなたの到達度」など)は共通の .formlabel(11px)より大きく */
 .testresult .formlabel { font-size: 12.5px; }
@@ -1087,7 +1092,8 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .testresult__feedback { grid-area: feedback; padding: 18px; }
 .testresult__cta { grid-area: cta; margin-top: 8px; text-align: center; }
 @media (min-width: 768px) {
-  .testresult__art figcaption { font-size: 17px; }
+  .testresult__seal { font-size: 28px; }
+  .testresult__type { font-size: 19px; }
   .testresult { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); grid-template-areas: "art score" "art bands" "feedback feedback" "cta cta"; align-items: start; gap: 20px 24px; }
   .testresult__art { align-self: center; }
   .testresult__art img { width: min(100%, 300px); }
@@ -1155,6 +1161,21 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .testhistory a { display: flex; gap: 12px; width: 100%; color: inherit; text-decoration: none; }
 .testhistory a:hover { color: var(--gold-deep); }
 .testcta__price small { margin-left: 2px; font-family: inherit; font-size: 11px; color: var(--ink-faint); }
+.testcta__price--sub { margin-top: -6px; font-size: 17px; color: var(--ink-soft); }
+.testcta__pricelabel { margin-right: 6px; font-family: "Shippori Mincho B1", serif; font-size: 12px; font-weight: 700; color: var(--ink-faint); letter-spacing: .06em; }
+
+/* 結果のぼかし(チーム会員・有料会員以外。2026-11-19)。値そのものは見せかけ(components/TestResultSheet.vue) */
+.testresult__score.is-locked .testresult__total p,
+.testresult__score.is-locked .testbars__track,
+.testresult__score.is-locked .testbars__value,
+.testresult__bands.is-locked .testbands { filter: blur(6px); user-select: none; pointer-events: none; }
+.testlock { position: relative; overflow: hidden; }
+.testlock__mosaic { min-height: 210px; filter: blur(5px); user-select: none; color: var(--ink-soft); font-size: 14px; line-height: 2; }
+.testlock__mosaic p { margin: 0 0 6px; }
+.testlock__pitch { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 16px; text-align: center; background: color-mix(in srgb, var(--paper-panel) 55%, transparent); }
+.testlock__kicker { margin: 0; display: inline-flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; color: var(--gold-deep); }
+.testlock__kicker svg { width: 16px; height: 16px; }
+.testlock__lead { margin: 0; max-width: 34em; font-size: 13.5px; line-height: 1.8; color: var(--ink); }
 
 /* 結果を巻物の上に載せる(components/TestResultSheet.vue、2026-11-02)。
    画像は scripts/makeTestScroll.py が作る 1024×742 の1枚(上の軸 176px / 縦に繰り返す紙 400px / 下の軸 166px、
@@ -1221,4 +1242,99 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
   .testscroll .testscroll__paper, .testscroll .testscroll__roller, .testscroll .testscroll__body { animation: none !important; }
   .testscroll:not(.is-open) .testscroll__paper { clip-path: none; }
   .testscroll .testscroll__roller { visibility: hidden !important; }
+}
+
+/* ── 相性診断の結果: 関係を1文ずつ並べる(pages/compatibility/result.vue, 2026-11-19) ── */
+.compatlines {
+  border: 1px solid var(--gold-line-soft);
+  border-radius: 12px;
+  background: var(--paper-panel);
+  box-shadow: var(--shadow);
+  padding: 18px 18px;
+}
+.compatlines__pair {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  font-size: 14.5px;
+  line-height: 1.8;
+  color: var(--ink);
+}
+.compatlines__pair + .compatlines__pair {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--gold-line-soft);
+}
+.compatlines__pair li + li { margin-top: 4px; }
+.compatlines__pair strong { color: var(--gold-deep); font-weight: 700; }
+.compatlines__pair strong.is-danger { color: var(--seal-red); }
+.compatlines__pair .is-none { color: var(--ink-faint); font-size: 13px; }
+@media (min-width: 640px) {
+  .compatlines { padding: 24px 28px; }
+  .compatlines__pair { font-size: 15.5px; }
+}
+
+/* ピッタリ到達度テストの見出しの紋章名とタイプ名(2026-11-19 要望: 大きく) */
+.testseal { margin: 14px 0 0; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 4px 12px; font-family: "Shippori Mincho B1", serif; line-height: 1.3; }
+.testseal--left { justify-content: flex-start; margin-top: 4px; }
+.testseal__name { font-size: 26px; font-weight: 700; color: var(--ink); letter-spacing: .06em; }
+.testseal__type { font-size: 18px; font-weight: 700; color: var(--gold-deep); }
+.testseal__kin { font-size: 13px; color: var(--ink-soft); }
+@media (min-width: 640px) {
+  .testseal__name { font-size: 32px; }
+  .testseal__type { font-size: 21px; }
+}
+.testscore.is-locked .testscore__total strong,
+.testscore.is-locked .testbars__track,
+.testscore.is-locked .testbars__value { filter: blur(6px); user-select: none; }
+
+/* 診断結果のキャラクターと紋章名はその紋章のページへのリンク(2026-11-19) */
+a.kinduo__art, a.kinduo__cap { color: inherit; text-decoration: none; cursor: pointer; }
+a.kinduo__art:hover img { filter: brightness(1.04); }
+a.kinduo__cap:hover .kinduo__seal { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
+
+/* ピッタリ到達度テストの固定フッター(components/TestFloatingCta.vue、2026-11-19) */
+.testfloat { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display: flex; justify-content: center; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--paper-panel) 92%, transparent); border-top: 1px solid var(--gold-line-soft); box-shadow: 0 -6px 18px rgba(60, 40, 10, .08); backdrop-filter: blur(6px); }
+.testfloat__btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; max-width: 420px; padding: 12px 20px; border-radius: 999px; background: var(--gold); color: #241a06; font-size: 14.5px; font-weight: 700; letter-spacing: .03em; text-decoration: none; }
+.testfloat__btn small { font-size: 11.5px; font-weight: 600; opacity: .8; }
+.testfloat-spacer { height: calc(68px + env(safe-area-inset-bottom)); }
+
+/* 20の紋章の一覧(pages/seals.vue、2026-11-19)。配置と順番は mayadan.jp/character に合わせる */
+.sealtoc { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 10px; margin: 0 auto 8px; max-width: 720px; }
+.sealtoc__link { display: inline-flex; align-items: center; gap: 6px; padding: 7px 18px; border: 1px solid var(--gold-line); border-radius: 999px; background: var(--paper-panel); font-family: "Cormorant Garamond", serif; font-size: 17px; font-weight: 700; letter-spacing: .08em; text-decoration: none; }
+.sealtoc__link svg { width: 13px; height: 13px; transform: rotate(90deg); }
+.sealtoc__link.is-red { color: var(--seal-red); }
+.sealtoc__link.is-white { color: var(--seal-white); }
+.sealtoc__link.is-blue { color: var(--seal-blue); }
+.sealtoc__link.is-yellow { color: var(--seal-yellow); }
+.sealgroup { --c: var(--gold-deep); max-width: 760px; margin: 40px auto 0; scroll-margin-top: calc(var(--header-h) + 12px); }
+.sealgroup.is-red { --c: var(--seal-red); }
+.sealgroup.is-white { --c: var(--seal-white); }
+.sealgroup.is-blue { --c: var(--seal-blue); }
+.sealgroup.is-yellow { --c: var(--seal-yellow); }
+.sealgroup__title { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 0 0 16px; padding-bottom: 10px; border-bottom: 1px solid var(--gold-line-soft); font-size: 34px; font-weight: 600; color: var(--c); }
+.sealgroup__title span { font-size: 18px; opacity: .7; }
+.seallist { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.sealrow { display: flex; align-items: center; gap: 0; text-decoration: none; color: inherit; }
+.sealrow.is-rev { flex-direction: row-reverse; }
+.sealrow__faces { position: relative; z-index: 1; display: flex; gap: 6px; flex-shrink: 0; }
+.sealrow__faces .medal__ring { width: 72px !important; height: 72px !important; }
+.sealrow__band { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; margin-left: -18px; padding: 12px 12px 12px 30px; border-radius: 10px; text-align: center;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--c) 6%, var(--paper-panel)) 0%, color-mix(in srgb, var(--c) 22%, var(--paper-panel)) 100%);
+  border: 1px solid color-mix(in srgb, var(--c) 30%, transparent); }
+.sealrow.is-rev .sealrow__band { margin-left: 0; margin-right: -18px; padding: 12px 30px 12px 12px; background: linear-gradient(270deg, color-mix(in srgb, var(--c) 6%, var(--paper-panel)) 0%, color-mix(in srgb, var(--c) 22%, var(--paper-panel)) 100%); }
+.sealrow__en { font-size: 15px; color: var(--c); letter-spacing: .04em; }
+.sealrow__name { font-family: "Shippori Mincho B1", serif; font-size: 18px; font-weight: 700; color: var(--ink); }
+.sealrow__rule { width: 60%; max-width: 160px; height: 1px; margin: 4px 0; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+.sealrow__type { font-size: 13px; color: var(--ink-soft); }
+.sealrow:hover .sealrow__name { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
+@media (min-width: 640px) {
+  .sealrow__faces { gap: 10px; }
+  .sealrow__faces .medal__ring { width: 104px !important; height: 104px !important; }
+  .sealrow__band { margin-left: -26px; padding: 18px 20px 18px 46px; }
+  .sealrow.is-rev .sealrow__band { margin-right: -26px; padding: 18px 46px 18px 20px; }
+  .sealrow__en { font-size: 18px; }
+  .sealrow__name { font-size: 22px; }
+  .sealrow__type { font-size: 14px; }
 }

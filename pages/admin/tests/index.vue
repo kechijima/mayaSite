@@ -6,7 +6,7 @@ import { SEALS, sealColor } from '~/utils/mayaData'
 
 definePageMeta({ layout: 'admin' })
 
-// 到達度診断テスト管理。タブで「出題文」と「結果表示」を切り替える(2026-10-28、要望でここに集約)。
+// ピッタリ到達度テスト管理。タブで「出題文」と「結果表示」を切り替える(2026-10-28、要望でここに集約)。
 //   出題文:   紋章の一覧(問題数・更新日)。紋章を押すと、画面を移らずに一覧がその紋章の問題の編集に入れ替わる
 //             (components/AdminTestQuestionsEditor.vue)。
 //   結果表示: さらに［共通設定］［紋章ごと］(?sub=seal)。
@@ -133,7 +133,7 @@ const navBtn = 'rounded-md border border-slate-200 px-2.5 py-1 text-xs font-semi
   <div>
     <!-- タイトルとタブ(紋章を開いているときは紋章名と前後の移動も)はスクロールしても画面上部に固定する -->
     <div class="sticky top-14 z-20 -mx-4 -mt-3 mb-3 bg-[#f4f5f3] px-4 pt-3 md:top-0 md:-mx-8 md:px-8 dark:bg-[#0e1512]">
-      <h1 class="mb-2 text-xl font-bold">到達度診断テスト管理</h1>
+      <h1 class="mb-2 text-xl font-bold">ピッタリ到達度テスト管理</h1>
       <AdminTabs :tabs="TABS" class="!mb-0" />
       <div v-if="selectedSeal !== null" class="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-slate-200 py-2.5 dark:border-slate-800">
         <button type="button" class="text-xs font-semibold text-brass-700 hover:underline dark:text-gold-300" @click="backToList">‹ 紋章一覧</button>

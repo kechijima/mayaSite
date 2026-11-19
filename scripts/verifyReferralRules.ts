@@ -397,8 +397,9 @@ async function main() {
       getDoc(doc(db, 'diagnosisContentPremium', 'character-3')))
   }
 
-  // 到達度診断テスト。問題(achievementTests)はチーム会員と管理者だけが読め、
-  // 結果(users/{uid}/testResults)はチーム会員だけが自分のぶんを作れ、誰も書き換えられない。
+  // ピッタリ到達度テスト(2026-11-19 に全員へ開放)。問題(achievementTests)と表示設定は誰でも読め、
+  // フィードバック文はチーム会員・有料会員と管理者だけが読める。結果(users/{uid}/testResults)は
+  // 利用停止でない会員が自分のぶんを作れ、誰も書き換えられない。
   // utils/achievementTestResults.ts が書く形をそのまま使う。
   console.log('\n▸ 到達度診断テスト(achievementTests / users/testResults)')
   // 本物の問題(seed:tests が入れる '0'〜'19')を潰さないよう、検証用の別 ID に置いて最後に消す。
@@ -457,19 +458,19 @@ async function main() {
   {
     const uid = await freshUser()
     await setDoc(doc(db, 'users', uid), { ...baseProfile(), ...unaffiliated() })
-    await expectDeny('チームに所属していない会員は問題を読めない', () =>
+    await expectAllow('無料会員も問題を読める', () =>
       getDoc(doc(db, 'achievementTests', 'verify')))
-    await expectDeny('チームに所属していない会員は受験結果を書けない', () =>
+    await expectAllow('無料会員も受験結果を書ける', () =>
       setDoc(doc(db, 'users', uid, 'testResults', 'r1'), testResult()))
-    await expectDeny('チームに所属していない会員はフィードバック文を読めない', () =>
+    await expectDeny('無料会員はフィードバック文を読めない', () =>
       getDoc(doc(db, 'achievementFeedback', 'verify')))
-    await expectDeny('チームに所属していない会員は結果画面の表示設定を読めない', () =>
+    await expectAllow('無料会員も結果画面の表示設定を読める', () =>
       getDoc(doc(db, 'achievementTestSettings', 'verify')))
     await updateDoc(doc(db, 'users', uid), { plan: 'paid', paidAt: serverTimestamp(), paidSource: 'mock' })
     await expectAllow('有料会員はチームに所属していなくても問題を読める', () =>
       getDoc(doc(db, 'achievementTests', 'verify')))
     await expectAllow('有料会員はチームに所属していなくても受験結果を書ける', () =>
-      setDoc(doc(db, 'users', uid, 'testResults', 'r1'), testResult()))
+      setDoc(doc(db, 'users', uid, 'testResults', 'r1b'), testResult()))
     await expectAllow('有料会員はフィードバック文を読める', () =>
       getDoc(doc(db, 'achievementFeedback', 'verify')))
     await suspend(uid)
@@ -480,7 +481,7 @@ async function main() {
     const uid = await freshUser()
     await setDoc(doc(db, 'users', uid), { ...baseProfile(), ...redeemed(ACTIVE_CODE, ACTIVE_TEAM) })
     await suspend(uid)
-    await expectDeny('利用停止中のチーム会員は問題を読めない', () =>
+    await expectAllow('利用停止中でも問題は読める(問題は誰でも読める)', () =>
       getDoc(doc(db, 'achievementTests', 'verify')))
     await expectDeny('利用停止中のチーム会員はフィードバック文を読めない', () =>
       getDoc(doc(db, 'achievementFeedback', 'verify')))
@@ -489,12 +490,14 @@ async function main() {
   }
   {
     await signOut(auth).catch(() => {})
-    await expectDeny('未ログインでは問題を読めない', () =>
+    await expectAllow('未ログインでも問題を読める', () =>
       getDoc(doc(db, 'achievementTests', 'verify')))
     await expectDeny('未ログインではフィードバック文を読めない', () =>
       getDoc(doc(db, 'achievementFeedback', 'verify')))
-    await expectDeny('未ログインでは結果画面の表示設定を読めない', () =>
+    await expectAllow('未ログインでも結果画面の表示設定を読める', () =>
       getDoc(doc(db, 'achievementTestSettings', 'verify')))
+    await expectDeny('未ログインでは受験結果を書けない', () =>
+      setDoc(doc(db, 'users', 'someone-else', 'testResults', 'r1'), testResult()))
   }
   await adminDb.collection('achievementTests').doc('verify').delete()
   await adminDb.collection('achievementFeedback').doc('verify').delete()

@@ -4,18 +4,18 @@ import { fetchTestResult, formatTestDateTime } from '~/utils/achievementTestResu
 
 definePageMeta({ middleware: 'member-auth' })
 
-// 到達度診断テストの過去の結果1回ぶん(2026-10-27)。/test の最新結果・履歴の行から開く。
+// ピッタリ到達度テストの過去の結果1回ぶん(2026-10-27)。/test の最新結果・履歴の行から開く。
 // 見た目は受けた直後の結果画面(/test/take)と同じ components/TestResultSheet.vue。
-// 結果ドキュメントは本人しか読めない(firestore.rules)。フィードバック文と表示設定は受けられる人だけが
-// 読めるので、ページ自体も /test と同じく useTestAccess() が ok のときだけ出す。
+// 結果ドキュメントは本人しか読めない(firestore.rules)。記録が残るのは会員だけなのでログイン必須。
+// 無料会員の結果はぼかす(2026-11-19)。有料会員になれば過去の結果もそのまま見える。
 const route = useRoute()
 const id = computed(() => String(route.params.id ?? ''))
-const { access, user, profile, loginLink, accountLink } = useTestAccess()
+const { access, locked, canSave, user, profile, loginLink, plansLink } = useTestAccess()
 
 const { data: row, pending } = useAsyncData(
   () => `test-result-${id.value}`,
   async () => {
-    if (access.value !== 'ok' || !user.value || !id.value) return null
+    if (!canSave.value || !user.value || !id.value) return null
     try {
       return await fetchTestResult(useNuxtApp().$firestore as Firestore, user.value.uid, id.value)
     } catch {
@@ -33,14 +33,14 @@ useLoadingWhile('test-result', () => pending.value)
     <div class="sheet">
       <div class="masthead masthead--plain">
         <span class="masthead__eyebrow">ACHIEVEMENT TEST</span>
-        <h1 class="font-display masthead__title">到達度診断テスト</h1>
+        <h1 class="font-display masthead__title">ピッタリ到達度テスト</h1>
         <p v-if="row" class="masthead__sub"><strong>{{ row.sealName }}</strong>　{{ formatTestDateTime(row.takenAt) }} の結果</p>
       </div>
 
       <div class="mx-auto mt-8 max-w-[1000px] space-y-4">
-        <TestAccessNotice :access="access" :login-link="loginLink" :account-link="accountLink" />
+        <TestAccessNotice v-if="access === 'suspended'" :access="access" :seal="null" :login-link="loginLink" />
 
-        <template v-if="access === 'ok' && !pending">
+        <template v-if="canSave && !pending">
           <TestResultSheet
             v-if="row"
             :seal-index="row.sealIndex"
@@ -48,6 +48,8 @@ useLoadingWhile('test-result', () => pending.value)
             :gender="profile?.gender"
             :total="row.total"
             :category-scores="row.categoryScores"
+            :locked="locked"
+            :unlock-to="plansLink"
           />
           <section v-else class="panel text-center">
             <p class="text-[13.5px]" style="color: var(--ink-soft);">この結果は見つかりませんでした。</p>

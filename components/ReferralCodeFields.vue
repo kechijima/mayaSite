@@ -11,7 +11,13 @@ const props = defineProps<{
   error?: string
 }>()
 
+import { OTHER_TEAM_ID } from '~/composables/usePublicTeams'
+
 const { teams, pending, error: teamsError } = usePublicTeams()
+// 選択肢は「登録画面に出す」設定のチーム(吉田チームなど)+「その他」(2026-11-19 要望)。
+// 出すチームを選ぶとそのコードを自動で入れ、「その他」は手入力したコードでチームが決まる。
+const selectedTeam = computed(() => teams.value.find((t) => t.id === props.referral.selectedTeamId.value) ?? null)
+const autoFilled = computed(() => !!selectedTeam.value)
 // チーム一覧が届くまで覆う(選択肢が空のプルダウンを触らせない)。
 useLoadingWhile('public-teams', () => pending.value)
 
@@ -27,8 +33,16 @@ function validateQuietly() {
 // 先にコードを入れてからチームを選ぶ順番でも、結果がすぐ分かるように。
 watch(
   () => props.referral.selectedTeamId.value,
-  () => {
+  (id, prev) => {
+    const team = teams.value.find((t) => t.id === id)
+    if (team) {
+      props.referral.input.value = team.code
+    } else if (id === OTHER_TEAM_ID && teams.value.some((t) => t.id === prev)) {
+      // 自動で入れたコードは「その他」に切り替えたら消す(別チームのコードが残っていると紛らわしい)
+      props.referral.input.value = ''
+    }
     if (props.referral.code.value) validateQuietly()
+    else props.referral.reset()
   }
 )
 </script>
@@ -47,6 +61,7 @@ watch(
       >
         <option value="" disabled>チームを選択してください</option>
         <option v-for="t in teams" :key="t.id" :value="t.id">{{ t.name }}</option>
+        <option :value="OTHER_TEAM_ID">その他</option>
       </select>
       <p v-if="teamsError" class="mt-1.5 text-[12.5px]" style="color: var(--seal-red);">
         チーム一覧を読み込めませんでした。通信環境をご確認のうえ、再読み込みしてください。
@@ -63,6 +78,7 @@ watch(
         autocomplete="off"
         placeholder="K7M3QP9XR"
         required
+        :readonly="autoFilled"
         class="formfield"
         style="text-transform: uppercase;"
         @blur="validateQuietly"

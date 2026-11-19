@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Membership tiers**: 無料会員 / チーム会員 / 有料会員 / 利用停止 (チーム会員 was called 有料会員(紹介) until 2026-09-17 — renamed because those members don't pay). A member who belongs to a team (joined with a referral code, or added by an admin) is **チーム会員** for as long as they stay in the team and reads everything; 有料会員 reads everything; 無料会員 reads only what they bought per article.
 
-Real and Firestore-backed: the diagnosis, 相性診断 ([pages/compatibility.vue](pages/compatibility.vue)), 到達度診断テスト ([pages/test/**](pages/test), team members only — see "Achievement test"), the per-seal and per-KIN detail pages ([pages/kin/[sealIndex].vue](pages/kin/%5BsealIndex%5D.vue), [pages/kin/[kin]/detail.vue](pages/kin/%5Bkin%5D/detail.vue)), the CMS ([pages/admin/content/**](pages/admin/content)), 診断履歴 ([pages/admin/history/index.vue](pages/admin/history/index.vue)), チーム管理 ([pages/admin/teams/**](pages/admin/teams)), ユーザー管理 ([pages/admin/users/index.vue](pages/admin/users/index.vue)) and 紹介コード入力 ([pages/account.vue](pages/account.vue)).
+Real and Firestore-backed: the diagnosis, 相性診断 ([pages/compatibility/index.vue](pages/compatibility/index.vue) → [pages/compatibility/result.vue](pages/compatibility/result.vue)), ピッタリ到達度テスト (formerly 到達度診断テスト, renamed 2026-11-19; [pages/test/**](pages/test), open to everyone since 2026-11-19 — see "Achievement test"), the 20-seal list ([pages/seals.vue](pages/seals.vue)), password reset ([pages/password-reset.vue](pages/password-reset.vue), Firebase's reset mail), the per-seal and per-KIN detail pages ([pages/kin/[sealIndex].vue](pages/kin/%5BsealIndex%5D.vue), [pages/kin/[kin]/detail.vue](pages/kin/%5Bkin%5D/detail.vue)), the CMS ([pages/admin/content/**](pages/admin/content)), 診断履歴 ([pages/admin/history/index.vue](pages/admin/history/index.vue)), チーム管理 ([pages/admin/teams/**](pages/admin/teams)), ユーザー管理 ([pages/admin/users/index.vue](pages/admin/users/index.vue)) and 紹介コード入力 ([pages/account.vue](pages/account.vue)).
 
 Still a mock: [pages/admin/index.vue](pages/admin/index.vue) (dashboard stats, hardcoded `ref()` arrays). The old `/checkout` prototype and its `localStorage`-only `useMembership` flag were deleted on 2026-09-17; [pages/plans.vue](pages/plans.vue) replaced them.
 
@@ -110,7 +110,14 @@ Requires a JRE on PATH (the Firestore emulator is Java-based) — `brew install 
 - `useDiagnosis(input)` combines a birth KIN and today's KIN into the reading sections shown on the result page: `sun` (太陽の紋章, birth seal), `wavespell` (ウェイブスペル, potential), `tone` (銀河の音, birth tone), `daysign` (デイサイン, hidden pattern — `occultSealIndex`), and `tresena` (トレセーナ, current 13-day cycle based on *today's* date, not birthdate). Each of `sun`/`wavespell`/`tone` carries a hardcoded `.text` template string that now serves only as the **fallback** shown before/without Firestore content — see below.
 
 ### Other reading pages
-- **相性診断** ([pages/compatibility.vue](pages/compatibility.vue), [composables/useCompatibility.ts](composables/useCompatibility.ts)) — free, no gate.
+- **相性診断** ([pages/compatibility/index.vue](pages/compatibility/index.vue) form, [pages/compatibility/result.vue](pages/compatibility/result.vue) result, [composables/useCompatibility.ts](composables/useCompatibility.ts)) — free, no gate.
+  **Form and result are separate routes since 2026-11-19** so the browser's back button returns to the form: the result reads
+  everyone from repeated `p=YYYY-MM-DD_gender_name` query params ([utils/compatibilityQuery.ts](utils/compatibilityQuery.ts)),
+  and the form keeps its inputs in `useState` ([composables/useCompatibilityForm.ts](composables/useCompatibilityForm.ts)), so they
+  survive in-app navigation but not a reload. Both show the site header. The 相性 section is **one sentence per relation**
+  (「KIN135のあなたとKIN78のAさんは神秘KIN」, `pair.statements`): both directions and the 運命数字 are merged and de-duplicated by
+  name, so a one-way guide KIN reads the same as a mutual one (agreed). The 運命数字 card was folded into these sentences; its
+  同じ番号/連番 explanations join the 関係の説明 list. The per-person card is larger and shows `KIN n`.
   Self plus up to `MAX_OTHER_PEOPLE` (6) others; six slots are rendered up front rather than behind an
   "add" button. Untouched slots are excluded by "name entered **or** birthdate moved off the default",
   because `BirthdateSelect` always fills a default and so can never be empty — the known cost is that
@@ -132,7 +139,10 @@ Requires a JRE on PATH (the Firestore emulator is Java-based) — `brew install 
 - **`/kin/[sealIndex]`** — the "詳しく見る" target from result.vue's KINの関係性 cards. A relation is a
   *seal*, not a KIN number, so this reads the same `character-{sealIndex}` document as 太陽の紋章 does
   and reuses the same free/paid layout. `?label=` is only honoured when it matches a known relation name.
-- **`/kin/[kin]/detail`** — the 運命数字 target. An arbitrary KIN 1–260, reading `kin-{n}` with the same
+- **`/result?kin=N&gender=`** (2026-11-19) — the 運命数字 target now: `/result` without `birth` but with a valid `kin` diagnoses
+  a date that yields that KIN (`birthdateForKin()` in [utils/mayaCalc.ts](utils/mayaCalc.ts)) and shows the birthdate as 「—」;
+  that fake date is never passed on (the kin pages' 戻る use `kin=from` instead). The hero characters/names link to `/kin/[sealIndex]`.
+- **`/kin/[kin]/detail`** — formerly the 運命数字 target (no longer linked from `/result`). An arbitrary KIN 1–260, reading `kin-{n}` with the same
   125-character split as result.vue's own KIN letter.
 Both carry `name`/`birth`/`gender` through in the query so 診断結果へ戻る lands on the same reading.
 
@@ -352,7 +362,21 @@ veil shows the same number. On `/result` that is `lockedTotalChars` (sun + waves
 count even when they are the same seal — plus the KIN letter when locked), computed with the same conditions as
 the veils' own `v-if`s. The kin pages have a single veil, so it is just that veil's count.
 
-### Achievement test (到達度診断テスト, team and paid members)
+### Achievement test (ピッタリ到達度テスト — open to everyone since 2026-11-19)
+**2026-11-19 change (supersedes the access rules below where they conflict):** anyone can take it, signed in or not.
+[composables/useTestAccess.ts](composables/useTestAccess.ts) now yields `guest` (signed out — takes the sun seal of `?kin=`
+passed from `/result`, nothing saved; without `?kin` it points to the free diagnosis) / `free` (無料会員 — own seal, saved) /
+`ok` (team/paid) / `suspended`. Everyone but `ok` gets a **blurred** result: `TestResultSheet`'s `locked` renders dummy numbers
+(never the real ones) and does not fetch `achievementFeedback`, with a 「結果を見る」 → `/plans` veil; a free member who later pays
+sees their saved results. Rules: `achievementTests` and `achievementTestSettings` are world-readable (agreed — the purchase cards
+and band names show on the blurred screen); `achievementFeedback` stays team/paid; `testResults` create needs only owner + not
+suspended. `/test` no longer has `member-auth` (only `/test/result/[id]` does). Entry points: the header link (always shown),
+`/result`'s CTA under 相性診断, and [components/TestFloatingCta.vue](components/TestFloatingCta.vue), a fixed bottom bar
+[layouts/default.vue](layouts/default.vue) shows once `useLastDiagnosis()` is set (by `/result`) on public non-form pages. The
+seal name and its CMS `archetype` (「赤い月 修道士タイプ」, [composables/useSealArchetype.ts](composables/useSealArchetype.ts)) are
+shown large. Purchase cards have a `nonMemberPrice` shown next to the member price.
+
+
 Added 2026-09-28 as a generated knowledge quiz, **replaced on 2026-09-29** by the instructor's real material: a
 per-seal self-assessment questionnaire (docs/到達度診断テスト/{赤系,白系,青系,黄系}.xlsx, one `★紋章名` sheet per seal,
 20 seals). A チーム会員 or 有料会員 (i.e. `useEntitlement().entitled`; paid members added 2026-09-30) answers the 25
@@ -459,6 +483,13 @@ admin answer sheet are unchanged, and the result screen still shows the per-cate
   of [assets/css/paper-theme.css](assets/css/paper-theme.css).
 
 ### Admin: teams
+**2026-11-19:** the signup team dropdown shows only teams flagged `listed` (team detail → 「登録画面のチーム選択に出す」) plus
+「その他」. Choosing a listed team auto-fills its code — so for `listed` teams only, `publicTeams` carries the `code` (anyone can join
+those; agreed). 「その他」 accepts any active code and the code decides the team (`OTHER_TEAM_ID`). `publicTeamData()` in
+[utils/referralTeamAdmin.ts](utils/referralTeamAdmin.ts) builds the publicTeams doc everywhere. 「コードを再発行する」 (`reissueCode`)
+creates a new random code, disables the old one (kept for `referralCodeId` history) and keeps members. `/admin/users/[uid]` can
+now pick チーム会員 + a team (same as adding from the team page); applying 無料会員 to a team member removes them from the team.
+
 [pages/admin/teams/index.vue](pages/admin/teams/index.vue) creates teams (name only — `teamId` and code are generated) and
 lists them with member counts; [pages/admin/teams/[teamId].vue](pages/admin/teams/%5BteamId%5D.vue) handles the code's
 active/disabled state, the team name and note, and adding/removing members by email. Writes live in

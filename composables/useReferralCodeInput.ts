@@ -1,5 +1,6 @@
 import { doc, getDoc, serverTimestamp, type Firestore } from 'firebase/firestore'
 import { isCodeShaped, normalizeCode } from '~/utils/referralCode'
+import { OTHER_TEAM_ID } from '~/composables/usePublicTeams'
 
 // 紹介コード入力欄の共通ロジック。pages/signup/referral.vue(紹介コード付き会員登録)と
 // pages/account.vue(後追い入力)が同じ挙動になるよう、照合と状態管理をここにまとめている。
@@ -75,7 +76,9 @@ export function useReferralCodeInput() {
         : null
       // 選んだチームのコードであることまで確かめる。書き込み時のルール(redeemsCode)は
       // コード文書の teamId との一致しか見ないので、この「選択と一致」は画面側だけの確認。
-      if (data?.status === 'active' && data.teamId && data.teamId === selectedTeamId.value) {
+      // 「その他」を選んだときは、コードからチームを決める(どのチームのコードでも通す。2026-11-19)。
+      const teamMatches = selectedTeamId.value === OTHER_TEAM_ID || data?.teamId === selectedTeamId.value
+      if (data?.status === 'active' && data.teamId && teamMatches) {
         teamId.value = data.teamId
         teamName.value = data.teamName ?? ''
         state.value = 'valid'

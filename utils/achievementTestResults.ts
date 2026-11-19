@@ -30,7 +30,7 @@ import {
   type TestDisplaySettings
 } from '~/utils/achievementTestFeedback'
 
-// 到達度診断テストの問題の取得と、結果の読み書き。
+// ピッタリ到達度テストの問題の取得と、結果の読み書き。
 // 問題: achievementTests/{sealIndex}(チーム会員と管理者だけ読める)。
 // 結果: users/{uid}/testResults/{autoId} に1回ぶんずつ。本人が create できるのは firestore.rules で
 // 「チーム所属かつ利用停止でない」ときだけ、update / delete は誰にもできない。読むのは本人と管理者。

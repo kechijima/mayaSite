@@ -1,4 +1,4 @@
-// 到達度診断テストの結果画面に出す「段階」と「フィードバック文」と「購入カード」(2026-10-27)。
+// ピッタリ到達度テストの結果画面に出す「段階」と「フィードバック文」と「購入カード」(2026-10-27)。
 //
 // 段階は 4 つ。合計点(100点満点なのでそのまま％)にも、カテゴリごとの％(点数 ÷ 20)にも同じ区切りを使う:
 //   0: 71％以上 / 1: 51〜70％ / 2: 31〜50％ / 3: 30％以下
@@ -65,6 +65,8 @@ export interface TestProductCard {
   key: 'basic' | 'oracle' | 'guide'
   name: string
   price: number | null // 税込の円。null なら価格を出さない
+  // 非会員価格(税込の円)。null なら出さない。2026-11-19 要望で会員価格と並べて表示する
+  nonMemberPrice: number | null
   url: string // 外部の購入ページ。別タブで開く
   comingSoon: boolean // true ならリンクにせず Coming soon と出す
 }
@@ -85,9 +87,9 @@ export const DEFAULT_TEST_DISPLAY_SETTINGS: TestDisplaySettings = {
     { label: '紋章の力がこれから目覚める', message: 'ここからがスタートです。小さな一歩を重ねるほど、紋章の力は自然と表に出てきます。' }
   ],
   products: [
-    { key: 'basic', name: 'ベーシック', price: 5400, url: '', comingSoon: false },
-    { key: 'oracle', name: 'オラクル', price: 5400, url: '', comingSoon: false },
-    { key: 'guide', name: '到達度テストの攻略ガイド', price: null, url: '', comingSoon: true }
+    { key: 'basic', name: 'ベーシック', price: 5400, nonMemberPrice: null, url: '', comingSoon: false },
+    { key: 'oracle', name: 'オラクル', price: 5400, nonMemberPrice: null, url: '', comingSoon: false },
+    { key: 'guide', name: '到達度テストの攻略ガイド', price: null, nonMemberPrice: null, url: '', comingSoon: true }
   ]
 }
 
@@ -107,6 +109,7 @@ export function normalizeDisplaySettings(data: Partial<TestDisplaySettings> | nu
       key: def.key,
       name: typeof p?.name === 'string' && p.name.trim() ? p.name : def.name,
       price: p && (p.price === null || typeof p.price === 'number') ? p.price : def.price,
+      nonMemberPrice: p && typeof p.nonMemberPrice === 'number' ? p.nonMemberPrice : def.nonMemberPrice,
       url: typeof p?.url === 'string' ? p.url : def.url,
       comingSoon: typeof p?.comingSoon === 'boolean' ? p.comingSoon : def.comingSoon
     }
