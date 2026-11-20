@@ -373,7 +373,7 @@ and band names show on the blurred screen); `achievementFeedback` stays team/pai
 suspended. `/test` no longer has `member-auth` (only `/test/result/[id]` does). Entry points: the header link (always shown)
 and [components/TestFloatingCta.vue](components/TestFloatingCta.vue), a fixed bottom bar
 [layouts/default.vue](layouts/default.vue) shows once `useLastDiagnosis()` is set (by `/result`) on public non-form pages (`/result` itself had a
-second CTA section under 相性診断; removed 2026-11-19 as redundant with the fixed bar). The
+second CTA section under 相性診断; removed 2026-11-19 as redundant with the fixed bar). On `/result` the bar stays hidden until the page is scrolled, like the header's `hideUntilScrolled` (2026-11-20); its 「25問・無料」 note was removed. The
 seal name and its CMS `archetype` (「赤い月 修道士タイプ」, [composables/useSealArchetype.ts](composables/useSealArchetype.ts)) are
 shown large. Purchase cards have a `nonMemberPrice` shown next to the member price.
 
