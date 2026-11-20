@@ -55,6 +55,6 @@ const RESULT_LINKS = [
   <SiteHeader v-else-if="route.path === '/seals'" :links="HOME_LINKS" />
   <slot />
   <SiteFooter v-if="!footerless" />
-  <TestFloatingCta v-if="showTestCta" />
+  <TestFloatingCta v-if="showTestCta" :hide-until-scrolled="route.path === '/result'" />
   <LoadingOverlay />
 </template>
