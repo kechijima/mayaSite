@@ -1355,7 +1355,8 @@ a.kinduo__cap:hover .kinduo__seal { text-decoration: underline; text-underline-o
 .sealcards .relcard.is-rev .sealcards__figure { margin: -70px -20px 0 0; }
 /* スマホもキャラクターと名前を横並びにする(2026-11-19 要望)。.relcard の縦積み(560px 以下)を打ち消す */
 @media (max-width: 560px) {
-  .sealcards { margin-top: 84px; gap: 56px; margin-left: 0; margin-right: 0; }
+  /* カードの間隔は胸像が上のカードに重ならない範囲で詰める(2026-11-22 要望。56px→36px) */
+  .sealcards { margin-top: 84px; gap: 36px; margin-left: 0; margin-right: 0; }
   .sealcards .relcard { flex-direction: row; align-items: flex-end; text-align: left; gap: 4px; padding: 0 10px 0 0; margin-left: 0; margin-right: 0; }
   .sealcards .relcard.is-rev { flex-direction: row-reverse; padding: 0 0 0 10px; }
   .sealcards .relcard::before { background: radial-gradient(120% 140% at 0% 0%, var(--rel-glow) 0%, transparent 82%), linear-gradient(var(--rel-wash), var(--rel-wash)); }
