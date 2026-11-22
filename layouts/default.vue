@@ -19,10 +19,13 @@ const FOOTERLESS_PATHS = ['/plans', '/signup', '/signup/referral', '/login', '/p
 const footerless = computed(() => FOOTERLESS_PATHS.includes(route.path) || route.path.startsWith('/test/'))
 
 // ピッタリ到達度テストの固定フッター(components/TestFloatingCta.vue)を出すか。診断結果を見た後の公開ページ
-// (/result、そこから進む /kin/…、相性診断など)。トップ・フォーム系(フッターなしのページ)・テスト中は出さない。
+// (/result、そこから進む /kin/… など)。トップ・フォーム系(フッターなしのページ)・テスト中は出さない。
+// 2026-11-22: 相性診断(入力・結果)では出さない(要望)。アーキタイプ一覧はページの一番下に同じボタンを
+// 置いたので出さない(二重になるため)。
 const { last: lastDiagnosis } = useLastDiagnosis()
 const showTestCta = computed(() =>
-  !!lastDiagnosis.value && route.path !== '/' && !footerless.value && !route.path.startsWith('/legal/')
+  !!lastDiagnosis.value && route.path !== '/' && !footerless.value && !route.path.startsWith('/legal/') &&
+  route.path !== '/archetypes' && route.path !== '/compatibility' && !route.path.startsWith('/compatibility/')
 )
 
 const RESULT_LINKS = [
