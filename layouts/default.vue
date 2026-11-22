@@ -6,7 +6,7 @@ const HOME_LINKS = [
   { to: '/#diagnose', label: '診断する' },
   { to: '/#today', label: '今日のアーキタイプ' },
   { to: '/#compatibility', label: '相性診断' },
-  { to: '/seals', label: '20の紋章' },
+  { to: '/archetypes', label: 'アーキタイプ一覧' },
   { to: '/#news', label: 'ニュース' }
 ]
 // 診断結果ページ用: 同ページ内セクションへのハッシュリンクのみ(id は pages/result.vue 側の
@@ -32,7 +32,7 @@ const RESULT_LINKS = [
   { to: '#relations', label: 'KINの関係性' },
   { to: '#destiny', label: '運命数字' },
   { to: '#compatibility-cta', label: '相性診断' },
-  { to: '/seals', label: '20の紋章' }
+  { to: '/archetypes', label: 'アーキタイプ一覧' }
 ]
 </script>
 
@@ -51,8 +51,8 @@ const RESULT_LINKS = [
   <SiteHeader v-else-if="route.path === '/test' || route.path.startsWith('/test/')" :links="HOME_LINKS" />
   <!-- 相性診断(入力・結果)にも出す(2026-11-19 要望: メニューが出ていなかった)。 -->
   <SiteHeader v-else-if="route.path === '/compatibility' || route.path.startsWith('/compatibility/')" :links="HOME_LINKS" />
-  <!-- 20の紋章の一覧(2026-11-19) -->
-  <SiteHeader v-else-if="route.path === '/seals'" :links="HOME_LINKS" />
+  <!-- アーキタイプ一覧(20の紋章の一覧、2026-11-19。2026-11-22 に /seals から改名) -->
+  <SiteHeader v-else-if="route.path === '/archetypes'" :links="HOME_LINKS" />
   <slot />
   <SiteFooter v-if="!footerless" />
   <TestFloatingCta v-if="showTestCta" :hide-until-scrolled="route.path === '/result'" />
