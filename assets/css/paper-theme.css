@@ -1305,7 +1305,7 @@ a.kinduo__cap:hover .kinduo__seal { text-decoration: underline; text-underline-o
 
 /* 20の紋章の一覧(pages/seals.vue、2026-11-19)。配置と順番は mayadan.jp/character に合わせる */
 .sealtoc { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 10px; margin: 0 auto 8px; max-width: 720px; }
-.sealtoc__link { display: inline-flex; align-items: center; gap: 6px; padding: 7px 18px; border: 1px solid var(--gold-line); border-radius: 999px; background: var(--paper-panel); font-family: "Cormorant Garamond", serif; font-size: 17px; font-weight: 700; letter-spacing: .08em; text-decoration: none; }
+.sealtoc__link { display: inline-flex; align-items: center; gap: 6px; padding: 7px 18px; border: 1px solid var(--gold-line); border-radius: 999px; background: var(--paper-panel); font-size: 14px; font-weight: 700; letter-spacing: .06em; text-decoration: none; }
 .sealtoc__link svg { width: 13px; height: 13px; transform: rotate(90deg); }
 .sealtoc__link.is-red { color: var(--seal-red); }
 .sealtoc__link.is-white { color: var(--seal-white); }
@@ -1316,7 +1316,7 @@ a.kinduo__cap:hover .kinduo__seal { text-decoration: underline; text-underline-o
 .sealgroup.is-white { --c: var(--seal-white); }
 .sealgroup.is-blue { --c: var(--seal-blue); }
 .sealgroup.is-yellow { --c: var(--seal-yellow); }
-.sealgroup__title { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 0 0 16px; padding-bottom: 10px; border-bottom: 1px solid var(--gold-line-soft); font-size: 34px; font-weight: 600; color: var(--c); }
+.sealgroup__title { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 0 0 16px; padding-bottom: 10px; border-bottom: 1px solid var(--gold-line-soft); font-size: 24px; font-weight: 600; letter-spacing: .12em; color: var(--c); }
 .sealgroup__title span { font-size: 18px; opacity: .7; }
 .sealcards { margin-top: 80px; gap: 72px; }
 /* 胸像2体(女性・男性)を横に並べ、カードの枠から上へはみ出させる(2026-11-19 要望)。

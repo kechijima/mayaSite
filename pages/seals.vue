@@ -4,7 +4,7 @@ import { SEALS, sealColor } from '~/utils/mayaData'
 import { fetchPublishedDoc } from '~/composables/useDiagnosisContent'
 
 // 20の紋章の一覧(2026-11-19 要望: 「20の紋章って何があるのか」)。
-// 配置と順番は mayadan.jp/character に合わせる: 上に Red / White / Blue / Yellow の目次、
+// 配置と順番は mayadan.jp/character に合わせる: 上に赤・白・青・黄の目次、
 // 色ごとに5つずつ(赤い竜・赤い蛇・赤い月・赤い空歩く人・赤い地球 …)。紋章の番号 i の色は i % 4
 // (utils/mayaData.ts の sealColor)なので、色ごとに i の小さい順に並べるとこの順になる。
 // 各紋章は診断結果の「KINの関係性」と同じカードで、胸像を女性・男性で並べる(2026-11-19 要望で顔の丸アイコンから変更)。
@@ -14,10 +14,11 @@ import { fetchPublishedDoc } from '~/composables/useDiagnosisContent'
 // mayadan のキャラクター名(人名)は先方の創作物なので使わず、このサイトのタイプ名(CMS の archetype)を出す。
 
 const GROUPS = [
-  { key: 'red', label: 'Red', jp: '赤' },
-  { key: 'white', label: 'White', jp: '白' },
-  { key: 'blue', label: 'Blue', jp: '青' },
-  { key: 'yellow', label: 'Yellow', jp: '黄' }
+  // 色の表記は日本語(2026-11-22 要望: 他の画面に英語の見出しが無いので揃える。mayadan は Red などの英語)
+  { key: 'red', label: '赤の紋章' },
+  { key: 'white', label: '白の紋章' },
+  { key: 'blue', label: '青の紋章' },
+  { key: 'yellow', label: '黄の紋章' }
 ] as const
 
 const groups = GROUPS.map((g) => ({
@@ -54,7 +55,7 @@ const { data: archetypes } = useAsyncData(
       </nav>
 
       <section v-for="g in groups" :id="g.key" :key="g.key" class="sealgroup" :class="`is-${g.key}`">
-        <h2 class="sealgroup__title font-display">
+        <h2 class="sealgroup__title">
           <span aria-hidden="true">❦</span>{{ g.label }}<span aria-hidden="true">❦</span>
         </h2>
         <!-- 診断結果の「KINの関係性」と同じカード(.relcard)に、胸像を女性・男性で並べる(2026-11-19 要望) -->
