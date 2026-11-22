@@ -56,7 +56,7 @@ const { data: archetypes } = useAsyncData(
 
       <section v-for="g in groups" :id="g.key" :key="g.key" class="sealgroup" :class="`is-${g.key}`">
         <h2 class="sealgroup__title">
-          <span aria-hidden="true">❦</span>{{ g.label }}<span aria-hidden="true">❦</span>
+          {{ g.label }}
         </h2>
         <!-- 診断結果の「KINの関係性」と同じカード(.relcard)に、胸像を女性・男性で並べる(2026-11-19 要望) -->
         <div class="relwrap sealcards">
