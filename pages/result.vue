@@ -25,7 +25,7 @@ const input = computed(() => {
 })
 const { result } = useDiagnosis(input)
 // ピッタリ到達度テストへの導線(ヘッダー・固定フッター)に、この結果の KIN と性別を渡す
-const { last: lastDiagnosis } = useLastDiagnosis()
+const { last: lastDiagnosis, testLink } = useLastDiagnosis()
 watchEffect(() => {
   lastDiagnosis.value = { kin: result.value.kin, gender: result.value.gender }
 })
@@ -558,6 +558,23 @@ async function shareResult() {
             style="background: var(--gold); color: #241a06;"
           >
             相性診断をはじめる
+          </NuxtLink>
+        </div>
+      </section>
+
+      <!-- ピッタリ到達度テストへの導線(2026-11-22 要望: 相性診断の下に専用のセクションとボタン)。
+           遷移先は固定フッターと同じ testLink(この結果の KIN と性別を渡す。会員は登録した生年月日で受ける) -->
+      <!-- 見出し(SectionDivider)が無いので、.section の上余白(178px)は取らず相性診断のカードのすぐ下に置く -->
+      <section id="test-cta" class="section" style="margin-top: 24px; padding-top: 0;">
+        <div class="mx-auto max-w-[560px] rounded-xl p-6 text-center" style="border: 1px solid var(--gold-line-soft); background: var(--paper-panel); box-shadow: var(--shadow);">
+          <div class="mb-2 font-display text-[17px]" style="color: var(--gold-deep);"><span class="inline-block">あなたの紋章らしさは、</span><span class="inline-block">どこまで身についている？</span></div>
+          <p class="mb-4 text-[13px]" style="color: var(--ink-soft);">ピッタリ到達度テストで、紋章の力を日々の考え方・行動・人間関係でどこまで発揮できているかを確かめられます。</p>
+          <NuxtLink
+            :to="testLink"
+            class="inline-block rounded-full px-8 py-3 text-[14px] font-bold tracking-[.03em]"
+            style="background: var(--gold); color: #241a06;"
+          >
+            ピッタリ到達度テストを受ける
           </NuxtLink>
         </div>
       </section>
