@@ -1257,35 +1257,15 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 }
 
 /* ── 相性診断の結果: 関係を1文ずつ並べる(pages/compatibility/result.vue, 2026-11-19) ── */
-.compatlines {
-  border: 1px solid var(--gold-line-soft);
-  border-radius: 12px;
-  background: var(--paper-panel);
-  box-shadow: var(--shadow);
-  padding: 18px 18px;
-}
-.compatlines__pair {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  text-align: center;
-  font-size: 14.5px;
-  line-height: 1.8;
-  color: var(--ink);
-}
-.compatlines__pair + .compatlines__pair {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px dashed var(--gold-line-soft);
-}
-.compatlines__pair li + li { margin-top: 4px; }
-.compatlines__pair strong { color: var(--gold-deep); font-weight: 700; }
-.compatlines__pair strong.is-danger { color: var(--seal-red); }
-.compatlines__pair .is-none { color: var(--ink-faint); font-size: 13px; }
-@media (min-width: 640px) {
-  .compatlines { padding: 24px 28px; }
-  .compatlines__pair { font-size: 15.5px; }
-}
+/* 相性の文。見出し・枠なしで、参加者の上に普通の文章として並べる(2026-11-22 要望) */
+.compattext { max-width: 820px; margin: 28px auto 0; text-align: center; color: var(--ink); font-size: 14.5px; line-height: 2; }
+.compattext__pair { margin: 0; }
+.compattext__pair + .compattext__pair { margin-top: 10px; }
+.compattext__pair span { display: block; }
+.compattext__pair strong { color: var(--gold-deep); font-weight: 700; }
+.compattext__pair strong.is-danger { color: var(--seal-red); }
+.compattext__pair .is-none { color: var(--ink-faint); }
+@media (min-width: 640px) { .compattext { font-size: 16px; } }
 
 /* ピッタリ到達度テストの見出しの紋章名とタイプ名(2026-11-19 要望: 大きく) */
 .testseal { margin: 14px 0 0; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 4px 12px; font-family: "Shippori Mincho B1", serif; line-height: 1.3; }
@@ -1386,8 +1366,10 @@ a.kinduo__cap:hover .kinduo__seal { text-decoration: underline; text-underline-o
 .ppcard { border: 1px solid var(--gold-line); border-radius: 14px; background: radial-gradient(140% 120% at 50% 0%, var(--paper-panel) 0%, var(--paper-panel-2) 100%); box-shadow: var(--shadow); padding: 28px 28px 30px; text-align: center; }
 .ppcard__lead { margin: 0; font-size: 15px; color: var(--ink-soft); }
 .ppcard__lead strong { color: var(--ink); font-weight: 700; }
-.ppcard__kin { margin: 6px 0 0; font-family: "Cormorant Garamond", serif; font-size: 64px; font-weight: 700; line-height: 1; color: var(--gold-deep); }
-.ppcard__kin small { display: block; margin-bottom: 2px; font-size: 18px; letter-spacing: .2em; }
+/* KIN 番号は他の画面(.kin-medal__num など)と同じ Shippori Mincho の細字にそろえる(2026-11-22 要望)。
+   Cormorant Garamond は 400 しか読み込んでいないので、700 を指定すると疑似太字になって崩れて見えていた */
+.ppcard__kin { margin: 6px 0 0; font-family: "Shippori Mincho", serif; font-size: 60px; font-weight: 400; line-height: 1; color: var(--gold-deep); font-variant-numeric: tabular-nums; }
+.ppcard__kin small { display: block; margin-bottom: 4px; font-size: 16px; letter-spacing: .2em; }
 .ppcard__meta { margin: 8px 0 0; font-size: 12px; color: var(--ink-faint); }
 .ppcard__figs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 22px; align-items: end; }
 .ppcard__label { font-size: 13px; letter-spacing: .12em; color: var(--ink-faint); margin-bottom: 8px; }

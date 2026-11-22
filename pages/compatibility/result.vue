@@ -38,29 +38,25 @@ function back() {
         <p class="masthead__sub">紋章の組み合わせから、あなたと大切な人との相性を読み解きます。</p>
       </div>
 
+      <!-- 相性: 参加者全員の全組み合わせを、1つの関係につき1文で並べる(2026-11-19 要望: カードをやめて文章のみ)。
+           2026-11-22 要望: 見出し・枠をやめ、参加者の上に普通の文章として並べる。
+           両方向の関係と運命数字はまとめて1文にする(composables/useCompatibility.ts の statements)。
+           関係の判定は mayadan.jp の相性診断に合わせている(utils/compatibility.ts)。 -->
+      <div class="compattext">
+        <p v-for="pair in result.pairs" :key="pair.key" class="compattext__pair">
+          <template v-for="st in pair.statements" :key="st.key">
+            <span>KIN{{ pair.a.kin }}の{{ who(pair.a) }}とKIN{{ pair.b.kin }}の{{ who(pair.b) }}は<strong :class="{ 'is-danger': st.danger }">{{ st.label }}</strong>です。</span>
+          </template>
+          <span v-if="!pair.statements.length" class="is-none">KIN{{ pair.a.kin }}の{{ who(pair.a) }}とKIN{{ pair.b.kin }}の{{ who(pair.b) }}には、当てはまる関係はありませんでした。</span>
+        </p>
+      </div>
+
       <section class="section">
         <SectionDivider label="参加者" eyebrow="Participants" />
         <!-- 2026-11-22 要望: 2列をやめて1人1枚を横幅いっぱいに(胸像を大きく出すため。mayadan.jp と同じ) -->
         <div class="mx-auto grid max-w-[820px] grid-cols-1 gap-6">
           <PersonProfileCard :profile="result.self" />
           <PersonProfileCard v-for="p in result.others" :key="p.id" :profile="p" />
-        </div>
-      </section>
-
-      <!-- 相性: 参加者全員の全組み合わせを、1つの関係につき1文で並べる(2026-11-19 要望: カードをやめて文章のみ)。
-           両方向の関係と運命数字はまとめて1文にする(composables/useCompatibility.ts の statements)。
-           関係の判定は mayadan.jp の相性診断に合わせている(utils/compatibility.ts)。 -->
-      <section class="section">
-        <SectionDivider label="相性" eyebrow="Compatibility" />
-        <div class="compatlines mx-auto max-w-[420px] sm:max-w-[820px]">
-          <ul v-for="pair in result.pairs" :key="pair.key" class="compatlines__pair">
-            <li v-for="st in pair.statements" :key="st.key">
-              KIN{{ pair.a.kin }}の{{ who(pair.a) }}とKIN{{ pair.b.kin }}の{{ who(pair.b) }}は<strong :class="{ 'is-danger': st.danger }">{{ st.label }}</strong>
-            </li>
-            <li v-if="!pair.statements.length" class="is-none">
-              KIN{{ pair.a.kin }}の{{ who(pair.a) }}とKIN{{ pair.b.kin }}の{{ who(pair.b) }}には、当てはまる関係はありませんでした
-            </li>
-          </ul>
         </div>
       </section>
 
