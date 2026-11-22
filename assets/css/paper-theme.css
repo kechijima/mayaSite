@@ -1366,8 +1366,10 @@ a.kinduo__cap:hover .kinduo__seal { text-decoration: underline; text-underline-o
   .sealcards__figure { justify-content: flex-start; }
   .sealcards .relcard.is-rev .sealcards__figure { justify-content: flex-end; }
   .sealcards .relcard__body { position: relative; z-index: 3; text-shadow: 0 0 3px rgba(255, 250, 240, .95), 0 0 8px rgba(255, 250, 240, .85); }
-  .sealcards__figure img { width: 74% !important; }
-  .sealcards__figure img + img { margin-left: -34%; }
+  /* 胸像が上のカードに重ならない大きさにする(2026-11-22 要望)。幅の割合だけだと画面が広いほど
+     胸像が高くなって上へはみ出すので、150px(高さ約114px = カードの高さ+間隔に収まる)で頭打ちにする */
+  .sealcards__figure img { width: min(62%, 150px) !important; }
+  .sealcards__figure img + img { margin-left: -28%; }
   /* 名前の欄は幅 92px のまま、内側の左に余白を取る(2026-11-19 要望) */
   .sealcards .relcard__body { display: block; flex: 0 0 100px; width: 100px; padding: 14px 0 12px 8px; }
   .sealcards .relcard__name { font-size: 14px; line-height: 1.35; word-break: keep-all; overflow-wrap: anywhere; }
