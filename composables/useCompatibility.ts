@@ -85,7 +85,7 @@ export interface CompatibilityResult {
   others: PersonProfile[]
   pairs: PairCompatibility[]
   // 見る側の人ごとの行(参加者の並び順)。行の並びは mayadan と同じく、関係の種類(ガイド→神秘→反対→類似→鏡→絶対反対)
-  // ごとに相手を参加者順に並べる。まったく同じ文になる行(音1のKINで太陽の紋章とウェイブスペルが同じ紋章のとき)は
+  // ごとに相手を参加者順に並べる。ただし mayadan と違い、2人の組につき先の人から見た向きだけを出す(ガイドKINを除く)。まったく同じ文になる行(音1のKINで太陽の紋章とウェイブスペルが同じ紋章のとき)は
   // mayadan では2回出るが、重複して見えるので1つにする。
   lineGroups: { from: PersonProfile; lines: RelationLine[] }[]
   // 運命数字の「同じ番号」「連番」(mayadan には無い関係。向きが無いので2人で1文)
@@ -172,6 +172,10 @@ export function useCompatibility(input: Ref<{ self: PersonInput; others: PersonI
       for (const type of KIN_RELATION_ORDER) {
         for (const to of people) {
           if (to === from) continue
+          // 2人の組につき、参加者の並びで先の人から見た向きだけを出す(2026-11-22 要望: 逆向きは同じ内容の繰り返しになるため)。
+          // 神秘・反対・類似・鏡・絶対反対はどちらから見ても成り立つので逆向きは省ける。ガイドKINだけは向きがあり、
+          // 逆向きでしか成り立たないことがあるので、後の人から見たガイドKINは残す。
+          if (type !== 'guide' && people.indexOf(to) < people.indexOf(from)) continue
           for (const r of rowsOf(from, to)) {
             if (r.type !== type) continue
             const key = `${from.id}-${to.id}-${type}-${r.fromSealIndex}-${r.toSealIndex}`
