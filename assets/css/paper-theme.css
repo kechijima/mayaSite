@@ -1327,7 +1327,11 @@ a.kinduo__cap:hover .kinduo__seal { text-decoration: underline; text-underline-o
 .sealcards__figure img:first-child { position: relative; z-index: 1; }
 .sealcards__figure img + img { margin-left: -28%; }
 .sealcards .relcard__body { padding: 26px 0 24px; }
-.sealcards__type { font-size: 14px; font-weight: 700; color: var(--ink-soft); letter-spacing: .04em; }
+/* タイプ名は診断結果(.dossier__type)と同じ紋章色の帯にする(2026-11-22 要望)。白・黄は文字が薄いので帯を濃くする */
+.sealcards__type { display: inline-flex; align-items: center; gap: 7px; margin-top: 10px; padding: 4px 12px 4px 10px; border-radius: 6px; background: var(--c); color: var(--paper); font-family: "Shippori Mincho", serif; font-size: 13px; font-weight: 700; letter-spacing: .1em; line-height: 1.4; text-shadow: 0 1px 0 rgba(0, 0, 0, .18) !important; }
+.sealgroup.is-white .sealcards__type { background: color-mix(in srgb, var(--seal-white) 85%, black); }
+.sealgroup.is-yellow .sealcards__type { background: color-mix(in srgb, var(--seal-yellow) 75%, black); text-shadow: 0 1px 1px rgba(0, 0, 0, .3) !important; }
+.sealcards__type::before { content: ""; flex: none; width: 5px; height: 5px; background: currentColor; opacity: .9; transform: rotate(45deg); }
 /* 偶数枚目はキャラクターを右に(左右交互、2026-11-19 要望) */
 .sealcards .relcard.is-rev { flex-direction: row-reverse; padding: 0 0 0 30px; }
 .sealcards .relcard.is-rev .sealcards__figure { margin: -70px -20px 0 0; }
@@ -1349,7 +1353,8 @@ a.kinduo__cap:hover .kinduo__seal { text-decoration: underline; text-underline-o
   .sealcards__figure img { width: 74% !important; }
   .sealcards__figure img + img { margin-left: -34%; }
   /* 名前の欄は幅 92px のまま、内側の左に余白を取る(2026-11-19 要望) */
-  .sealcards .relcard__body { display: block; flex: 0 0 92px; width: 92px; padding: 14px 0 12px 8px; }
+  .sealcards .relcard__body { display: block; flex: 0 0 100px; width: 100px; padding: 14px 0 12px 8px; }
   .sealcards .relcard__name { font-size: 14px; line-height: 1.35; word-break: keep-all; overflow-wrap: anywhere; }
-  .sealcards__type { margin-top: 4px; font-size: 11px; }
+  .sealcards__type { margin-top: 6px; padding: 3px 6px 3px 5px; gap: 4px; font-size: 10px; letter-spacing: 0; white-space: nowrap; }
+  .sealcards__type::before { width: 4px; height: 4px; }
 }
