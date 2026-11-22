@@ -1389,13 +1389,12 @@ a.kinduo__cap:hover .kinduo__seal { text-decoration: underline; text-underline-o
 @media (max-width: 639px) {
   .ppcard { padding: 22px 16px 24px; }
   .ppcard__kin { font-size: 54px; }
-  .ppcard__figs { grid-template-columns: 1fr 1fr; gap: 12px 10px; }
-  .ppcard__name { font-size: 16px; }
-  /* 銀河の音は胸像2つの下に、メダルと名前を横並びで */
-  .ppcard__tone { grid-column: 1 / -1; flex-direction: row; justify-content: center; gap: 14px; height: auto; }
-  .ppcard__tone .ppcard__label { margin: 0; }
-  .ppcard__tone .ppcard__name { align-self: center; margin: 0; padding: 0; border: 0; }
-  .ppcard__medal { padding: 0; }
+  /* スマホも PC と同じく 太陽の紋章・ウェイブスペル・銀河の音 を3列に並べる(2026-11-22 要望。
+     それまでは胸像2つの下に銀河の音を置いていた)。列が狭いのでラベルと名前の文字を小さくする */
+  .ppcard__figs { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .ppcard__label { font-size: 11px; letter-spacing: .02em; margin-bottom: 6px; white-space: nowrap; }
+  .ppcard__name { font-size: 14px; margin-top: 8px; padding-top: 6px; word-break: keep-all; overflow-wrap: anywhere; }
+  .ppcard__medal { padding-bottom: 10px; }
   .ppcard__medal--lg { display: none; }
   .ppcard__medal--sm { display: flex; }
   .ppcard__rels { grid-template-columns: 1fr; gap: 12px; max-width: 300px; }
