@@ -123,6 +123,27 @@ BUST_KEEP_MIN: dict[tuple[int, str], float] = {
 }
 
 
+# 胸像(bust)を個別に拡大して切り出す倍率。体まわりが広く、胸像が他より小さく見えるキャラクター用。
+# 頭の上端は固定し、頭の中心を軸に左右と下を切る(縦横比は変わらない)。キーは BUST_KEEP_MIN と同じ。
+# 2026-11-22: 赤い月(男性)が小さく見えるとの要望で 1.15 倍にした。
+BUST_ZOOM: dict[tuple[int, str], float] = {
+    (8, '-male'): 1.15,   # 赤い月(男性)
+}
+
+
+def zoom_bust(im: Image.Image, zoom: float) -> Image.Image:
+    if zoom == 1:
+        return im
+    w, h = im.size
+    cw, ch = round(w / zoom), round(h / zoom)
+    # 頭の中心 = 上から 12% までの不透明部分の左右の中央(杖などの細いものは無視できる程度)
+    a = im.getchannel('A').crop((0, 0, w, max(1, round(h * 0.12))))
+    bbox = a.point(lambda v: 255 if v > 40 else 0).getbbox()
+    cx = (bbox[0] + bbox[2]) / 2 if bbox else w / 2
+    left = min(max(0, round(cx - cw / 2)), w - cw)
+    return im.crop((left, 0, left + cw, ch))
+
+
 def keep_body_bust(full: Image.Image, keep: float, target_ar: float) -> Image.Image:
     slice_ = alpha_crop(full.crop((0, 0, full.width, round(full.height * keep))), pad=4)
     w, h = slice_.size
@@ -244,6 +265,7 @@ def main():
 
         keep = BUST_KEEP_MIN.get((seal_index, suffix))
         bust = keep_body_bust(full_unpadded, keep, target_bust_ar) if keep else normalize_bust_ar(bust_slice, target_bust_ar)
+        bust = zoom_bust(bust, BUST_ZOOM.get((seal_index, suffix), 1))
         bust_path = os.path.join(OUT_DIR, f'seal-{seal_index}-bust{suffix}.webp')
         bust.save(bust_path, 'WEBP', quality=88, method=6)
 
