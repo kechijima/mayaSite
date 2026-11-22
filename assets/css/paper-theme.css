@@ -1317,8 +1317,7 @@ a.kinduo__cap:hover .kinduo__seal { text-decoration: underline; text-underline-o
 .sealgroup.is-white { --c: var(--seal-white); }
 .sealgroup.is-blue { --c: var(--seal-blue); }
 .sealgroup.is-yellow { --c: var(--seal-yellow); }
-.sealgroup__title { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 0 0 16px; padding-bottom: 10px; border-bottom: 1px solid var(--gold-line-soft); font-size: 24px; font-weight: 600; letter-spacing: .12em; color: var(--c); }
-.sealgroup__title span { font-size: 18px; opacity: .7; }
+.sealgroup__title { display: flex; align-items: center; justify-content: center; margin: 0 0 16px; padding-bottom: 10px; border-bottom: 1px solid var(--gold-line-soft); font-size: 24px; font-weight: 600; letter-spacing: .12em; color: var(--c); }
 .sealcards { margin-top: 80px; gap: 72px; }
 /* 胸像2体(女性・男性)を横に並べ、カードの枠から上へはみ出させる(2026-11-19 要望)。
    カードの高さは文字側で決まるので、胸像の高さがそれを上回るぶんだけ上に飛び出す */
