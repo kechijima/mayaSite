@@ -1324,10 +1324,7 @@ a.kinduo__cap:hover .kinduo__seal { text-decoration: underline; text-underline-o
 .sealcards__figure { display: flex; align-items: flex-end; width: 400px; margin: -70px 0 0 -20px; }
 /* 男女は大きく重ねる(2026-11-19 要望)。男性を後ろに置き、女性を手前に */
 .sealcards__figure img { width: 64% !important; flex: none; }
-.sealcards__figure img:first-child { position: relative; z-index: 1;
-  /* 手前(女性)の右側=男性に重なる部分を、だんだん透明にして自然になじませる(2026-11-19 要望) */
-  -webkit-mask-image: linear-gradient(to right, #000 58%, rgba(0, 0, 0, .55) 78%, transparent 100%);
-  mask-image: linear-gradient(to right, #000 58%, rgba(0, 0, 0, .55) 78%, transparent 100%); }
+.sealcards__figure img:first-child { position: relative; z-index: 1; }
 .sealcards__figure img + img { margin-left: -28%; }
 .sealcards .relcard__body { padding: 26px 0 24px; }
 .sealcards__type { font-size: 14px; font-weight: 700; color: var(--ink-soft); letter-spacing: .04em; }
