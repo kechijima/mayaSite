@@ -23,6 +23,25 @@ import { SEALS } from '~/utils/mayaData'
 // その順のまま — 採点・保存形式・管理画面の答案表示は変わらない。
 const { access, locked, canSave, seal, sealQuery, user, loginLink, signupLink, plansLink } = useTestAccess()
 const { withLoading } = useGlobalLoading()
+const route = useRoute()
+const router = useRouter()
+
+// 2026-11-22: 結果を出したら回答を URL(?a=)に載せる。ぼかした結果から /plans へ行き「元のページへ戻る」
+// やブラウザの戻るで帰ってきたときに、受験前の画面ではなく同じ結果を出し直すため(未ログインは記録が
+// 残らないので、URL 以外に戻す手がかりがない)。1問1文字(a/n/d)、並びは flattenQuestions() の順。
+// 出し直すときは採点だけで保存はしない(再読み込みで同じ結果が二重に記録されないように)。
+const ANSWER_CODE: Record<TestAnswer, string> = { agree: 'a', neutral: 'n', disagree: 'd' }
+const CODE_ANSWER: Record<string, TestAnswer> = { a: 'agree', n: 'neutral', d: 'disagree' }
+function encodeAnswers(list: TestAnswer[]): string {
+  return list.map((a) => ANSWER_CODE[a]).join('')
+}
+function decodeAnswers(raw: unknown, count: number): TestAnswer[] | null {
+  if (typeof raw !== 'string' || raw.length !== count || !/^[and]+$/.test(raw)) return null
+  return [...raw].map((c) => CODE_ANSWER[c])
+}
+function putAnswersInUrl(list: TestAnswer[]) {
+  router.replace({ query: { ...route.query, a: encodeAnswers(list) } })
+}
 
 const sealIndex = computed(() => seal.value?.sealIndex ?? null)
 const archetype = useSealArchetype(sealIndex)
@@ -64,12 +83,22 @@ watch(
       test.value = doc
       shuffleOrder()
       loadState.value = doc ? 'ready' : 'missing'
+      restoreFromUrl()
     } catch {
       loadState.value = 'error'
     }
   },
   { immediate: true }
 )
+
+// URL に回答があれば(結果画面から /plans へ行って戻ってきたとき)、その結果を出し直す。
+function restoreFromUrl() {
+  if (!test.value) return
+  const list = decodeAnswers(route.query.a, flat.value.length)
+  if (!list) return
+  answers.value = Object.fromEntries(list.map((a, i) => [i, a]))
+  result.value = scoreTest(test.value, list)
+}
 
 function pick(index: number, answer: TestAnswer) {
   answers.value = { ...answers.value, [index]: answer }
@@ -87,6 +116,7 @@ async function submit() {
   if (!canSave.value || !user.value) {
     // 未ログインは記録しない(採点だけ)
     result.value = scoreTest(test.value, list)
+    putAnswersInUrl(list)
     window.scrollTo({ top: 0, behavior: 'smooth' })
     return
   }
@@ -100,6 +130,7 @@ async function submit() {
       ? '結果を保存できませんでした。'
       : '結果を保存できませんでした。時間をおいて再度お試しください。'
   }
+  putAnswersInUrl(list)
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
@@ -110,6 +141,8 @@ function retry() {
   saved.value = false
   saveError.value = ''
   showUnanswered.value = false
+  const { a: _a, ...rest } = route.query
+  router.replace({ query: rest })
   window.scrollTo({ top: 0 })
 }
 
