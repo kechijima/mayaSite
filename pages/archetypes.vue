@@ -38,6 +38,11 @@ const { data: archetypes } = useAsyncData(
   },
   { server: false, lazy: true, default: () => [] as string[] }
 )
+
+// 一番下のピッタリ到達度テストへのボタン(2026-11-22 要望)。診断済みならその KIN・性別を渡す
+// (固定フッターと同じ行き先)。未診断なら /test 側が「まず無料診断へ」を案内する。
+// このページでは固定フッター(TestFloatingCta)は出さない(layouts/default.vue)。
+const { testLink } = useLastDiagnosis()
 </script>
 
 <template>
@@ -82,6 +87,11 @@ const { data: archetypes } = useAsyncData(
           </NuxtLink>
         </div>
       </section>
+
+      <div class="archtest">
+        <p class="archtest__lead">あなたの紋章らしさは、どこまで身についている？</p>
+        <NuxtLink :to="testLink" class="btn-gold">ピッタリ到達度テストを受ける</NuxtLink>
+      </div>
     </div>
   </div>
 </template>

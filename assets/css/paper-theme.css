@@ -1330,7 +1330,11 @@ a.kinduo__cap:hover .kinduo__seal { text-decoration: underline; text-underline-o
 .sealgroup.is-blue { --c: var(--seal-blue); }
 .sealgroup.is-yellow { --c: var(--seal-yellow); }
 .sealgroup__title { display: flex; align-items: center; justify-content: center; margin: 0 0 16px; padding-bottom: 10px; border-bottom: 1px solid var(--gold-line-soft); font-size: 24px; font-weight: 600; letter-spacing: .12em; color: var(--c); }
-.sealcards { margin-top: 80px; gap: 72px; }
+.sealcards { margin-top: 80px; gap: 48px; }
+/* 一番下のピッタリ到達度テストへのボタン(2026-11-22) */
+.archtest { display: flex; flex-direction: column; align-items: center; gap: 14px; margin: 72px auto 8px; padding-top: 32px; border-top: 1px solid var(--gold-line-soft); max-width: 560px; text-align: center; }
+.archtest__lead { margin: 0; font-size: 14px; color: var(--ink-soft); }
+.archtest .btn-gold { min-width: 280px; }
 /* 胸像2体(女性・男性)を横に並べ、カードの枠から上へはみ出させる(2026-11-19 要望)。
    カードの高さは文字側で決まるので、胸像の高さがそれを上回るぶんだけ上に飛び出す */
 .sealcards__figure { display: flex; align-items: flex-end; width: 400px; margin: -70px 0 0 -20px; }
@@ -1349,7 +1353,7 @@ a.kinduo__cap:hover .kinduo__seal { text-decoration: underline; text-underline-o
 .sealcards .relcard.is-rev .sealcards__figure { margin: -70px -20px 0 0; }
 /* スマホもキャラクターと名前を横並びにする(2026-11-19 要望)。.relcard の縦積み(560px 以下)を打ち消す */
 @media (max-width: 560px) {
-  .sealcards { margin-top: 84px; gap: 84px; margin-left: 0; margin-right: 0; }
+  .sealcards { margin-top: 84px; gap: 56px; margin-left: 0; margin-right: 0; }
   .sealcards .relcard { flex-direction: row; align-items: flex-end; text-align: left; gap: 4px; padding: 0 10px 0 0; margin-left: 0; margin-right: 0; }
   .sealcards .relcard.is-rev { flex-direction: row-reverse; padding: 0 0 0 10px; }
   .sealcards .relcard::before { background: radial-gradient(120% 140% at 0% 0%, var(--rel-glow) 0%, transparent 82%), linear-gradient(var(--rel-wash), var(--rel-wash)); }
