@@ -40,7 +40,8 @@ function back() {
 
       <section class="section">
         <SectionDivider label="参加者" eyebrow="Participants" />
-        <div class="mx-auto grid max-w-[420px] grid-cols-1 gap-4 sm:max-w-[820px] sm:grid-cols-2">
+        <!-- 2026-11-22 要望: 2列をやめて1人1枚を横幅いっぱいに(胸像を大きく出すため。mayadan.jp と同じ) -->
+        <div class="mx-auto grid max-w-[820px] grid-cols-1 gap-6">
           <PersonProfileCard :profile="result.self" />
           <PersonProfileCard v-for="p in result.others" :key="p.id" :profile="p" />
         </div>
