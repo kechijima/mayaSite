@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { explainedText, explainedLabel, type PersonProfile } from '~/composables/useCompatibility'
+import type { PersonProfile } from '~/composables/useCompatibility'
 import { decodePeople } from '~/utils/compatibilityQuery'
 
 // 相性診断の結果。入力は /compatibility で行い、全員ぶんを `p` クエリで受け取る
@@ -62,17 +62,6 @@ function back() {
             </li>
           </ul>
         </div>
-      </section>
-
-      <!-- 結果に出てきた関係の説明を1回ずつ。 -->
-      <section v-if="result.relationTypes.length" class="section">
-        <SectionDivider label="関係の説明" eyebrow="Guide" />
-        <dl class="mx-auto max-w-[420px] space-y-3 sm:max-w-[820px]">
-          <div v-for="t in result.relationTypes" :key="t" class="rounded-lg px-4 py-3.5" style="border: 1px solid var(--gold-line-soft); background: var(--paper-panel);">
-            <dt class="mb-1 text-[13px] font-bold" :style="{ color: t === 'absoluteOpposite' ? 'var(--seal-red)' : 'var(--gold-deep)' }">{{ explainedLabel(t) }}</dt>
-            <dd class="text-[12.5px] leading-[1.8]" style="color: var(--ink-soft);">{{ explainedText(t) }}</dd>
-          </div>
-        </dl>
       </section>
 
       <div class="mt-8 flex justify-center">
