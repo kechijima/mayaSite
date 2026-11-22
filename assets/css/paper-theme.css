@@ -1338,11 +1338,12 @@ a.kinduo__cap:hover .kinduo__seal { text-decoration: underline; text-underline-o
 /* 胸像2体(女性・男性)を横に並べ、カードの枠から上へはみ出させる(2026-11-19 要望)。
    カードの高さは文字側で決まるので、胸像の高さがそれを上回るぶんだけ上に飛び出す */
 .sealcards__figure { display: flex; align-items: flex-end; width: 400px; margin: -70px 0 0 -20px; }
-/* 男女は大きく重ねる(2026-11-19 要望)。女性は髪のボリュームで大きく見えるので、
-   男性(2枚目)を手前に重ねる(2026-11-22 要望。それまでは女性が手前) */
+/* 男女は大きく重ねる(2026-11-19 要望)。女性(1枚目)を手前に重ねる
+   (2026-11-22 に一度男性を手前にしたが、同日の要望で女性を手前に戻した) */
 /* 胸像が上のカードに重ならない大きさにする(2026-11-22 要望。スマホと同じく上のカードとの間に約13px 空ける。64%→58%) */
 .sealcards__figure img { width: 58% !important; flex: none; }
-.sealcards__figure img + img { position: relative; z-index: 1; margin-left: -24%; }
+.sealcards__figure img:first-child { position: relative; z-index: 1; }
+.sealcards__figure img + img { margin-left: -24%; }
 /* カードの背景を縦に広げる(2026-11-22 要望。上下 26/24px から広げた) */
 .sealcards .relcard__body { padding: 40px 0 38px; }
 /* タイプ名は診断結果(.dossier__type)と同じ紋章色の帯にする(2026-11-22 要望)。白・黄は文字が薄いので帯を濃くする */
