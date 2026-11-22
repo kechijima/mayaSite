@@ -5,7 +5,7 @@ import { fetchPublishedDoc } from '~/composables/useDiagnosisContent'
 
 // アーキタイプ一覧(20の紋章の一覧。2026-11-19 要望: 「20の紋章って何があるのか」)。
 // 2026-11-22: 名前を「20の紋章」から「アーキタイプ一覧」に、パスを /seals から /archetypes に変更
-// (「今日のアーキタイプ」と言葉をそろえる要望)。旧 /seals は firebase.json で 301 転送。
+// (「今日のアーキタイプ」と言葉をそろえる要望)。旧 /seals の転送は残さない(要望)。
 // 配置と順番は mayadan.jp/character に合わせる: 上に赤・白・青・黄の目次、
 // 色ごとに5つずつ(赤い竜・赤い蛇・赤い月・赤い空歩く人・赤い地球 …)。紋章の番号 i の色は i % 4
 // (utils/mayaData.ts の sealColor)なので、色ごとに i の小さい順に並べるとこの順になる。
