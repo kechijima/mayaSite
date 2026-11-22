@@ -137,7 +137,9 @@ const todayLabel = computed(() => `${today.getFullYear()}年${today.getMonth() +
       <section id="archetypes" class="section">
         <SectionDivider label="アーキタイプ一覧" eyebrow="Character" />
         <div class="mx-8 sm:mx-auto max-w-[560px] rounded-xl p-6 text-center" style="border: 1px solid var(--gold-line-soft); background: var(--paper-panel); box-shadow: var(--shadow);">
-          <div class="mb-2 font-display text-[17px]" style="color: var(--gold-deep);">20の紋章って、どんなものがあるの？</div>
+          <!-- スマホで「の？」だけが次の行に落ちないよう、「、」の後ろでだけ折り返す(2026-11-22 要望)。
+               幅 320px 級ではカードの内側が 166px しかなく後半だけでも収まらないので、文字を 15px にする -->
+          <div class="mb-2 font-display text-[17px] max-[359px]:text-[15px]" style="color: var(--gold-deep);"><span class="inline-block">20の紋章って、</span><span class="inline-block">どんなものがあるの？</span></div>
           <p class="mb-4 text-[13px]" style="color: var(--ink-soft);">赤・白・青・黄の4つの色に分かれた20の紋章と、それぞれのキャラクターをご紹介します。</p>
           <NuxtLink
             to="/archetypes"
