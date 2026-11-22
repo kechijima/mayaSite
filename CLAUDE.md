@@ -116,8 +116,9 @@ Requires a JRE on PATH (the Firestore emulator is Java-based) — `brew install 
   and the form keeps its inputs in `useState` ([composables/useCompatibilityForm.ts](composables/useCompatibilityForm.ts)), so they
   survive in-app navigation but not a reload. Both show the site header. The 相性 section is **one sentence per relation**
   (「KIN135のあなたとKIN78のAさんは神秘KIN」, `pair.statements`): both directions and the 運命数字 are merged and de-duplicated by
-  name, so a one-way guide KIN reads the same as a mutual one (agreed). The 運命数字 card was folded into these sentences; its
-  同じ番号/連番 explanations join the 関係の説明 list. The per-person card is larger and shows `KIN n`.
+  name, so a one-way guide KIN reads the same as a mutual one (agreed). The 運命数字 card was folded into these sentences.
+  The 関係の説明 section (per-relation explanation text) was removed on 2026-11-22 at the user's request. The per-person card
+  is larger and shows `KIN n`.
   Self plus up to `MAX_OTHER_PEOPLE` (6) others; six slots are rendered up front rather than behind an
   "add" button. Untouched slots are excluded by "name entered **or** birthdate moved off the default",
   because `BirthdateSelect` always fills a default and so can never be empty — the known cost is that

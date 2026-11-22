@@ -78,15 +78,13 @@ export interface PairStatement {
   danger: boolean
 }
 
-// 関係の説明に出す種類。KINの関係性6種 + 運命数字の「同じ番号」「連番」
+// 相性の文に出す関係の種類。KINの関係性6種 + 運命数字の「同じ番号」「連番」
 export type ExplainedRelation = KinRelationType | 'same' | 'sequential'
 
 export interface CompatibilityResult {
   self: PersonProfile
   others: PersonProfile[]
   pairs: PairCompatibility[]
-  // 結果のどこかに出てきた関係の種類(表示順)。説明文をまとめて出すのに使う
-  relationTypes: ExplainedRelation[]
 }
 
 // Free acquisition feature — kept small enough that the form/results stay easy to scan and a
@@ -123,10 +121,6 @@ const EXPLAINED_ORDER: ExplainedRelation[] = [...KIN_RELATION_ORDER, 'same', 'se
 
 export function explainedLabel(t: ExplainedRelation): string {
   return t === 'same' || t === 'sequential' ? DESTINY_RELATION_CONTENT[t].label : KIN_RELATION_CONTENT[t].label
-}
-
-export function explainedText(t: ExplainedRelation): string {
-  return t === 'same' || t === 'sequential' ? DESTINY_RELATION_CONTENT[t].text : KIN_RELATION_CONTENT[t].text
 }
 
 function directional(from: PersonProfile, to: PersonProfile): DirectionalRelations {
@@ -176,10 +170,8 @@ export function useCompatibility(input: Ref<{ self: PersonInput; others: PersonI
       }
     }
 
-    const present = new Set(pairs.flatMap((p) => p.statements.map((st) => st.key as ExplainedRelation)))
-    const relationTypes = EXPLAINED_ORDER.filter((t) => present.has(t))
-
-    return { self, others, pairs, relationTypes }
+    // 2026-11-22 要望で「関係の説明」の欄(関係ごとの説明文)は削除した。相性の文だけを出す
+    return { self, others, pairs }
   })
 
   return { result }
