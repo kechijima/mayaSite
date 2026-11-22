@@ -1370,3 +1370,41 @@ a.kinduo__cap:hover .kinduo__seal { text-decoration: underline; text-underline-o
   .sealcards__type { margin-top: 6px; padding: 3px 6px 3px 5px; gap: 4px; font-size: 10px; letter-spacing: 0; white-space: nowrap; }
   .sealcards__type::before { width: 4px; height: 4px; }
 }
+
+/* 相性診断の参加者カード(components/PersonProfileCard.vue)。2026-11-22 要望: mayadan.jp を参考に
+   1列・横幅いっぱい、胸像を大きく。 */
+.ppcard { border: 1px solid var(--gold-line); border-radius: 14px; background: radial-gradient(140% 120% at 50% 0%, var(--paper-panel) 0%, var(--paper-panel-2) 100%); box-shadow: var(--shadow); padding: 28px 28px 30px; text-align: center; }
+.ppcard__lead { margin: 0; font-size: 15px; color: var(--ink-soft); }
+.ppcard__lead strong { color: var(--ink); font-weight: 700; }
+.ppcard__kin { margin: 6px 0 0; font-family: "Cormorant Garamond", serif; font-size: 64px; font-weight: 700; line-height: 1; color: var(--gold-deep); }
+.ppcard__kin small { display: block; margin-bottom: 2px; font-size: 18px; letter-spacing: .2em; }
+.ppcard__meta { margin: 8px 0 0; font-size: 12px; color: var(--ink-faint); }
+.ppcard__figs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 22px; align-items: end; }
+.ppcard__label { font-size: 13px; letter-spacing: .12em; color: var(--ink-faint); margin-bottom: 8px; }
+.ppcard__img { position: relative; }
+.ppcard__img::before { content: ""; position: absolute; inset: 12% 8% 0; border-radius: 50%; background: radial-gradient(closest-side, color-mix(in srgb, var(--c) 38%, transparent), transparent); }
+.ppcard__img img { position: relative; display: block; width: 100%; height: auto; }
+.ppcard__name { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid var(--gold-line-soft); font-size: 20px; line-height: 1.3; color: var(--ink); }
+.ppcard__tone { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+.ppcard__tone .ppcard__label { margin-bottom: auto; }
+.ppcard__tone .ppcard__name { align-self: stretch; }
+.ppcard__medal { display: flex; justify-content: center; padding-bottom: 14px; }
+.ppcard__medal--sm { display: none; }
+.ppcard__rels { display: grid; grid-template-columns: 1fr 1fr; gap: 0 40px; max-width: 560px; margin: 26px auto 0; padding-top: 20px; border-top: 1px solid var(--gold-line-soft); text-align: left; }
+.ppcard__rels ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.ppcard__rels li { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--ink-soft); }
+.ppcard__rels b { color: var(--ink); font-weight: 600; }
+@media (max-width: 639px) {
+  .ppcard { padding: 22px 16px 24px; }
+  .ppcard__kin { font-size: 54px; }
+  .ppcard__figs { grid-template-columns: 1fr 1fr; gap: 12px 10px; }
+  .ppcard__name { font-size: 16px; }
+  /* 銀河の音は胸像2つの下に、メダルと名前を横並びで */
+  .ppcard__tone { grid-column: 1 / -1; flex-direction: row; justify-content: center; gap: 14px; height: auto; }
+  .ppcard__tone .ppcard__label { margin: 0; }
+  .ppcard__tone .ppcard__name { align-self: center; margin: 0; padding: 0; border: 0; }
+  .ppcard__medal { padding: 0; }
+  .ppcard__medal--lg { display: none; }
+  .ppcard__medal--sm { display: flex; }
+  .ppcard__rels { grid-template-columns: 1fr; gap: 12px; max-width: 300px; }
+}
