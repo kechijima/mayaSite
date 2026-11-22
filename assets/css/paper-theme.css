@@ -823,6 +823,17 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
   -webkit-user-select: auto;
   user-select: auto;
 }
+/* プルダウンの下矢印(2026-11-22 要望: 端末標準の矢印が右端に寄りすぎる)。標準の矢印を消し、
+   右端から少し内側に自前の矢印を置く。背景色は各 select 側の指定(background-color)を使う。 */
+.paper-page select {
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23786b57' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 11px 7px;
+  padding-right: 32px;
+}
 /* 画像のドラッグ&ドロップによる保存も抑止する(キャラクターイラスト対策)。 */
 .paper-page img { -webkit-user-drag: none; user-drag: none; }
 
