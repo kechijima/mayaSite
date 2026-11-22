@@ -1338,10 +1338,10 @@ a.kinduo__cap:hover .kinduo__seal { text-decoration: underline; text-underline-o
 /* 胸像2体(女性・男性)を横に並べ、カードの枠から上へはみ出させる(2026-11-19 要望)。
    カードの高さは文字側で決まるので、胸像の高さがそれを上回るぶんだけ上に飛び出す */
 .sealcards__figure { display: flex; align-items: flex-end; width: 400px; margin: -70px 0 0 -20px; }
-/* 男女は大きく重ねる(2026-11-19 要望)。男性を後ろに置き、女性を手前に */
+/* 男女は大きく重ねる(2026-11-19 要望)。女性は髪のボリュームで大きく見えるので、
+   男性(2枚目)を手前に重ねる(2026-11-22 要望。それまでは女性が手前) */
 .sealcards__figure img { width: 64% !important; flex: none; }
-.sealcards__figure img:first-child { position: relative; z-index: 1; }
-.sealcards__figure img + img { margin-left: -28%; }
+.sealcards__figure img + img { position: relative; z-index: 1; margin-left: -28%; }
 .sealcards .relcard__body { padding: 26px 0 24px; }
 /* タイプ名は診断結果(.dossier__type)と同じ紋章色の帯にする(2026-11-22 要望)。白・黄は文字が薄いので帯を濃くする */
 .sealcards__type { display: inline-flex; align-items: center; gap: 7px; margin-top: 10px; padding: 4px 12px 4px 10px; border-radius: 6px; background: var(--c); color: var(--paper); font-family: "Shippori Mincho", serif; font-size: 13px; font-weight: 700; letter-spacing: .1em; line-height: 1.4; text-shadow: 0 1px 0 rgba(0, 0, 0, .18) !important; }
