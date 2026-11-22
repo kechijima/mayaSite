@@ -50,7 +50,7 @@ const { data: archetypes } = useAsyncData(
 
       <nav class="sealtoc" aria-label="色で選ぶ">
         <a v-for="g in groups" :key="g.key" :href="`#${g.key}`" class="sealtoc__link" :class="`is-${g.key}`">
-          {{ g.label }}<svg aria-hidden="true"><use href="#i-arrow-right" /></svg>
+          {{ g.label }}
         </a>
       </nav>
 
