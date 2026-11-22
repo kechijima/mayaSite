@@ -44,7 +44,8 @@ const loginLink = computed(() => (redirect.value ? `/login?redirect=${encodeURIC
 
       <p v-if="canceled" class="notice mx-auto mt-6 max-w-[440px]">お支払いはキャンセルされました。プランはいつでも選び直せます。</p>
 
-      <div class="plans">
+      <!-- KIN の指定が無い(テスト結果などから来た)ときは有料会員の1枚だけなので、2カラムをやめて中央に置く(2026-11-22 要望) -->
+      <div class="plans" :class="{ 'plans--single': kin === null }">
         <!-- おすすめ。DOM順でも先頭にして、モバイルの縦積みで最初に目に入るようにする。
              2カラム(640px以上)では CSS の order で右側に置く(左は「この記事のみ」)。 -->
         <section class="plancard plancard--reco" aria-labelledby="plan-subscription">
