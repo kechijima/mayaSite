@@ -1342,7 +1342,8 @@ a.kinduo__cap:hover .kinduo__seal { text-decoration: underline; text-underline-o
    男性(2枚目)を手前に重ねる(2026-11-22 要望。それまでは女性が手前) */
 .sealcards__figure img { width: 64% !important; flex: none; }
 .sealcards__figure img + img { position: relative; z-index: 1; margin-left: -28%; }
-.sealcards .relcard__body { padding: 26px 0 24px; }
+/* カードの背景を縦に広げる(2026-11-22 要望。上下 26/24px から広げた) */
+.sealcards .relcard__body { padding: 40px 0 38px; }
 /* タイプ名は診断結果(.dossier__type)と同じ紋章色の帯にする(2026-11-22 要望)。白・黄は文字が薄いので帯を濃くする */
 .sealcards__type { display: inline-flex; align-items: center; gap: 7px; margin-top: 10px; padding: 4px 12px 4px 10px; border-radius: 6px; background: var(--c); color: var(--paper); font-family: "Shippori Mincho", serif; font-size: 13px; font-weight: 700; letter-spacing: .1em; line-height: 1.4; text-shadow: 0 1px 0 rgba(0, 0, 0, .18) !important; }
 .sealgroup.is-white .sealcards__type { background: color-mix(in srgb, var(--seal-white) 85%, black); }
@@ -1371,7 +1372,7 @@ a.kinduo__cap:hover .kinduo__seal { text-decoration: underline; text-underline-o
   .sealcards__figure img { width: min(62%, 150px) !important; }
   .sealcards__figure img + img { margin-left: -28%; }
   /* 名前の欄は幅 92px のまま、内側の左に余白を取る(2026-11-19 要望) */
-  .sealcards .relcard__body { display: block; flex: 0 0 100px; width: 100px; padding: 14px 0 12px 8px; }
+  .sealcards .relcard__body { display: block; flex: 0 0 100px; width: 100px; padding: 24px 0 22px 8px; }
   .sealcards .relcard__name { font-size: 14px; line-height: 1.35; word-break: keep-all; overflow-wrap: anywhere; }
   .sealcards__type { margin-top: 6px; padding: 3px 6px 3px 5px; gap: 4px; font-size: 10px; letter-spacing: 0; white-space: nowrap; }
   .sealcards__type::before { width: 4px; height: 4px; }
