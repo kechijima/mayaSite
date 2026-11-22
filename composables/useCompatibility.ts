@@ -4,8 +4,7 @@ import {
   kinRelationMatches,
   KIN_RELATION_CONTENT,
   KIN_RELATION_ORDER,
-  type KinRelationMatch,
-  type KinRelationType
+  type KinRelationMatch
 } from '~/utils/compatibility'
 import { destinyRelation, DESTINY_RELATION_CONTENT, type DestinyRelation } from '~/utils/destinyCompatibility'
 import { SEALS, type Seal } from '~/utils/mayaData'
@@ -65,26 +64,34 @@ export interface PairCompatibility {
   // 運命数字(同じ番号/連番/鏡の向こうの自分/絶対反対KIN)によるKIN番号同士の相性。該当なしならnull
   destinyRelation: DestinyRelation | null
   destinyRelationLabel: string | null
-  // 「kin135のあなたとkin78のAさんは神秘KIN」の文1つぶん。両方向の関係と運命数字をまとめ、
-  // 同じ名前の関係は1つにする(2026-11-19 要望: 向きを分けず1文に。片方向だけ当てはまる
-  // ガイドKINも同じ形で出す)。運命数字の鏡/絶対反対は KIN の関係性と同じ名前なので重ならない。
-  statements: PairStatement[]
 }
 
-export interface PairStatement {
+// 相性の文1行ぶん。mayadan.jp の結果と同じ「Kin7の自分さん（赤い竜）から見てkin138の相手Aさん（青い猿）は反対kin」
+// の形(2026-11-22 要望。それまでは2人の組ごとに関係名だけを1文にまとめていた)。
+export interface RelationLine {
   key: string
+  from: PersonProfile
+  to: PersonProfile
+  fromSealName: string
+  toSealName: string
   label: string
   // 絶対反対KINだけ赤で出す
   danger: boolean
 }
 
-// 相性の文に出す関係の種類。KINの関係性6種 + 運命数字の「同じ番号」「連番」
-export type ExplainedRelation = KinRelationType | 'same' | 'sequential'
 
 export interface CompatibilityResult {
   self: PersonProfile
   others: PersonProfile[]
   pairs: PairCompatibility[]
+  // 見る側の人ごとの行(参加者の並び順)。行の並びは mayadan と同じく、関係の種類(ガイド→神秘→反対→類似→鏡→絶対反対)
+  // ごとに相手を参加者順に並べる。まったく同じ文になる行(音1のKINで太陽の紋章とウェイブスペルが同じ紋章のとき)は
+  // mayadan では2回出るが、重複して見えるので1つにする。
+  lineGroups: { from: PersonProfile; lines: RelationLine[] }[]
+  // 運命数字の「同じ番号」「連番」(mayadan には無い関係。向きが無いので2人で1文)
+  destinyLines: { key: string; a: PersonProfile; b: PersonProfile; label: string }[]
+  // 関係も運命数字も当てはまらない組
+  unrelatedPairs: { key: string; a: PersonProfile; b: PersonProfile }[]
 }
 
 // Free acquisition feature — kept small enough that the form/results stay easy to scan and a
@@ -117,12 +124,6 @@ function buildProfile(person: PersonInput): PersonProfile {
   }
 }
 
-const EXPLAINED_ORDER: ExplainedRelation[] = [...KIN_RELATION_ORDER, 'same', 'sequential']
-
-export function explainedLabel(t: ExplainedRelation): string {
-  return t === 'same' || t === 'sequential' ? DESTINY_RELATION_CONTENT[t].label : KIN_RELATION_CONTENT[t].label
-}
-
 function directional(from: PersonProfile, to: PersonProfile): DirectionalRelations {
   return {
     from,
@@ -148,30 +149,51 @@ export function useCompatibility(input: Ref<{ self: PersonInput; others: PersonI
         const a = people[i]
         const b = people[j]
         const destiny = destinyRelation(a.kin, b.kin)
-        const forward = directional(a, b)
-        const backward = directional(b, a)
-        const found = new Set<ExplainedRelation>([...forward.rows, ...backward.rows].map((r) => r.type))
-        if (destiny) found.add(destiny)
-        const statements = EXPLAINED_ORDER.filter((t) => found.has(t)).map((t) => ({
-          key: t,
-          label: explainedLabel(t),
-          danger: t === 'absoluteOpposite'
-        }))
         pairs.push({
           key: `${a.id}-${b.id}`,
           a,
           b,
-          forward,
-          backward,
+          forward: directional(a, b),
+          backward: directional(b, a),
           destinyRelation: destiny,
-          destinyRelationLabel: destiny ? DESTINY_RELATION_CONTENT[destiny].label : null,
-          statements
+          destinyRelationLabel: destiny ? DESTINY_RELATION_CONTENT[destiny].label : null
         })
       }
     }
 
+    // 向きごとの行を「見る側の人 → 関係の種類 → 相手(参加者順)」の順に並べる(mayadan と同じ)
+    const rowsOf = (from: PersonProfile, to: PersonProfile) => {
+      const pair = pairs.find((p) => (p.a === from && p.b === to) || (p.a === to && p.b === from))!
+      return pair.a === from ? pair.forward.rows : pair.backward.rows
+    }
+    const lineGroups = people.map((from) => {
+      const seen = new Set<string>()
+      const lines: RelationLine[] = []
+      for (const type of KIN_RELATION_ORDER) {
+        for (const to of people) {
+          if (to === from) continue
+          for (const r of rowsOf(from, to)) {
+            if (r.type !== type) continue
+            const key = `${from.id}-${to.id}-${type}-${r.fromSealIndex}-${r.toSealIndex}`
+            if (seen.has(key)) continue
+            seen.add(key)
+            lines.push({ key, from, to, fromSealName: r.fromSealName, toSealName: r.toSealName, label: r.label, danger: type === 'absoluteOpposite' })
+          }
+        }
+      }
+      return { from, lines }
+    }).filter((g) => g.lines.length)
+
+    // 運命数字の鏡/絶対反対は KIN の関係性(上の行)と同じなので、ここでは同じ番号・連番だけを出す
+    const destinyLines = pairs
+      .filter((p) => p.destinyRelation === 'same' || p.destinyRelation === 'sequential')
+      .map((p) => ({ key: p.key, a: p.a, b: p.b, label: p.destinyRelationLabel! }))
+    const unrelatedPairs = pairs
+      .filter((p) => !p.forward.rows.length && !p.backward.rows.length && !p.destinyRelation)
+      .map((p) => ({ key: p.key, a: p.a, b: p.b }))
+
     // 2026-11-22 要望で「関係の説明」の欄(関係ごとの説明文)は削除した。相性の文だけを出す
-    return { self, others, pairs }
+    return { self, others, pairs, lineGroups, destinyLines, unrelatedPairs }
   })
 
   return { result }

@@ -38,16 +38,21 @@ function back() {
         <p class="masthead__sub">紋章の組み合わせから、あなたと大切な人との相性を読み解きます。</p>
       </div>
 
-      <!-- 相性: 参加者全員の全組み合わせを、1つの関係につき1文で並べる(2026-11-19 要望: カードをやめて文章のみ)。
-           2026-11-22 要望: 見出し・枠をやめ、参加者の上に普通の文章として並べる。
-           両方向の関係と運命数字はまとめて1文にする(composables/useCompatibility.ts の statements)。
-           関係の判定は mayadan.jp の相性診断に合わせている(utils/compatibility.ts)。 -->
+      <!-- 相性: 参加者全員の全組み合わせを、見出し・枠なしの文章で参加者の上に並べる(2026-11-22 要望)。
+           文言と並び順は mayadan.jp の結果に合わせる(2026-11-22 要望):
+           「KIN7のあなた（赤い竜）から見てKIN138のAさん（青い猿）は反対KINです。」
+           行は composables/useCompatibility.ts の lineGroups(見る側の人ごと)。関係の判定は utils/compatibility.ts。 -->
       <div class="compattext">
-        <p v-for="pair in result.pairs" :key="pair.key" class="compattext__pair">
-          <template v-for="st in pair.statements" :key="st.key">
-            <span>KIN{{ pair.a.kin }}の{{ who(pair.a) }}とKIN{{ pair.b.kin }}の{{ who(pair.b) }}は<strong :class="{ 'is-danger': st.danger }">{{ st.label }}</strong>です。</span>
-          </template>
-          <span v-if="!pair.statements.length" class="is-none">KIN{{ pair.a.kin }}の{{ who(pair.a) }}とKIN{{ pair.b.kin }}の{{ who(pair.b) }}には、当てはまる関係はありませんでした。</span>
+        <p v-for="g in result.lineGroups" :key="g.from.id" class="compattext__pair">
+          <!-- 「KIN○の」「○○さん」「（紋章名）」それぞれの中では折り返さない(スマホで紋章名や名前の途中で切れないように。
+               まとめて折り返し禁止にすると、長い名前と長い紋章名の組み合わせで画面からはみ出すので3つに分ける) -->
+          <span v-for="l in g.lines" :key="l.key" class="compattext__line"><span class="nw">KIN{{ l.from.kin }}の</span><span class="nw">{{ who(l.from) }}</span><span class="nw">（{{ l.fromSealName }}）</span>から見て<span class="nw">KIN{{ l.to.kin }}の</span><span class="nw">{{ who(l.to) }}</span><span class="nw">（{{ l.toSealName }}）</span>は<strong :class="{ 'is-danger': l.danger }">{{ l.label }}</strong>です。</span>
+        </p>
+        <p v-if="result.destinyLines.length" class="compattext__pair">
+          <span v-for="d in result.destinyLines" :key="d.key" class="compattext__line">KIN{{ d.a.kin }}の{{ who(d.a) }}とKIN{{ d.b.kin }}の{{ who(d.b) }}は<strong>{{ d.label }}</strong>です。</span>
+        </p>
+        <p v-if="result.unrelatedPairs.length" class="compattext__pair">
+          <span v-for="u in result.unrelatedPairs" :key="u.key" class="compattext__line is-none">KIN{{ u.a.kin }}の{{ who(u.a) }}とKIN{{ u.b.kin }}の{{ who(u.b) }}には、当てはまる関係はありませんでした。</span>
         </p>
       </div>
 
