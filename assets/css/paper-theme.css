@@ -1303,7 +1303,7 @@ a.kinduo__cap:hover .kinduo__seal { text-decoration: underline; text-underline-o
 @media (prefers-reduced-motion: reduce) { .testfloat { transition: none; } }
 .testfloat-spacer { height: calc(68px + env(safe-area-inset-bottom)); }
 
-/* 20の紋章の一覧(pages/seals.vue、2026-11-19)。配置と順番は mayadan.jp/character に合わせる */
+/* アーキタイプ一覧(20の紋章の一覧。pages/archetypes.vue、2026-11-19)。配置と順番は mayadan.jp/character に合わせる */
 .sealtoc { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 10px; margin: 16px auto 8px; max-width: 720px; }
 .sealtoc__link { display: inline-flex; align-items: center; gap: 6px; padding: 7px 18px; border: 1px solid var(--gold-line); border-radius: 999px; background: var(--paper-panel); font-size: 14px; font-weight: 700; letter-spacing: .06em; text-decoration: none; }
 /* スマホは2つずつ2段に並べる(2026-11-22 要望) */
