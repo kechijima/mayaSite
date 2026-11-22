@@ -3,7 +3,6 @@ import { doc, getDoc, type Firestore } from 'firebase/firestore'
 import dividerSrc from '~/assets/images/optimized/divider.webp'
 import { fetchPremiumDoc, type DiagnosisContentDoc } from '~/composables/useDiagnosisContent'
 import { SEALS, sealColor } from '~/utils/mayaData'
-import { parseKin, relationSealIndices } from '~/utils/mayaCalc'
 import { iconFor, freeProfileSections, premiumProfileSections } from '~/utils/profileSections'
 import { RELATION_DESCRIPTION } from '~/utils/kinRelations'
 import { DEFAULT_GENDER, isGender } from '~/utils/gender'
@@ -26,21 +25,13 @@ const sealIndex = computed(() => {
 })
 // この紋章の character ドキュメントを読めるか。有料会員・チーム会員は常に、単体購入なら
 // 購入した KIN の関係性 4 紋章(と太陽の紋章/ウェイブスペル)に含まれる場合だけ
-// (utils/checkout.ts の unlockDocIdsForKin)。?from= の検証はもう解放判定には不要で、
-// /plans に案内する単体購入の KIN を決めるためだけに残っている。
+// (utils/checkout.ts の unlockDocIdsForKin)。?from= は解放判定にも案内先にも使わない(戻るリンク用だけ)。
 const deepUnlocked = computed(() => (unlockKey.value, sealIndex.value !== null && canRead(`character-${sealIndex.value}`)))
 const seal = computed(() => (sealIndex.value !== null ? SEALS[sealIndex.value] : null))
-// 遷移元の診断結果ページのKIN(result.vue の関係性カードが ?from= に付ける)。
-// この紋章が本当に from の関係性4つ(ガイド/神秘/反対/類似)のどれかである場合だけ採用する —
-// URLは書き換えられるので、検証しないと1つのKINの購入で任意の紋章を開けてしまう。
-// 決済導入後は「from のKINを単体購入済みなら、この関係性ページも解放」の判定に使う。現在は
-// 購入プラン選択(/plans)にどのKINの記事を案内するかにだけ使っている。紋章そのものは
-// 購入単位ではないので、from が無ければ単体購入は案内しない(有料会員・チーム会員のみ)。
-const sourceKin = computed(() => {
-  const from = parseKin(route.query.from)
-  return from !== null && sealIndex.value !== null && relationSealIndices(from).includes(sealIndex.value) ? from : null
-})
-const plansLink = usePlansLink(sourceKin)
+// 鍵の案内先は有料会員だけのプラン画面(KIN を付けない)。紋章そのものは単体購入の単位ではないので、
+// どこから来ても￥550の単体購入は案内しない(2026-11-22 要望)。KIN の単体購入で解放済みの
+// 紋章は deepUnlocked が true になり、鍵自体が出ない。
+const plansLink = usePlansLink(null)
 // v-ifで seal が存在する分岐でのみ使う、null不可版のインデックス。
 const safeSealIndex = computed(() => sealIndex.value ?? 0)
 
@@ -146,7 +137,7 @@ const premiumChars = computed(() => free.value?.premiumCharCount ?? 0)
           <ProfileBlocks :sections="otherFreeSections" />
 
           <ProfileBlocks v-if="deepUnlocked" :sections="premiumSections" />
-          <LockedVeil v-else-if="entitlementSettled && premiumChars" :to="plansLink" :total-chars="premiumChars" />
+          <LockedVeil v-else-if="entitlementSettled && premiumChars" :to="plansLink" :total-chars="premiumChars" :members-only="seal.name" />
         </section>
 
         <div class="mt-8 flex justify-center">
