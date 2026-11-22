@@ -12,12 +12,12 @@ const emit = defineEmits<{ 'update:modelValue': [string] }>()
 // used only by pages/compatibility.vue.
 const selectClass = computed(() =>
   props.theme === 'paper'
-    ? 'w-full rounded border px-2 py-2.5 text-sm outline-none transition-colors'
+    ? 'w-full rounded border pl-3 py-2.5 text-sm outline-none transition-colors'
     : 'w-full rounded border border-gold-500/30 bg-transparent px-2 py-2.5 text-sm text-parchment-100 outline-none focus:border-gold-500 [color-scheme:dark]'
 )
 const selectStyle = computed(() =>
   props.theme === 'paper'
-    ? { borderColor: 'var(--gold-line)', background: 'var(--paper-panel)', color: 'var(--ink)' }
+    ? { borderColor: 'var(--gold-line)', backgroundColor: 'var(--paper-panel)', color: 'var(--ink)' }
     : {}
 )
 const optionClass = computed(() => (props.theme === 'paper' ? '' : 'bg-ink-950'))
@@ -87,15 +87,16 @@ watch(
 
 <template>
   <div class="flex gap-2">
-    <select v-model="year" required :class="selectClass" :style="selectStyle">
+    <!-- 年は「1985（昭和60）」と長いので月・日より少し広く取る(2026-11-22: 矢印を内側に寄せた分の幅を補う) -->
+    <select v-model="year" required :class="selectClass" :style="[selectStyle, { flex: '1.3 1 0', minWidth: 0 }]">
       <option value="" disabled :class="optionClass">年</option>
       <option v-for="y in years" :key="y" :value="y" :class="optionClass">{{ y }}（{{ wareki(Number(y)) }}）</option>
     </select>
-    <select v-model="month" required :class="selectClass" :style="selectStyle">
+    <select v-model="month" required :class="selectClass" :style="[selectStyle, { flex: '1 1 0', minWidth: 0 }]">
       <option value="" disabled :class="optionClass">月</option>
       <option v-for="m in months" :key="m" :value="m" :class="optionClass">{{ m }}月</option>
     </select>
-    <select v-model="day" required :class="selectClass" :style="selectStyle">
+    <select v-model="day" required :class="selectClass" :style="[selectStyle, { flex: '1 1 0', minWidth: 0 }]">
       <option value="" disabled :class="optionClass">日</option>
       <option v-for="d in days" :key="d" :value="d" :class="optionClass">{{ d }}日</option>
     </select>
