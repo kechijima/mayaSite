@@ -10,7 +10,12 @@
 //
 // to は購入プラン選択ページ(composables/usePlansLink.ts)。呼び出し側がKIN番号と
 // 戻り先を付けて渡す。
-withDefaults(defineProps<{ to?: string; totalChars?: number }>(), {
+//
+// membersOnly(紋章名)を渡すと、単体購入(￥550)の案内を出さず有料会員だけを案内する。
+// 紋章の詳細ページ(pages/kin/[sealIndex].vue)用 — 紋章そのものは単体購入の単位ではないため
+// (2026-11-22 要望: ピッタリ到達度テストの鍵と同じ「有料会員になると〜」の表示に揃える)。
+// 単体購入で解放済みの人にはそもそも LockedVeil が出ないので、その人の閲覧には影響しない。
+withDefaults(defineProps<{ to?: string; totalChars?: number; membersOnly?: string }>(), {
   to: '/plans'
 })
 </script>
@@ -29,12 +34,20 @@ withDefaults(defineProps<{ to?: string; totalChars?: number }>(), {
     <div class="gated__mosaic">
       <div class="gated__pitch">
         <p class="gated__kicker">ここから先は有料エリアです</p>
-        <p class="gated__lead">この続きを見るには</p>
-        <p class="gated__price">この記事は<strong>￥550</strong>で読めます</p>
-        <p class="gated__subprice">有料会員なら、すべての診断結果が読み放題</p>
-        <NuxtLink :to="to" class="gated__cta">
-          <svg><use href="#i-lock" /></svg>続きを購入する
-        </NuxtLink>
+        <template v-if="membersOnly">
+          <p class="gated__lead">有料会員になると、{{ membersOnly }}の続きをすべてご覧いただけます。</p>
+          <NuxtLink :to="to" class="gated__cta">
+            <svg><use href="#i-lock" /></svg>続きを見る
+          </NuxtLink>
+        </template>
+        <template v-else>
+          <p class="gated__lead">この続きを見るには</p>
+          <p class="gated__price">この記事は<strong>￥550</strong>で読めます</p>
+          <p class="gated__subprice">有料会員なら、すべての診断結果が読み放題</p>
+          <NuxtLink :to="to" class="gated__cta">
+            <svg><use href="#i-lock" /></svg>続きを購入する
+          </NuxtLink>
+        </template>
         <p v-if="totalChars" class="gated__remaining">
           <svg><use href="#i-scroll" /></svg>有料エリア 合計{{ totalChars.toLocaleString() }}文字
         </p>
