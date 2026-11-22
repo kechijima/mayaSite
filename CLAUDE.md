@@ -114,9 +114,11 @@ Requires a JRE on PATH (the Firestore emulator is Java-based) — `brew install 
   **Form and result are separate routes since 2026-11-19** so the browser's back button returns to the form: the result reads
   everyone from repeated `p=YYYY-MM-DD_gender_name` query params ([utils/compatibilityQuery.ts](utils/compatibilityQuery.ts)),
   and the form keeps its inputs in `useState` ([composables/useCompatibilityForm.ts](composables/useCompatibilityForm.ts)), so they
-  survive in-app navigation but not a reload. Both show the site header. The 相性 section is **one sentence per relation**
-  (「KIN135のあなたとKIN78のAさんは神秘KIN」, `pair.statements`): both directions and the 運命数字 are merged and de-duplicated by
-  name, so a one-way guide KIN reads the same as a mutual one (agreed). The 運命数字 card was folded into these sentences.
+  survive in-app navigation but not a reload. Both show the site header. The 相性 lines sit **above** the participant cards
+  as plain text (no heading/box) and copy mayadan.jp's wording and order (2026-11-22): 「KIN7のあなた（赤い竜）から見てKIN138の
+  Aさん（青い猿）は反対KINです。」, one line per direction and seal pair (`lineGroups` in useCompatibility.ts), grouped by the
+  viewing person, then relation type, then target. Exact duplicate lines (tone-1 KINs) are collapsed even though mayadan repeats
+  them. 運命数字 同じ番号/連番 (not in mayadan) follow as undirected lines (`destinyLines`).
   The 関係の説明 section (per-relation explanation text) was removed on 2026-11-22 at the user's request. The per-person card
   is larger and shows `KIN n`.
   Self plus up to `MAX_OTHER_PEOPLE` (6) others; six slots are rendered up front rather than behind an

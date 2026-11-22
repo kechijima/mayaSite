@@ -1258,10 +1258,13 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 
 /* ── 相性診断の結果: 関係を1文ずつ並べる(pages/compatibility/result.vue, 2026-11-19) ── */
 /* 相性の文。見出し・枠なしで、参加者の上に普通の文章として並べる(2026-11-22 要望) */
-.compattext { max-width: 820px; margin: 28px auto 0; text-align: center; color: var(--ink); font-size: 14.5px; line-height: 2; }
+.compattext { max-width: 820px; margin: 28px auto 0; text-align: center; color: var(--ink); font-size: 14px; line-height: 1.75; }
+/* mayadan と同じ文言にして1文が長くなり、スマホでは2行に折り返すので、文の中は行間を詰めて文と文の間を空ける */
 .compattext__pair { margin: 0; }
-.compattext__pair + .compattext__pair { margin-top: 10px; }
-.compattext__pair span { display: block; }
+.compattext__pair + .compattext__pair { margin-top: 20px; }
+.compattext__line { display: block; }
+.compattext__line + .compattext__line { margin-top: 8px; }
+.compattext .nw { white-space: nowrap; }
 .compattext__pair strong { color: var(--gold-deep); font-weight: 700; }
 .compattext__pair strong.is-danger { color: var(--seal-red); }
 .compattext__pair .is-none { color: var(--ink-faint); }
