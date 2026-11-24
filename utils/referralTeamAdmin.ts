@@ -148,11 +148,10 @@ export async function setListed(firestore: Firestore, team: ReferralTeam, listed
   await batch.commit()
 }
 
-// 招待用URL(2026-11-24 要望)。開くと紹介コード付き会員登録ページに、チームとコードが入った状態で
-// 出る(components/ReferralCodeFields.vue が ?code= を読む)。登録済みの人がログインしてマイページへ
-// 進んだ場合も、同じコードが入る。管理画面を開いているドメインで作る(本番の管理画面なら本番のURL)。
-export function inviteUrl(code: string): string {
-  return `${window.location.origin}/signup/referral?code=${encodeURIComponent(code)}`
+// 紹介コード付き会員登録ページのURL(/admin/teams に表示してコピーできるようにする。2026-11-24 要望)。
+// 管理画面を開いているドメインで作る(本番の管理画面なら本番のURL)。
+export function referralSignupUrl(): string {
+  return `${window.location.origin}/signup/referral`
 }
 
 // コードが無効なチームには、管理者からも加入させない(2026-11-24 要望)。

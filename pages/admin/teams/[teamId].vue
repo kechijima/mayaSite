@@ -6,7 +6,6 @@ import {
   fetchCodeStatus,
   fetchMembers,
   findUserByEmail,
-  inviteUrl,
   removeMember,
   renameTeam,
   reissueCode,
@@ -255,7 +254,6 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
       <!-- コード -->
       <div class="mb-4 rounded-xl border border-slate-200 bg-white p-5.5 dark:border-slate-800 dark:bg-slate-900">
         <p class="mb-3 text-sm font-bold">紹介コード</p>
-        <!-- コードと招待URLのコピーが横に並ぶと見分けにくいので、行を分けてそれぞれにラベルを付ける(2026-11-24 要望) -->
         <div class="flex flex-wrap items-center gap-3">
           <code class="rounded bg-slate-50 px-3 py-1.5 font-mono text-lg font-bold tracking-[.08em] dark:bg-slate-800">{{ team.code }}</code>
           <CopyIconButton :value="team.code" label="紹介コードをコピー" text="コードをコピー" />
@@ -275,18 +273,6 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
         <p class="mt-2.5 text-[11.5px] text-slate-500 dark:text-slate-400">
           無効にすると、以降このコードで新規登録できなくなり、管理者からもこのチームへ追加できなくなります。<strong>既にメンバーの{{ members.length }}名の所属はそのまま維持されます。</strong>
         </p>
-
-        <!-- 招待用URL(2026-11-24 要望)。コードが無効なときは出さない(開いても登録できないため) -->
-        <div v-if="status === 'active'" class="mt-4 border-t border-slate-100 pt-4 dark:border-slate-800">
-          <p class="mb-2 text-[13px] font-semibold">招待URL</p>
-          <div class="flex flex-wrap items-center gap-3">
-            <code class="min-w-0 max-w-full flex-1 break-all rounded bg-slate-50 px-3 py-1.5 font-mono text-[12.5px] text-slate-600 sm:flex-none dark:bg-slate-800 dark:text-slate-300">{{ inviteUrl(team.code) }}</code>
-            <CopyIconButton :value="inviteUrl(team.code)" label="招待URLをコピー" text="URLをコピー" />
-          </div>
-          <p class="mt-2 text-[11.5px] text-slate-500 dark:text-slate-400">
-            このURLを送ると、チームと紹介コードが入った状態の会員登録画面を開いてもらえます。
-          </p>
-        </div>
 
         <div class="mt-4 border-t border-slate-100 pt-4 dark:border-slate-800">
           <button

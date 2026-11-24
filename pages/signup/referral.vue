@@ -17,13 +17,8 @@ const { withLoading } = useGlobalLoading()
 const plainSignupLink = computed(() => buildSignupLink(form.redirect.value, route.query))
 // 登録済みの人はログイン後に /account でコードを入れてもらう。/account はコード登録後に
 // redirect(元のページ)へ戻すので、それも引き継ぐ。
-// 招待用URL(?code=)から来た人は、マイページでも同じコードが入るように引き継ぐ(2026-11-24)。
 const loginToAccountLink = computed(() => {
-  const params = new URLSearchParams()
-  if (typeof route.query.code === 'string' && route.query.code) params.set('code', route.query.code)
-  if (form.redirect.value) params.set('redirect', form.redirect.value)
-  const qs = params.toString()
-  const account = qs ? `/account?${qs}` : '/account'
+  const account = form.redirect.value ? `/account?redirect=${encodeURIComponent(form.redirect.value)}` : '/account'
   return `/login?redirect=${encodeURIComponent(account)}`
 })
 
