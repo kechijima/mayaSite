@@ -1172,8 +1172,11 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 /* /test の履歴の行は、その回の結果ページへのリンク */
 .testhistory a { display: flex; gap: 12px; width: 100%; color: inherit; text-decoration: none; }
 .testhistory a:hover { color: var(--gold-deep); }
+/* 「（税込）」が途中で折り返さないよう、価格と（税込）は1行に保つ(2026-11-24 要望) */
+.testcta__price { white-space: nowrap; }
 .testcta__price small { margin-left: 2px; font-family: inherit; font-size: 11px; color: var(--ink-faint); }
-.testcta__pricelabel { margin-right: 6px; font-family: "Shippori Mincho B1", serif; font-size: 12px; font-weight: 700; color: var(--ink-faint); letter-spacing: .06em; }
+/* 「会員価格」「非会員価格」のラベルは価格の上の行に出す(横に並べると PC のカード幅では（税込）が折り返していた) */
+.testcta__pricelabel { display: block; margin-bottom: 2px; font-family: "Shippori Mincho B1", serif; font-size: 12px; font-weight: 700; color: var(--ink-faint); letter-spacing: .06em; white-space: normal; }
 
 /* 結果のぼかし(チーム会員・有料会員以外。2026-11-19)。値そのものは見せかけ(components/TestResultSheet.vue) */
 .testresult__score.is-locked .testresult__total p,
