@@ -11,7 +11,7 @@ import {
   type UserRow,
   type UserStatus
 } from '~/utils/userAdmin'
-import { addMember, fetchTeams, removeMember, type ReferralTeam } from '~/utils/referralTeamAdmin'
+import { TeamDisabledError, addMember, fetchActiveTeams, removeMember, type ReferralTeam } from '~/utils/referralTeamAdmin'
 import {
   CATEGORY_MAX_SCORE,
   TEST_ANSWER_LABEL,
@@ -47,8 +47,10 @@ const statusSaved = ref(false)
 
 const { withLoading } = useGlobalLoading()
 
-// 「チーム会員」を選んだときの加入先
+// 「チーム会員」を選んだときの加入先。紹介コードが無効なチームは選択肢に出さない(2026-11-24 要望)。
 const teams = ref<ReferralTeam[]>([])
+// 今の所属先のコードが無効になっている場合、選択肢には無いが今の値として表示だけはする(選び直せない)。
+const currentTeamDisabled = computed(() => !!user.value?.teamId && !teams.value.some((t) => t.id === user.value!.teamId))
 const draftTeamId = ref('')
 
 // ピッタリ到達度テストの受験履歴(新しい順)。チーム会員しか受けられないが、チームを外れた後も
@@ -101,7 +103,7 @@ onMounted(async () => {
     draftStatus.value = row.status
     draftTeamId.value = row.teamId ?? ''
     testResults.value = results
-    teams.value = await fetchTeams(firestore()).catch(() => [])
+    teams.value = await fetchActiveTeams(firestore()).catch(() => [])
   } catch {
     loadError.value = '会員情報の読み込みに失敗しました。時間をおいて再度お試しください。'
   } finally {
@@ -141,7 +143,8 @@ async function applyStatus() {
     await withLoading(async () => {
       const db = firestore()
       if (draftStatus.value === 'team') {
-        const team = teams.value.find((t) => t.id === draftTeamId.value)!
+        const team = teams.value.find((t) => t.id === draftTeamId.value)
+        if (!team) throw new TeamDisabledError('紹介コードが無効なチームです')
         await addMember(db, uid, team.id, team.name)
         await setUserStatus(db, uid, 'free')
         teamId = team.id
@@ -167,9 +170,12 @@ async function applyStatus() {
     draftStatus.value = next
     statusSaved.value = true
   } catch (err) {
-    statusError.value = (err as { code?: string })?.code === 'permission-denied'
+    const code = (err as { code?: string })?.code
+    statusError.value = code === 'permission-denied'
       ? '権限がありません。再度ログインしてください。'
-      : '変更に失敗しました。時間をおいて再度お試しください。'
+      : code === 'team-disabled'
+        ? 'このチームは紹介コードが無効のため、加入させられません。'
+        : '変更に失敗しました。時間をおいて再度お試しください。'
   } finally {
     savingStatus.value = false
   }
@@ -234,8 +240,10 @@ async function applyStatus() {
           <label class="mb-1 flex text-xs text-slate-500 dark:text-slate-400" for="team-select">加入させるチーム</label>
           <select id="team-select" v-model="draftTeamId" class="w-full max-w-[360px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
             <option value="" disabled>チームを選んでください</option>
+            <option v-if="currentTeamDisabled" :value="user.teamId" disabled>{{ user.teamName }}（紹介コード無効）</option>
             <option v-for="t in teams" :key="t.id" :value="t.id">{{ t.name }}</option>
           </select>
+          <p class="mt-1 text-[11.5px] text-slate-400">紹介コードが無効なチームは選べません。</p>
         </div>
         <p v-if="!statusOptions.includes('paid')" class="mb-3 text-[11.5px] text-slate-400">
           有料会員は決済機能の導入後に選択できるようになります。
