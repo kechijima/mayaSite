@@ -207,7 +207,7 @@ function signupChip(row: TeamRow) {
                 <td class="py-2.5 pr-3 tabular-nums text-slate-500 dark:text-slate-400">{{ formatDate(row) }}</td>
                 <!-- 行クリックで詳細へ遷移するので、コピーボタンのクリックは行に伝えない。コードが無効なチームは出さない -->
                 <td class="py-2.5" @click.stop>
-                  <CopyIconButton v-if="row.status === 'active'" :value="inviteUrl(row.code)" label="招待URLをコピー" text="コピー" />
+                  <CopyIconButton v-if="row.status === 'active'" :value="inviteUrl(row.code)" label="招待URLをコピー" text="URLをコピー" />
                   <span v-else class="text-slate-400">—</span>
                 </td>
               </tr>
