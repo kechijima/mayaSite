@@ -148,6 +148,33 @@ export async function setListed(firestore: Firestore, team: ReferralTeam, listed
   await batch.commit()
 }
 
+// 招待用URL(2026-11-24 要望)。開くと紹介コード付き会員登録ページに、チームとコードが入った状態で
+// 出る(components/ReferralCodeFields.vue が ?code= を読む)。登録済みの人がログインしてマイページへ
+// 進んだ場合も、同じコードが入る。管理画面を開いているドメインで作る(本番の管理画面なら本番のURL)。
+export function inviteUrl(code: string): string {
+  return `${window.location.origin}/signup/referral?code=${encodeURIComponent(code)}`
+}
+
+// コードが無効なチームには、管理者からも加入させない(2026-11-24 要望)。
+// 画面側でも選択肢から外しているが、開いたままの画面で無効にされた場合に備えて、書き込む直前にも確かめる。
+export class TeamDisabledError extends Error {
+  code = 'team-disabled'
+}
+
+async function assertTeamActive(firestore: Firestore, teamId: string) {
+  const team = await getDoc(doc(firestore, 'referralTeams', teamId))
+  const code = team.exists() ? (team.data() as { code?: string }).code : undefined
+  const status = code ? (await fetchCodeStatus(firestore, code))?.status : undefined
+  if (status !== 'active') throw new TeamDisabledError('紹介コードが無効なチームです')
+}
+
+// 加入先の選択肢(/admin/users/[uid])。コードが有効なチームだけを返す。
+export async function fetchActiveTeams(firestore: Firestore): Promise<ReferralTeam[]> {
+  const teams = await fetchTeams(firestore)
+  const statuses = await Promise.all(teams.map((t) => fetchCodeStatus(firestore, t.code)))
+  return teams.filter((_, i) => statuses[i]?.status === 'active')
+}
+
 export async function countMembers(firestore: Firestore, teamId: string): Promise<number> {
   const snap = await getCountFromServer(
     query(collection(firestore, 'users'), where('teamId', '==', teamId))
@@ -190,7 +217,9 @@ export async function findUserByEmail(firestore: Firestore, email: string) {
 //
 // チームに所属している間はチーム会員として扱われる(utils/userAdmin.ts の userStatus)。
 // 管理者が追加したメンバーも同じ扱い。
+// コードが無効なチームへは追加しない(TeamDisabledError を投げる)。
 export async function addMember(firestore: Firestore, uid: string, teamId: string, teamName: string) {
+  await assertTeamActive(firestore, teamId)
   const batch = writeBatch(firestore)
   batch.update(doc(firestore, 'users', uid), {
     teamId,

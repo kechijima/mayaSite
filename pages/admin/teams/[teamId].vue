@@ -6,6 +6,7 @@ import {
   fetchCodeStatus,
   fetchMembers,
   findUserByEmail,
+  inviteUrl,
   removeMember,
   renameTeam,
   reissueCode,
@@ -190,7 +191,7 @@ async function searchUser() {
 }
 
 async function confirmAdd() {
-  if (!addCandidate.value || !team.value || addBusy.value) return
+  if (!addCandidate.value || !team.value || addBusy.value || status.value !== 'active') return
   addBusy.value = true
   actionError.value = ''
   try {
@@ -199,8 +200,10 @@ async function confirmAdd() {
     addCandidate.value = null
     addSearched.value = false
     await withLoading(load)
-  } catch {
-    actionError.value = '追加に失敗しました。時間をおいて再度お試しください。'
+  } catch (err) {
+    actionError.value = (err as { code?: string })?.code === 'team-disabled'
+      ? '紹介コードが無効なチームには追加できません。'
+      : '追加に失敗しました。時間をおいて再度お試しください。'
   } finally {
     addBusy.value = false
   }
@@ -255,6 +258,8 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
         <div class="flex flex-wrap items-center gap-3">
           <code class="rounded bg-slate-50 px-3 py-1.5 font-mono text-lg font-bold tracking-[.08em] dark:bg-slate-800">{{ team.code }}</code>
           <CopyIconButton :value="team.code" />
+          <!-- 招待用URL(2026-11-24 要望)。コードが無効なときは出さない(開いても登録できないため) -->
+          <CopyIconButton v-if="status === 'active'" :value="inviteUrl(team.code)" label="招待URLをコピー" text="招待URLをコピー" />
           <span
             class="rounded-full px-2.5 py-0.5 text-[11.5px] font-bold"
             :class="status === 'active' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400' : 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400'"
@@ -269,7 +274,10 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
           </button>
         </div>
         <p class="mt-2.5 text-[11.5px] text-slate-500 dark:text-slate-400">
-          無効にすると、以降このコードで新規登録できなくなります。<strong>既にメンバーの{{ members.length }}名の所属はそのまま維持されます。</strong>
+          無効にすると、以降このコードで新規登録できなくなり、管理者からもこのチームへ追加できなくなります。<strong>既にメンバーの{{ members.length }}名の所属はそのまま維持されます。</strong>
+        </p>
+        <p v-if="status === 'active'" class="mt-1 text-[11.5px] text-slate-500 dark:text-slate-400">
+          招待URLを開くと、チームと紹介コードが入った状態の会員登録画面が出ます。
         </p>
 
         <div class="mt-4 border-t border-slate-100 pt-4 dark:border-slate-800">
@@ -331,8 +339,11 @@ function sourceLabel(source: TeamMember['entitlementSource']) {
           <span v-if="members.length >= MEMBER_LIST_LIMIT" class="text-[11px] text-slate-500 dark:text-slate-400">先頭{{ MEMBER_LIST_LIMIT }}名のみ表示</span>
         </div>
 
-        <!-- 追加 -->
-        <div class="mb-4 rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+        <!-- 追加。紹介コードが無効なチームには追加させない(2026-11-24 要望) -->
+        <div v-if="status !== 'active'" class="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-400">
+          紹介コードが無効のため、このチームには会員を追加できません。追加するには、上の「有効に戻す」でコードを有効にしてください。
+        </div>
+        <div v-else class="mb-4 rounded-lg border border-slate-200 p-4 dark:border-slate-800">
           <p class="mb-2.5 text-xs font-bold text-slate-500 dark:text-slate-400">
             会員をこのチームに追加（コードを渡さずに所属だけを付けます）
           </p>

@@ -3,8 +3,10 @@
 // インラインSVGを書いているので(layouts/admin.vue参照)、それに倣っている。
 // コピー後はアイコンをチェックに差し替え、しばらくして元に戻す — 文言ではなく
 // アイコンで結果を出すぶん、aria-labelとtitleも同時に切り替えて読み上げにも伝える。
-const props = withDefaults(defineProps<{ value: string; label?: string }>(), {
-  label: 'コードをコピー'
+// text を渡すとアイコンの横に文言も出す(招待URLのコピー。コードのコピーと見分けるため。2026-11-24)。
+const props = withDefaults(defineProps<{ value: string; label?: string; text?: string }>(), {
+  label: 'コードをコピー',
+  text: ''
 })
 
 const copied = ref(false)
@@ -60,8 +62,8 @@ const title = computed(() => (copied.value ? 'コピーしました' : props.lab
 <template>
   <button
     type="button"
-    class="inline-flex h-10 w-10 flex-none items-center justify-center sm:h-8 sm:w-8 rounded-lg border border-slate-200 text-slate-500 transition-colors hover:border-slate-300 hover:text-brass-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass-700 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-gold-300"
-    :class="copied ? '!border-emerald-500/60 !text-emerald-600 dark:!text-emerald-400' : ''"
+    class="inline-flex h-10 flex-none items-center justify-center gap-1.5 sm:h-8 rounded-lg border border-slate-200 text-slate-500 transition-colors hover:border-slate-300 hover:text-brass-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass-700 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-gold-300"
+    :class="[text ? 'px-3 text-xs font-semibold' : 'w-10 sm:w-8', copied ? '!border-emerald-500/60 !text-emerald-600 dark:!text-emerald-400' : '']"
     :title="title"
     :aria-label="title"
     @click="copy"
@@ -73,5 +75,6 @@ const title = computed(() => (copied.value ? 'コピーしました' : props.lab
       <rect x="9" y="9" width="11" height="11" rx="2" />
       <path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" />
     </svg>
+    <span v-if="text" class="whitespace-nowrap">{{ copied ? 'コピーしました' : text }}</span>
   </button>
 </template>
