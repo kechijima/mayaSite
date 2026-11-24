@@ -835,6 +835,17 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
   background-size: 11px 7px;
   padding-right: 32px;
 }
+/* 管理画面のプルダウンも同じく、標準の矢印が右端に寄りすぎるので自前の矢印にする(2026-11-24 要望)。
+   矢印の色はライト・ダーク両方で見える中間のグレー。 */
+.admin-layout select {
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2394a3b8' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 11px 7px;
+  padding-right: 32px;
+}
 /* 画像のドラッグ&ドロップによる保存も抑止する(キャラクターイラスト対策)。 */
 .paper-page img { -webkit-user-drag: none; user-drag: none; }
 
