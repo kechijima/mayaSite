@@ -101,7 +101,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col bg-[#f4f5f3] text-[#132019] md:flex-row dark:bg-[#0e1512] dark:text-[#edf2ef]">
+  <div class="admin-layout flex min-h-screen flex-col bg-[#f4f5f3] text-[#132019] md:flex-row dark:bg-[#0e1512] dark:text-[#edf2ef]">
     <!-- モバイル用トップバー(md 以上では非表示) -->
     <!--
       z-50 でスクリム(z-30)とドロワー(z-40)より上に置く。ドロワーは top-14 でこのバーの下から
