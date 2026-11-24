@@ -1173,7 +1173,6 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .testhistory a { display: flex; gap: 12px; width: 100%; color: inherit; text-decoration: none; }
 .testhistory a:hover { color: var(--gold-deep); }
 .testcta__price small { margin-left: 2px; font-family: inherit; font-size: 11px; color: var(--ink-faint); }
-.testcta__price--sub { margin-top: -6px; font-size: 17px; color: var(--ink-soft); }
 .testcta__pricelabel { margin-right: 6px; font-family: "Shippori Mincho B1", serif; font-size: 12px; font-weight: 700; color: var(--ink-faint); letter-spacing: .06em; }
 
 /* 結果のぼかし(チーム会員・有料会員以外。2026-11-19)。値そのものは見せかけ(components/TestResultSheet.vue) */
