@@ -41,14 +41,9 @@ const ownResultPath = computed(() => {
 // 登録できたのか分かりにくいという指摘があったため(2026-09-07)。
 const redirectTarget = computed(() => requestedRedirect.value ?? ownResultPath.value)
 // 未ログインでこの画面に来た場合のログイン導線。戻り先(このページ+redirect)を保つ。
-// 招待用URLのコード(?code=)も引き継ぐ(ログイン後にマイページで入った状態にするため。2026-11-24)。
-const loginLink = computed(() => {
-  const params = new URLSearchParams()
-  if (typeof route.query.code === 'string' && route.query.code) params.set('code', route.query.code)
-  if (requestedRedirect.value) params.set('redirect', requestedRedirect.value)
-  const qs = params.toString()
-  return `/login?redirect=${encodeURIComponent(qs ? `/account?${qs}` : '/account')}`
-})
+const loginLink = computed(() =>
+  `/login?redirect=${encodeURIComponent(requestedRedirect.value ? `/account?redirect=${encodeURIComponent(requestedRedirect.value)}` : '/account')}`
+)
 
 // 3状態: 利用停止(入力できない) / 所属中(紹介コード欄そのものを出さない) / 未所属(入力できる)。
 // 利用停止はルール側でもコード登録を拒否するので、入力欄を出しても必ず失敗する。

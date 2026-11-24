@@ -3,7 +3,7 @@
 // インラインSVGを書いているので(layouts/admin.vue参照)、それに倣っている。
 // コピー後はアイコンをチェックに差し替え、しばらくして元に戻す — 文言ではなく
 // アイコンで結果を出すぶん、aria-labelとtitleも同時に切り替えて読み上げにも伝える。
-// text を渡すとアイコンの横に文言も出す(招待URLのコピー。コードのコピーと見分けるため。2026-11-24)。
+// text を渡すとアイコンの横に文言も出す(紹介コード・登録画面URLのコピー。何をコピーするか分かるように。2026-11-24)。
 const props = withDefaults(defineProps<{ value: string; label?: string; text?: string }>(), {
   label: 'コードをコピー',
   text: ''

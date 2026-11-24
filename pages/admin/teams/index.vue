@@ -5,7 +5,7 @@ import {
   createTeam,
   fetchCodeStatus,
   fetchTeams,
-  inviteUrl,
+  referralSignupUrl,
   type ReferralTeam
 } from '~/utils/referralTeamAdmin'
 
@@ -17,6 +17,9 @@ interface TeamRow extends ReferralTeam {
 }
 
 const { withLoading } = useGlobalLoading()
+// window.location を使うので、マウント後に組み立てる
+const signupUrl = ref('/signup/referral')
+onMounted(() => (signupUrl.value = referralSignupUrl()))
 
 const rows = ref<TeamRow[]>([])
 const loading = ref(true)
@@ -106,8 +109,20 @@ function signupChip(row: TeamRow) {
     <div class="mb-6">
       <h1 class="text-xl font-bold">チーム管理</h1>
       <span class="text-xs text-slate-500 dark:text-slate-400">
-        チームを作成すると紹介コードが1つ発行されます。コードを入力した会員はそのチームに所属し、所属している間はチーム会員として扱われます。「登録画面」が「選択肢に表示」のチームは、紹介コード付き会員登録ページのチーム選択に出て、選ぶとコードが自動で入ります。それ以外のチームは「その他」を選んでコードを入力すると所属できます（切り替えはチームの詳細画面）。「招待URL」をコピーして送ると、チームと紹介コードが入った状態の会員登録画面を開いてもらえます（コードが有効なチームのみ）。
+        チームを作成すると紹介コードが1つ発行されます。コードを入力した会員はそのチームに所属し、所属している間はチーム会員として扱われます。「登録画面」が「選択肢に表示」のチームは、紹介コード付き会員登録ページのチーム選択に出て、選ぶとコードが自動で入ります。それ以外のチームは「その他」を選んでコードを入力すると所属できます（切り替えはチームの詳細画面）。
       </span>
+    </div>
+
+    <!-- 紹介コード付き会員登録ページのURL(2026-11-24 要望)。コードと一緒に配る用 -->
+    <div class="mb-4 rounded-xl border border-slate-200 bg-white p-5.5 dark:border-slate-800 dark:bg-slate-900">
+      <p class="mb-2 text-sm font-bold">紹介コードで会員登録する画面のURL</p>
+      <div class="flex flex-wrap items-center gap-3">
+        <code class="min-w-0 max-w-full break-all rounded bg-slate-50 px-3 py-1.5 font-mono text-[12.5px] text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ signupUrl }}</code>
+        <CopyIconButton :value="signupUrl" label="URLをコピー" text="URLをコピー" />
+      </div>
+      <p class="mt-2 text-[11.5px] text-slate-500 dark:text-slate-400">
+        このURLと紹介コードを一緒に送ってください。開いた画面でチームを選び、紹介コードを入力すると、チーム会員として登録できます。
+      </p>
     </div>
 
     <!-- 作成 -->
@@ -172,12 +187,6 @@ function signupChip(row: TeamRow) {
             <template #badge>
               <span class="rounded-full px-2.5 py-0.5 text-[11.5px] font-bold" :class="statusChip(row.status)">{{ statusLabel(row.status) }}</span>
             </template>
-            <!-- 招待用URL(2026-11-24 要望)。カード全体が詳細へのリンクなので、押しても遷移しないよう止める -->
-            <template v-if="row.status === 'active'" #actions>
-              <span @click.stop.prevent>
-                <CopyIconButton :value="inviteUrl(row.code)" label="招待URLをコピー" text="招待URLをコピー" />
-              </span>
-            </template>
           </AdminRecordCard>
         </ul>
         <div class="hidden max-h-[70vh] overflow-auto lg:block">
@@ -189,8 +198,7 @@ function signupChip(row: TeamRow) {
                 <th class="pb-2.5 pr-3">状態</th>
                 <th class="pb-2.5 pr-3">登録画面</th>
                 <th class="pb-2.5 pr-3 text-right">メンバー</th>
-                <th class="pb-2.5 pr-3">作成日</th>
-                <th class="pb-2.5">招待URL</th>
+                <th class="pb-2.5">作成日</th>
               </tr>
             </thead>
             <tbody>
@@ -204,12 +212,7 @@ function signupChip(row: TeamRow) {
                   <span class="rounded-full px-2.5 py-0.5 text-[11.5px] font-bold" :class="signupChip(row)">{{ signupLabel(row) }}</span>
                 </td>
                 <td class="py-2.5 pr-3 text-right tabular-nums">{{ row.members }}</td>
-                <td class="py-2.5 pr-3 tabular-nums text-slate-500 dark:text-slate-400">{{ formatDate(row) }}</td>
-                <!-- 行クリックで詳細へ遷移するので、コピーボタンのクリックは行に伝えない。コードが無効なチームは出さない -->
-                <td class="py-2.5" @click.stop>
-                  <CopyIconButton v-if="row.status === 'active'" :value="inviteUrl(row.code)" label="招待URLをコピー" text="URLをコピー" />
-                  <span v-else class="text-slate-400">—</span>
-                </td>
+                <td class="py-2.5 tabular-nums text-slate-500 dark:text-slate-400">{{ formatDate(row) }}</td>
               </tr>
             </tbody>
           </table>

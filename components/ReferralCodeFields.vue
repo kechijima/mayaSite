@@ -12,7 +12,6 @@ const props = defineProps<{
 }>()
 
 import { OTHER_TEAM_ID } from '~/composables/usePublicTeams'
-import { normalizeCode } from '~/utils/referralCode'
 
 const { teams, pending, error: teamsError } = usePublicTeams()
 // 選択肢は「登録画面に出す」設定のチーム(吉田チームなど)+「その他」(2026-11-19 要望)。
@@ -45,28 +44,6 @@ watch(
     if (props.referral.code.value) validateQuietly()
     else props.referral.reset()
   }
-)
-
-// 招待用URL(?code=。管理画面のチーム管理でコピーする。2026-11-24 要望)から来たら、チームとコードを入れておく。
-// 選択肢に出すチームのコードならそのチームを選び、それ以外は「その他」+ コード(コードからチームが決まる)。
-// チーム一覧が届いてから1回だけ行う。上の watch で照合まで走る(このため watch より後に置く)。
-const route = useRoute()
-const invitedCode = typeof route.query.code === 'string' ? normalizeCode(route.query.code) : ''
-let inviteApplied = !invitedCode
-watch(
-  [pending, teams],
-  () => {
-    if (inviteApplied || pending.value) return
-    inviteApplied = true
-    const team = teams.value.find((t) => t.code === invitedCode)
-    if (team) {
-      props.referral.selectedTeamId.value = team.id
-      return
-    }
-    props.referral.input.value = invitedCode
-    props.referral.selectedTeamId.value = OTHER_TEAM_ID
-  },
-  { immediate: true }
 )
 </script>
 
