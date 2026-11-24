@@ -65,7 +65,8 @@ export interface TestProductCard {
   key: 'basic' | 'oracle' | 'guide'
   name: string
   price: number | null // 税込の円。null なら価格を出さない
-  // 非会員価格(税込の円)。null なら出さない。2026-11-19 要望で会員価格と並べて表示する
+  // 非会員価格(税込の円)。null なら price を全員に出す。設定があれば、有料会員・チーム会員には price、
+  // それ以外には nonMemberPrice の1つだけを出す(components/TestResultSheet.vue。2026-11-24 要望)
   nonMemberPrice: number | null
   url: string // 外部の購入ページ。別タブで開く
   comingSoon: boolean // true ならリンクにせず Coming soon と出す

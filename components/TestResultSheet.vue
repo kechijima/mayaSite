@@ -89,8 +89,23 @@ const feedbackItems = computed(() =>
 // 読み込み(フィードバック文・表示設定)が終わったら is-open を付けて、上から開くアニメーションを始める。
 const scrollStyle = { '--scroll-img': `url(${scrollImage})` }
 
+// 講座の価格は会員かどうかで出し分ける(2026-11-24 要望。それまでは会員・非会員の両方を併記)。
+// 会員 = 有料会員・チーム会員(利用停止でない)には会員価格、それ以外(無料会員・未ログイン・利用停止中)には
+// 非会員価格。非会員価格が未設定の講座は全員に同じ価格を出す。
+// 会員かどうかは locked の逆を使う(呼び出し側の useTestAccess で locked = access !== 'ok'、ok = 有料会員・チーム会員)。
+// ここで useEntitlement を呼ぶと、マウントのたびに判定の読み込みがやり直しになり、読み込み中は呼び出し側が
+// 「通信中…」で結果を隠す → 結果が出るとまた読み込む、の繰り返しで止まる(2026-11-24 に発生)ので呼ばない。
+const isMember = computed(() => !props.locked)
 const products = computed(() =>
-  settings.value.products.map((p) => ({ ...p, href: !p.comingSoon && isSafeExternalUrl(p.url) ? p.url.trim() : null }))
+  settings.value.products.map((p) => {
+    const split = p.price !== null && p.nonMemberPrice !== null
+    return {
+      ...p,
+      href: !p.comingSoon && isSafeExternalUrl(p.url) ? p.url.trim() : null,
+      shownPrice: !split ? p.price : isMember.value ? p.price : p.nonMemberPrice,
+      priceLabel: split ? (isMember.value ? '会員価格' : '非会員価格') : null
+    }
+  })
 )
 </script>
 
@@ -170,15 +185,10 @@ const products = computed(() =>
             <li v-for="p in products" :key="p.key" class="testcta__card" :class="{ 'is-soon': p.comingSoon }">
               <span v-if="p.comingSoon" class="testcta__soon">Coming soon</span>
               <p class="testcta__name">{{ p.name }}</p>
-              <template v-if="!p.comingSoon">
-                <p v-if="p.price !== null" class="testcta__price">
-                  <span v-if="p.nonMemberPrice !== null" class="testcta__pricelabel">会員</span>￥{{ p.price.toLocaleString('ja-JP') }}<small>（税込）</small>
-                </p>
-                <!-- 非会員価格を併記(2026-11-19 要望) -->
-                <p v-if="p.nonMemberPrice !== null" class="testcta__price testcta__price--sub">
-                  <span class="testcta__pricelabel">非会員</span>￥{{ p.nonMemberPrice.toLocaleString('ja-JP') }}<small>（税込）</small>
-                </p>
-              </template>
+              <!-- 会員(有料会員・チーム会員)には会員価格、それ以外には非会員価格の1つだけ(2026-11-24 要望) -->
+              <p v-if="!p.comingSoon && p.shownPrice !== null" class="testcta__price">
+                <span v-if="p.priceLabel" class="testcta__pricelabel">{{ p.priceLabel }}</span>￥{{ p.shownPrice.toLocaleString('ja-JP') }}<small>（税込）</small>
+              </p>
               <a v-if="p.href" :href="p.href" target="_blank" rel="noopener noreferrer" class="btn-gold">詳しく見る</a>
               <span v-else class="testcta__disabled">{{ p.comingSoon ? '準備中です' : 'ご案内準備中' }}</span>
             </li>

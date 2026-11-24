@@ -151,12 +151,12 @@ const inputClass = 'w-full rounded-lg border border-slate-200 bg-white p-2.5 tex
               <input v-model="p.name" type="text" :class="inputClass" />
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">会員価格（税込・円、空欄なら表示しない）</span>
+              <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">会員価格（税込・円。有料会員・チーム会員に表示。空欄なら価格を出さない）</span>
               <input v-model="priceInputs[i]" type="text" inputmode="numeric" placeholder="5400" :class="inputClass" />
               <span class="text-[11px] text-slate-400">表示：{{ pricePreview(priceInputs, i) }}</span>
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">非会員価格（税込・円、空欄なら表示しない）</span>
+              <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">非会員価格（税込・円。無料会員・未ログインの人に表示。空欄なら会員価格を全員に表示）</span>
               <input v-model="nonMemberPriceInputs[i]" type="text" inputmode="numeric" placeholder="51400" :class="inputClass" />
               <span class="text-[11px] text-slate-400">表示：{{ pricePreview(nonMemberPriceInputs, i) }}</span>
             </label>
