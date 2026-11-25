@@ -1,19 +1,22 @@
 // 利用規約・プライバシーポリシー・特定商取引法に基づく表記で共通に使う運営者情報と日付。
 // 3ページで食い違わないよう、運営者名・連絡先・制定日はここだけで管理する。
-// 「（準備中）」のものは決まりしだいここを書き換える(各ページ側は触らなくてよい)。
+// 変えるときはここだけ書き換える(各ページ側は触らなくてよい)。
 // 価格は utils/checkout.ts の PLANS を各ページが直接参照する(二重管理しない)。
+// 2026-11-25: 運営統括責任者・所在地・電話番号・メールアドレスを、確認表(JMBマヤ暦 規約・表記の確認表)の回答で埋めた。
+// 所在地と電話番号は公開せず「請求があれば遅滞なく開示します」とする(回答どおり)。
 
-export const PENDING = '（準備中）'
+const DISCLOSED_ON_REQUEST = '請求があれば遅滞なく開示します'
 
 export const OPERATOR = {
   /** サイト名(規約上の「本サービス」の呼び名) */
   serviceName: 'JMBマヤ暦 無料診断',
   /** 運営者名。フッターの著作権表示と同じ名義 */
   name: 'マヤ暦実行委員会',
-  representative: PENDING,
-  address: PENDING,
-  phone: PENDING,
-  email: PENDING
+  representative: '吉田　抽香里',
+  address: DISCLOSED_ON_REQUEST,
+  phone: DISCLOSED_ON_REQUEST,
+  /** お問い合わせ窓口を兼ねる(特定商取引法に基づく表記・プライバシーポリシー) */
+  email: 'jmbmayacalendar@gmail.com'
 } as const
 
 export interface LegalDates {
